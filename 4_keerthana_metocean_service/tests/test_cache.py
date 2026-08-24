@@ -28,16 +28,55 @@ from metocean.status import ProviderStatusTracker
 
 
 def create_mock_netcdf_file(path: Path, data_type: str = "currents", corrupted: bool = False) -> Path:
-    """Create a minimal mock NetCDF file for testing."""
+    """Create a mock NetCDF file for testing.
+
+    This writes a REAL NetCDF with the contract's dimensions and variables --
+    `uo`/`vo` for currents, `u10`/`v10` for wind, all on `(time, lat, lon)`.
+
+    It previously wrote only the magic bytes `CDF\\x02` followed by zeros. That
+    passed `validate_cached_netcdf` only because the validator skips its deep
+    schema check when xarray is not importable; with xarray installed the same
+    fixture fails, because a header with no dimensions is not a valid dataset.
+
+    A fixture that only satisfies a disabled code path tests nothing. Worse, it
+    hid the fact that cache validation degrades to a header-only check in any
+    environment missing xarray -- so a corrupt file with the right first four
+    bytes would have been served to the drift engine as valid forcing data.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     if corrupted:
-        # Corrupted garbage bytes
         with open(path, "wb") as f:
             f.write(b"CORRUPTED_NOT_NETCDF_DATA")
-    else:
-        # Valid NetCDF-3 / NetCDF-4 magic signature
+        return path
+
+    try:
+        import numpy as np
+        import xarray as xr
+    except ImportError:  # keep the old behaviour where xarray is unavailable
         with open(path, "wb") as f:
             f.write(b"CDF\x02" + b"\x00" * 64)
+        return path
+
+    times = np.array(["2017-01-31T00:00:00", "2017-01-31T06:00:00",
+                      "2017-01-31T12:00:00"], dtype="datetime64[ns]")
+    lats = np.linspace(12.70, 13.55, 6)
+    lons = np.linspace(79.90, 80.75, 6)
+    shape = (len(times), len(lats), len(lons))
+    rng = np.random.default_rng(1337)
+
+    names = ("uo", "vo") if data_type == "currents" else ("u10", "v10")
+    units = "m s-1"
+    ds = xr.Dataset(
+        {
+            names[0]: (("time", "lat", "lon"), rng.normal(0, 0.3, shape).astype("float32"),
+                       {"units": units, "standard_name": f"eastward_{data_type}"}),
+            names[1]: (("time", "lat", "lon"), rng.normal(0, 0.3, shape).astype("float32"),
+                       {"units": units, "standard_name": f"northward_{data_type}"}),
+        },
+        coords={"time": times, "lat": lats, "lon": lons},
+    )
+    ds.to_netcdf(path)
+    ds.close()
     return path
 
 

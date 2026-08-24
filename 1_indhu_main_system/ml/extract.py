@@ -43,13 +43,40 @@ def free_bytes(path: Path) -> int:
     return shutil.disk_usage(path).free
 
 
+IMAGE_TREE_HINTS = ("image", "img", "scene")
+
+
+def is_self_contained(archive: Path) -> bool:
+    """True if the archive already holds BOTH an image tree and a mask tree.
+
+    Trujillo Part III ships as one archive containing `Images/{Oil,Lookalike,
+    No oil}` alongside `Mask/{Oil,Lookalike,No oil}`. Classifying it by
+    filename would be actively wrong -- it is called
+    `02_Test_images_and_ground_truth`, which matches the mask hint, so every
+    one of its 900 files would land in `masks/` and nothing would pair.
+
+    When both trees are present the internal layout is already what the pairing
+    logic expects, so it is extracted verbatim.
+    """
+    try:
+        import py7zr
+
+        with py7zr.SevenZipFile(archive, mode="r") as z:
+            tops = {n.split("/")[0].lower() for n in z.getnames() if "/" in n}
+    except Exception:
+        return False
+    has_masks = any(any(h in t for h in MASK_ARCHIVE_HINTS) for t in tops)
+    has_images = any(any(h in t for h in IMAGE_TREE_HINTS) for t in tops)
+    return has_masks and has_images
+
+
 def classify(archive: Path) -> str:
     """images vs masks, from the archive name.
 
-    A 'ground truth' archive holds masks; an archive whose name mentions neither
-    is assumed to be imagery, which is the safe default -- a mistake there is
-    caught immediately by the audit, whereas mislabelling masks as images would
-    silently produce unpaired data.
+    Only consulted for archives that hold one or the other. A 'ground truth'
+    archive holds masks; one mentioning neither is assumed to be imagery, the
+    safe default -- a mistake there surfaces immediately in the audit, whereas
+    mislabelling masks as images would silently produce unpaired data.
     """
     name = archive.name.lower()
     return "masks" if any(h in name for h in MASK_ARCHIVE_HINTS) else "images"
@@ -122,9 +149,14 @@ def extract_part(part: int, discard: bool, list_only: bool) -> int:
     # Masks first: they are tiny, and if their layout is surprising we find out
     # in seconds rather than after unpacking 38 GB of imagery.
     for archive in sorted(archives, key=lambda a: (classify(a) != "masks", a.name)):
-        kind = classify(archive)
+        if is_self_contained(archive):
+            print(f"  {archive.name}: contains both image and mask trees, "
+                  f"extracting verbatim")
+            dest = src
+        else:
+            dest = src / classify(archive)
         try:
-            extract_archive(archive, src / kind, discard)
+            extract_archive(archive, dest, discard)
         except Exception as exc:
             print(f"    FAILED: {exc}")
             return 2

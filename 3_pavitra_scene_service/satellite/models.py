@@ -99,6 +99,23 @@ class SceneMetadata(BaseModel):
         default=None, description="Source provider direct download URL"
     )
 
+    # --- frozen-contract fields -------------------------------------------
+    # scene_meta.json is what detection and every downstream stage read. The
+    # fields above are provider bookkeeping the contract does not care about;
+    # these are the ones it requires. db_range in particular is not optional
+    # in practice: /detect compares it against the dB range the model was
+    # trained on, and a mismatch is the silent SAR domain-gap failure.
+    crs: str = Field(default="EPSG:4326", description="Contract requires WGS84")
+    db_range: Optional[List[float]] = Field(
+        default=None,
+        description="[db_min, db_max] Sigma0 clip range baked into the GeoTIFF, e.g. [-35.0, 0.0]",
+    )
+    provider_used: Optional[str] = Field(
+        default=None, description="CDSE | ASF | LocalCache — which chain member served this"
+    )
+    source: str = Field(default="real", description="real | cached | synthetic — drives the UI badge")
+    pixel_spacing_m: Optional[float] = Field(default=None, description="Ground pixel size")
+
     @field_validator("acquisition_time", mode="after")
     @classmethod
     def validate_utc_datetime(cls, v: datetime) -> datetime:
@@ -125,6 +142,47 @@ class SceneMetadata(BaseModel):
         if isinstance(self.bbox, GeoBoundingBox):
             return self.bbox.to_list()
         return list(self.bbox)
+
+    def to_contract(self, db_range: Optional[List[float]] = None) -> Dict[str, Any]:
+        """Emit `scene_meta.json` exactly as the frozen contract defines it.
+
+        This model carries provider bookkeeping (checksum, download URL, file
+        size) that the rest of the pipeline neither needs nor understands. The
+        contract is the narrower, stable shape everyone downstream reads, so
+        translation happens here rather than leaking provider details across
+        the boundary.
+
+        Field names differ deliberately: the contract uses `acquired_utc`, not
+        `acquisition_time`. Renaming inside this method keeps the service's own
+        vocabulary intact while still honouring the contract.
+        """
+        rng = db_range or self.db_range or [-35.0, 0.0]
+        payload: Dict[str, Any] = {
+            "scene_id": self.scene_id,
+            "acquired_utc": self.acquisition_time.astimezone(timezone.utc)
+                                .strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "bbox": self.bbox_list,
+            "crs": self.crs,
+            "db_range": [float(rng[0]), float(rng[1])],
+            "file_path": self.file_path or "",
+            "provider_used": self.provider_used or "unknown",
+            "source": self.source,
+        }
+        if self.pixel_spacing_m is not None:
+            payload["pixel_spacing_m"] = self.pixel_spacing_m
+        if self.polarisation is not None:
+            payload["polarisation"] = self.polarisation
+        return payload
+
+    def write_contract(self, path: Any, db_range: Optional[List[float]] = None) -> Any:
+        """Write `scene_meta.json` to disk. The unit downstream stages consume."""
+        import json
+        from pathlib import Path as _Path
+
+        p = _Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(self.to_contract(db_range), indent=2), encoding="utf-8")
+        return p
 
 
 class SceneSearchResult(BaseModel):

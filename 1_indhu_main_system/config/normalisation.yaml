@@ -22,10 +22,19 @@ sar:
   # These pixels are clipped to db_min and excluded from loss.
   nodata_db: -999.0
 
-  # Bands expected in a prepared scene. Trujillo ships 2-band rasters;
-  # `primary_band` is the one the segmenter consumes (1-indexed, as rasterio).
-  # Confirm against real data with `python -m ml.audit` before preparing tiles.
-  primary_band: 1
+  # Which band the segmenter consumes (1-indexed, as rasterio).
+  #
+  # Trujillo ships 2-band rasters. Measured over 12 oil scenes in Part III,
+  # comparing mean dB inside the mask against outside:
+  #
+  #     band 1:  oil -29.13, sea -27.68  ->  damping  1.45 dB   (cross-pol)
+  #     band 2:  oil -27.41, sea -19.29  ->  damping  8.12 dB   (co-pol, VV-like)
+  #
+  # Band 2 it is. 1.45 dB is within speckle noise -- a model trained on band 1
+  # would have had almost no signal to learn from, and would have failed
+  # quietly rather than loudly. Re-measure with `python -m ml.audit` if the
+  # dataset is ever re-prepared.
+  primary_band: 2
 
 tiling:
   tile_size: 256          # model input size; batch 12-16 fits 6 GB VRAM at fp16

@@ -166,28 +166,49 @@ class TestSatelliteModels(unittest.TestCase):
         self.assertIsNotNone(response.metadata)
         self.assertEqual(response.metadata.scene_id, "S1A_IW_GRDH_1SDV_20231012T172530")
 
-    def test_12_contract_compatibility_mock_scene(self):
-        """12. Test contract compatibility using existing contracts/mocks/mock_scene.json (read-only)."""
-        project_root = os.path.abspath(os.path.join(module_root, ".."))
-        mock_scene_path = os.path.join(project_root, "contracts", "mocks", "mock_scene.json")
+    def test_12_contract_compatibility_scene_meta(self):
+        """12. What this service emits must satisfy the frozen scene_meta.json contract.
 
-        self.assertTrue(
-            os.path.exists(mock_scene_path),
-            f"Expected contract mock file at {mock_scene_path}",
+        Previously this validated against contracts/mocks/mock_scene.json, a
+        placeholder using platform/acquisition_time that predated the frozen
+        contract and has since been removed. Reading a mock proved nothing
+        anyway -- what matters is that our OUTPUT is contract-valid, which is
+        what this now asserts, against the contract's own Pydantic schema.
+        """
+        project_root = os.path.abspath(os.path.join(module_root, ".."))
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
+        from contracts.schemas import SceneMeta
+
+        scene = SceneMetadata(
+            scene_id="S1A_IW_GRDH_1SDV_20231012T172530",
+            platform="Sentinel-1A",
+            acquisition_time=datetime(2023, 10, 12, 17, 25, 30, tzinfo=timezone.utc),
+            bbox=[2.5, 51.5, 3.2, 52.1],
+            file_path="data/scenes/S1A_IW_GRDH_1SDV_20231012T172530/scene_sigma0_db.tif",
+            provider_used="CDSE",
+            db_range=[-35.0, 0.0],
+            polarisation="VV",
         )
 
-        with open(mock_scene_path, "r", encoding="utf-8") as f:
-            raw_mock = json.load(f)
+        payload = scene.to_contract()
+        validated = SceneMeta.model_validate(payload)
 
-        # Validate mock data against SceneMetadata model
-        scene_model = SceneMetadata.model_validate(raw_mock)
-        self.assertEqual(scene_model.scene_id, "S1A_IW_GRDH_1SDV_20231012T172530")
-        self.assertEqual(scene_model.platform, "Sentinel-1A")
-        self.assertEqual(scene_model.bbox_list, [2.5, 51.5, 3.2, 52.1])
+        self.assertEqual(validated.scene_id, "S1A_IW_GRDH_1SDV_20231012T172530")
+        self.assertEqual(validated.bbox, [2.5, 51.5, 3.2, 52.1])
+        self.assertEqual(validated.crs, "EPSG:4326")
+        self.assertEqual(validated.db_range, [-35.0, 0.0])
+        self.assertEqual(validated.provider_used, "CDSE")
+        # The contract renames this field; the service keeps its own vocabulary.
         self.assertEqual(
-            scene_model.acquisition_time,
+            validated.acquired_utc,
             datetime(2023, 10, 12, 17, 25, 30, tzinfo=timezone.utc),
         )
+        # And the shipped mock must satisfy the same schema.
+        mock_path = os.path.join(project_root, "contracts", "mocks", "scene_meta.json")
+        self.assertTrue(os.path.exists(mock_path), f"missing contract mock: {mock_path}")
+        with open(mock_path, "r", encoding="utf-8") as f:
+            SceneMeta.model_validate(json.load(f))
 
 
 if __name__ == "__main__":

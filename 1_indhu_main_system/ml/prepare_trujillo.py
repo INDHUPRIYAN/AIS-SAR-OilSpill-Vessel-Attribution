@@ -135,8 +135,7 @@ def prepare_part(part: int, split: str, discard: bool, dry_run: bool,
         print("  nothing to tile (unpacked yet? run ml.audit to inspect)")
         return {"part": part, "ok": False}
 
-    filter_tiles = split != "test"
-    if filter_tiles:
+    if split != "test":
         rule = (f">={cfg.tiling.min_oil_fraction * 100:.1f}% oil "
                 f"+ {cfg.tiling.hard_negative_ratio:g}x matched hard negatives")
     else:
@@ -146,11 +145,28 @@ def prepare_part(part: int, split: str, discard: bool, dry_run: bool,
         print("  --dry-run: stopping before writing")
         return {"part": part, "ok": True, "pairs": len(pairs), "dry_run": True}
 
+    result = _tile_pairs(pairs, split, cfg, seed, part, False, src_root)
+
+    if discard:
+        print(f"  --discard: removing source {src_root}")
+        shutil.rmtree(src_root)
+        print("  source deleted (tiles retained)")
+    return {"part": part, "ok": True, **result}
+
+
+def _tile_pairs(pairs, split: str, cfg, seed: int, part, poc_holdout: bool,
+                src_root) -> dict:
+    """Tile a set of (image, mask) pairs into one cache. Shared by both the
+    normal path and the POC holdout, so the two cannot drift apart."""
+    t, stride = cfg.tiling.tile_size, cfg.tiling.stride
+    out_dir = TILES_ROOT / split
+    filter_tiles = split != "test"
+
     rng = random.Random(seed)
     writer = TileWriter(out_dir, t)
     kept_oil = kept_neg = seen = 0
 
-    for img_p, mask_p in tqdm(pairs, desc=f"  part{part}", unit="scene", disable=None):
+    for img_p, mask_p in tqdm(pairs, desc=f"  {split}", unit="scene", disable=None):
         try:
             img_arr, _ = read_raster(img_p)
             mask_arr, _ = read_raster(mask_p)
@@ -164,7 +180,11 @@ def prepare_part(part: int, split: str, discard: bool, dry_run: bool,
             print(f"\n  SKIP {img_p.name}: image {band.shape} != mask {mask.shape}")
             continue
 
-        scene = img_p.stem
+        # Category-qualified, because Trujillo reuses the same numeric stems in
+        # Oil / Lookalike / No oil. A bare stem would make `00000` from three
+        # different scenes look like one scene, and the by-scene train/val
+        # split would then leak near-duplicate tiles across the boundary.
+        scene = f"{img_p.parent.name}/{img_p.stem}"
         img_u8 = db_to_uint8(band, cfg)
 
         oil_tiles, neg_tiles = [], []
@@ -192,23 +212,74 @@ def prepare_part(part: int, split: str, discard: bool, dry_run: bool,
                 writer.add(itile, mtile, scene, r, c, frac, "hard_negative")
                 kept_neg += 1
 
-    writer.finalise({
+    meta = {
         "dataset": "trujillo", "part": part, "split": split,
         "source": str(src_root), "config_fingerprint": cfg.fingerprint,
         "db_min": cfg.sar.db_min, "db_max": cfg.sar.db_max,
         "primary_band": cfg.sar.primary_band, "seed": seed,
         "filtered": filter_tiles, "scenes": len(pairs),
         "tiles_examined": seen, "oil_tiles": kept_oil, "negative_tiles": kept_neg,
-    })
+    }
+    if poc_holdout:
+        # Stamped so a later reader cannot mistake a POC figure for the real
+        # untouched-test number.
+        meta["poc_holdout"] = True
+        meta["WARNING"] = ("carved out of Part III itself; metrics are POC "
+                           "figures, re-measure once Parts I-II are prepared")
+    writer.finalise(meta)
     print(f"  examined {seen} tiles -> kept {kept_oil} oil + {kept_neg} negative")
+    return {"tiles": writer.n, "oil": kept_oil, "negative": kept_neg}
 
-    if discard:
-        print(f"  --discard: removing source {src_root}")
-        shutil.rmtree(src_root)
-        print("  source deleted (tiles retained)")
 
-    return {"part": part, "ok": True, "tiles": writer.n,
-            "oil": kept_oil, "negative": kept_neg}
+def prepare_poc_holdout(part: int, test_fraction: float, seed: int, dry_run: bool) -> dict:
+    """Carve ONE part into its own trainval/test caches, split BY SCENE.
+
+    The proper protocol trains on Parts I-II and keeps Part III untouched. Parts
+    I-II are 80 GB and roughly a day of downloading, so for a POC this splits
+    Part III against itself instead.
+
+    That produces an internally valid experiment -- no scene appears in both
+    halves -- but the resulting IoU is NOT the headline number the handbook
+    asks for, because the test scenes are no longer untouched by the training
+    protocol. Anything measured this way must be reported as a POC figure and
+    re-measured once Parts I-II land. The cache metadata records
+    `poc_holdout: true` so this cannot be forgotten later.
+    """
+    cfg = load_config()
+    src_root = DATA_ROOT / "raw" / "trujillo" / f"part{part}"
+    files = sorted(p for p in src_root.rglob("*") if p.suffix in RASTER_EXT)
+    pairs = [(i, m) for i, m in pair_files(files)[0] if m is not None]
+    if not pairs:
+        print("  no image/mask pairs found -- run ml.extract and ml.audit first")
+        return {"ok": False}
+
+    # Split by scene identity (category + stem), never by tile.
+    from ml.audit import category_of, normalise_stem
+
+    scenes = sorted({f"{category_of(i)}/{normalise_stem(i)}" for i, _ in pairs})
+    rng = random.Random(seed)
+    rng.shuffle(scenes)
+    n_test = max(1, int(round(len(scenes) * test_fraction)))
+    test_scenes = set(scenes[:n_test])
+
+    groups = {"test": [], "trainval": []}
+    for i, m in pairs:
+        key = f"{category_of(i)}/{normalise_stem(i)}"
+        groups["test" if key in test_scenes else "trainval"].append((i, m))
+
+    print(f"\n=== POC holdout of Part {part} ===")
+    print(f"  {len(scenes)} scenes -> {len(groups['trainval'])} trainval / "
+          f"{len(groups['test'])} test  (split by scene, seed {seed})")
+    print(f"  NOTE: metrics from this are POC figures, not the untouched-test "
+          f"number.")
+    if dry_run:
+        return {"ok": True, "dry_run": True}
+
+    out = {}
+    for split, subset in groups.items():
+        out[split] = _tile_pairs(subset, split, cfg, seed, part,
+                                 poc_holdout=True, src_root=src_root)
+    return {"ok": True, **out}
 
 
 def main(argv=None) -> int:
@@ -219,9 +290,20 @@ def main(argv=None) -> int:
                     help="Default: test for part 3, trainval for parts 1-2.")
     ap.add_argument("--discard", action="store_true",
                     help="Delete the source archive after tiling (parts 1-2).")
+    ap.add_argument("--poc-holdout", type=float, default=None, metavar="FRACTION",
+                    help="Split THIS part by scene into trainval+test caches, "
+                         "e.g. 0.2. For POC use when Parts I-II are unavailable; "
+                         "the resulting metrics are not the untouched-test number.")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--seed", type=int, default=1337)
     args = ap.parse_args(argv)
+
+    if args.poc_holdout is not None:
+        if not 0.0 < args.poc_holdout < 1.0:
+            print("--poc-holdout must be between 0 and 1")
+            return 2
+        prepare_poc_holdout(args.part, args.poc_holdout, args.seed, args.dry_run)
+        return 0
 
     split = args.split or ("test" if args.part == 3 else "trainval")
     if args.discard and args.part == 3:

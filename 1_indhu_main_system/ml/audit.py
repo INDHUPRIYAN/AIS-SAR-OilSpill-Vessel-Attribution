@@ -31,7 +31,10 @@ RASTER_EXT = {".tif", ".tiff", ".TIF", ".TIFF"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp"}
 
 # Filename fragments that mark a file as the label rather than the image.
-MASK_HINTS = ("mask", "label", "gt", "ground_truth", "target", "annot", "_m.")
+# "segmentation" matters for Trujillo, whose masks are `00000_segmentation.tif`
+# against images named `00000.tif`; without it nothing pairs.
+MASK_HINTS = ("segmentation", "ground_truth", "groundtruth", "mask", "label",
+              "annot", "target", "_gt", "_seg", "_m.")
 
 
 def looks_like_mask(path: Path) -> bool:
@@ -95,45 +98,61 @@ def in_mask_dir(path: Path) -> bool:
     return any(part.lower() in MASK_DIRS for part in path.parts)
 
 
-def normalise_stem(p: Path) -> str:
-    """Strip mask-ish decorations so `scene_042.tif` and `scene_042_mask.tif`
-    collapse to the same key."""
-    s = p.stem.lower()
+def _strip_hints(text: str) -> str:
+    s = text.lower()
     for h in MASK_HINTS:
         s = s.replace(h.strip("_."), "")
     return s.strip("_-. ")
 
 
-def pair_files(files: list[Path]) -> tuple[list[tuple[Path, Path]], list[Path]]:
-    """Match images to masks, tolerating either on-disk layout.
+def normalise_stem(p: Path) -> str:
+    """Strip mask-ish decorations so `00000.tif` and `00000_segmentation.tif`
+    collapse to the same key."""
+    return _strip_hints(p.stem)
 
-    Trujillo ships images and masks as separate archives, so a mask is
-    identified either by its filename or by living under a mask directory.
-    Matching is by normalised stem, which survives arbitrary nesting; a
-    same-relative-path lookup is tried as a fallback for datasets that mirror
-    their directory structure exactly.
+
+def category_of(p: Path) -> str:
+    """The class folder a file sits in, with mask decorations stripped.
+
+    Trujillo Part III reuses the SAME numeric filenames across its three
+    categories: `Images/Oil/00000.tif`, `Images/Lookalike/00000.tif` and
+    `Images/No oil/00000.tif` all exist. Matching on stem alone would happily
+    pair an oil image with a look-alike's mask -- training on labels belonging
+    to a different image, which no metric would reveal.
+
+    So the category is part of the key. It is normalised the same way stems
+    are, so a `.../masks/02_Test_gt/` tree still lines up with `.../images/
+    02_Test/`.
     """
-    masks = [f for f in files if in_mask_dir(f) or looks_like_mask(f)]
-    images = [f for f in files if f not in set(masks)]
+    return _strip_hints(p.parent.name)
 
-    mask_by_stem: dict[str, Path] = {}
+
+def pair_files(files: list[Path]) -> tuple[list[tuple[Path, Path]], list[Path]]:
+    """Match images to masks, tolerating the layouts this dataset ships in.
+
+    A mask is identified by its filename or by living under a mask directory.
+    Matching is on (category, normalised stem), which survives arbitrary
+    nesting and keeps same-named files in different classes apart.
+    """
+    mask_set = {f for f in files if in_mask_dir(f) or looks_like_mask(f)}
+    masks = [f for f in files if f in mask_set]
+    images = [f for f in files if f not in mask_set]
+
+    by_key: dict[tuple[str, str], Path] = {}
+    by_stem: dict[str, Path] = {}
     for m in masks:
-        mask_by_stem.setdefault(normalise_stem(m), m)
-
-    # Relative-path index, keyed below the images/ or masks/ root.
-    def below_root(p: Path) -> str:
-        parts = [x for x in p.parts]
-        for i, part in enumerate(parts):
-            if part.lower() in MASK_DIRS or part.lower() == "images":
-                return "/".join(parts[i + 1:]).lower()
-        return p.name.lower()
-
-    mask_by_relpath = {below_root(m): m for m in masks}
+        by_key.setdefault((category_of(m), normalise_stem(m)), m)
+        by_stem.setdefault(normalise_stem(m), m)
 
     pairs, unpaired = [], []
+    ambiguous = len({normalise_stem(m) for m in masks}) < len(masks)
     for img in images:
-        m = (mask_by_stem.get(normalise_stem(img))
-             or mask_by_relpath.get(below_root(img)))
+        m = by_key.get((category_of(img), normalise_stem(img)))
+        # Only fall back to a stem-only match when stems are globally unique;
+        # otherwise the fallback is exactly the cross-category mismatch the
+        # category key exists to prevent.
+        if m is None and not ambiguous:
+            m = by_stem.get(normalise_stem(img))
         (pairs.append((img, m)) if m else unpaired.append(img))
     return pairs, unpaired
 

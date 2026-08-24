@@ -10,7 +10,7 @@ import logging
 import os
 from pathlib import Path
 import sys
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Ensure module root is on sys.path
 MODULE_ROOT = Path(__file__).resolve().parent.parent
