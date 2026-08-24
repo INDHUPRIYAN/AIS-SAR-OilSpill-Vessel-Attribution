@@ -22,6 +22,7 @@ import numpy as np
 import xarray as xr
 
 from ..common.errors import bad_grid, missing_input
+from ..common.geo import km_to_deg_lat, km_to_deg_lon
 
 LAT_ALIASES = ("lat", "latitude", "y", "nav_lat")
 LON_ALIASES = ("lon", "longitude", "x", "nav_lon")
@@ -115,6 +116,29 @@ class VectorField:
     @property
     def time_range_s(self) -> tuple[float, float]:
         return float(self.times_s.min()), float(self.times_s.max())
+
+    @property
+    def max_speed_m_s(self) -> float:
+        """Fastest speed anywhere in the grid."""
+        return float(np.nanmax(np.hypot(self.u, self.v)))
+
+    def max_speed_in(self, bbox: tuple[float, float, float, float]) -> float:
+        """Fastest speed within a sub-region of the grid.
+
+        Sizing the drift margin from the *global* maximum is far too pessimistic: real
+        current fields (and the synthetic strain field) run fastest at their edges,
+        nowhere near the slick, and using that number would reject usable grids.
+        """
+        west, south, east, north = bbox
+        rows = np.where((self.lats >= south) & (self.lats <= north))[0]
+        cols = np.where((self.lons >= west) & (self.lons <= east))[0]
+        if rows.size == 0 or cols.size == 0:
+            return self.max_speed_m_s
+        window = np.hypot(
+            self.u[:, rows[0]: rows[-1] + 1, cols[0]: cols[-1] + 1],
+            self.v[:, rows[0]: rows[-1] + 1, cols[0]: cols[-1] + 1],
+        )
+        return float(np.nanmax(window)) if window.size else self.max_speed_m_s
 
 
 def load_field(
@@ -219,27 +243,82 @@ class Metocean:
             v_total += self.leeway * wv
         return u_total, v_total
 
-    def check_coverage(
-        self, bbox: tuple[float, float, float, float], t_start_s: float, t_end_s: float
-    ) -> list[str]:
-        """Verify each loaded field spans the slick bbox and the run window.
+    def max_drift_speed_near(self, bbox: tuple[float, float, float, float]) -> float:
+        """Fastest drift the fields can produce near ``bbox``: current + wind leeway."""
+        speed = 0.0
+        if self.current is not None:
+            speed += self.current.max_speed_in(bbox)
+        if self.wind is not None:
+            speed += self.leeway * self.wind.max_speed_in(bbox)
+        return speed
 
-        Spatial shortfall is fatal (BAD_GRID) - extrapolating a current field across an
-        uncovered ocean would be inventing physics. Temporal shortfall is a warning:
-        the edge value is held, which is the standard operational compromise.
+    def drift_margin_deg(
+        self, hours: float, lat: float, near_bbox: tuple[float, float, float, float]
+    ) -> tuple[float, float]:
+        """How far particles could plausibly travel in ``hours``, in (lon, lat) degrees.
+
+        Checking only the slick's own bbox is not enough: over a 24 h run particles
+        routinely travel several times the slick's width, and a grid that stops short
+        would clamp them at its edge without anyone noticing.
         """
-        warnings: list[str] = []
-        west, south, east, north = bbox
+        reach_km = self.max_drift_speed_near(near_bbox) * abs(hours) * 3600.0 / 1000.0
+        return km_to_deg_lon(reach_km, lat), km_to_deg_lat(reach_km, lat)
+
+    def outside_fraction(self, lons: np.ndarray, lats: np.ndarray) -> float:
+        """Fraction of particles that left every loaded grid at any point in a run."""
+        ever_outside = None
         for field in (self.current, self.wind):
             if field is None:
                 continue
-            f_west, f_south, f_east, f_north = field.bbox
-            if west < f_west or east > f_east or south < f_south or north > f_north:
+            west, south, east, north = field.bbox
+            outside = (
+                (lons < west) | (lons > east) | (lats < south) | (lats > north)
+            ).any(axis=0)
+            ever_outside = outside if ever_outside is None else (ever_outside | outside)
+        return 0.0 if ever_outside is None else float(ever_outside.mean())
+
+    @staticmethod
+    def _covers(field, bbox: tuple[float, float, float, float]) -> bool:
+        west, south, east, north = bbox
+        f_west, f_south, f_east, f_north = field.bbox
+        return not (west < f_west or east > f_east or south < f_south or north > f_north)
+
+    def check_coverage(
+        self,
+        bbox: tuple[float, float, float, float],
+        t_start_s: float,
+        t_end_s: float,
+        reach_bbox: tuple[float, float, float, float] | None = None,
+    ) -> list[str]:
+        """Verify each loaded field spans the slick and, ideally, the drift reach.
+
+        Two levels, deliberately:
+
+        * ``bbox`` - the slick itself. Not covering this is fatal (BAD_GRID); there is
+          nothing to integrate.
+        * ``reach_bbox`` - where particles could plausibly travel. Not covering this is
+          only a warning: it is common with real regional products, the edge velocity is
+          held, and the post-run check reports what actually left.
+
+        Temporal shortfall is likewise a warning, with the nearest time held.
+        """
+        warnings: list[str] = []
+        for field in (self.current, self.wind):
+            if field is None:
+                continue
+            if not self._covers(field, bbox):
                 raise bad_grid(
                     f"{field.name} grid does not cover the slick: grid bbox "
                     f"{[round(b, 3) for b in field.bbox]}, needed "
                     f"{[round(b, 3) for b in bbox]}",
                     field=field.name, grid_bbox=list(field.bbox), needed_bbox=list(bbox),
+                )
+
+            if reach_bbox is not None and not self._covers(field, reach_bbox):
+                warnings.append(
+                    f"the {field.name} grid covers the slick but not the full distance "
+                    "particles could drift; velocities are held at the grid edge "
+                    "beyond it"
                 )
 
             t_lo, t_hi = field.time_range_s

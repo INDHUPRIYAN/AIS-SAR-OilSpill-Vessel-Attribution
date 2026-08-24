@@ -80,10 +80,10 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 
 ## Engine B — Forecast (Phase 4)
 
-- [ ] **P1** Forward run from the detected slick at +6 / +12 / +24 h.
-- [ ] **P1** Concave- or convex-hull predicted extent Polygon per horizon.
-- [ ] **P1** Uncertainty ellipse growing over time → `uncertainty_growth` property.
-- [ ] **P1** `forecast.geojson` writer per §4.3 (`horizon_h: 6|12|24`); validate against the schema.
+- [x] **P1** Forward run from the detected slick at +6 / +12 / +24 h.
+- [x] **P1** Concave- or convex-hull predicted extent Polygon per horizon.
+- [x] **P1** Uncertainty ellipse growing over time → `uncertainty_growth` property.
+- [x] **P1** `forecast.geojson` writer per §4.3 (`horizon_h: 6|12|24`); validate against the schema.
 
 ## Engine C — Filtering gates (Phase 5)
 

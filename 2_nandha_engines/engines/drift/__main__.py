@@ -4,20 +4,24 @@
         --currents currents.nc --wind wind.nc \
         --mode hindcast --hours 24 --out origin_cloud.geojson
 
+In forecast mode `--hours` sets the run length and the horizons come from the config,
+filtered to those the run reaches:
+
+    python -m engines.drift --slick slick.geojson --currents currents.nc         --wind wind.nc --mode forecast --hours 24 --out forecast.geojson
+
 Exit 0 on success, exit 2 on a declared engine error; the status JSON is printed either
-way. `--mode forecast` arrives in Phase 4 and is rejected until then rather than being
-silently treated as a hindcast.
+way.
 """
 
 import argparse
 import json
 import sys
 
-from .runner import DEFAULT_CONFIG, hindcast
+from .runner import DEFAULT_CONFIG, forecast, hindcast
 
 EXIT_OK = 0
 EXIT_ENGINE_ERROR = 2
-IMPLEMENTED_MODES = ("hindcast",)
+MODES = {"hindcast": hindcast, "forecast": forecast}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -38,27 +42,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
+    engine = MODES[args.mode]
 
-    if args.mode not in IMPLEMENTED_MODES:
-        json.dump(
-            {
-                "ok": False,
-                "engine_used": "fallback",
-                "warnings": [],
-                "error": {
-                    "error_class": "MISSING_INPUT",
-                    "message": f"--mode {args.mode} is not implemented yet "
-                               "(forecast lands in Phase 4)",
-                    "detail": {"implemented_modes": list(IMPLEMENTED_MODES)},
-                },
-            },
-            sys.stdout,
-            indent=2,
-        )
-        sys.stdout.write("\n")
-        return EXIT_ENGINE_ERROR
-
-    status = hindcast(
+    status = engine(
         args.slick,
         args.out,
         currents_path=args.currents,

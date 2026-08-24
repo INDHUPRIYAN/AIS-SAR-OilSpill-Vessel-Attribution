@@ -2,10 +2,11 @@
 
 slick.geojson        Engine A   (implemented)
 origin_cloud.geojson Engine B   (implemented)
-forecast.geojson     Engine B   (Phase 4)
+forecast.geojson     Engine B   (implemented)
 suspects.json        Engine C   (Phase 6)
 """
 
+from .forecast import ForecastCollection, validate_forecast
 from .origin_cloud import OriginCloudCollection, validate_origin_cloud
 from .slick import SlickCollection, SlickFeature, SlickProperties, validate_slick
 
@@ -16,4 +17,6 @@ __all__ = [
     "validate_slick",
     "OriginCloudCollection",
     "validate_origin_cloud",
+    "ForecastCollection",
+    "validate_forecast",
 ]

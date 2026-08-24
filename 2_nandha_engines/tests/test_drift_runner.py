@@ -306,10 +306,15 @@ def test_cli_runs_a_hindcast(inputs, tmp_path, capsys):
     validate_origin_cloud(json.loads(out.read_text(encoding="utf-8")))
 
 
-def test_cli_rejects_forecast_mode_until_phase_4(inputs, tmp_path, capsys):
-    code = cli_main([
-        "--slick", str(inputs["slick"]), "--mode", "forecast",
-        "--out", str(tmp_path / "f.geojson"), "--config", DRIFT_CONFIG,
-    ])
-    assert code == 2
-    assert "not implemented" in capsys.readouterr().out
+def test_cli_routes_each_mode_to_its_own_writer(inputs, tmp_path, capsys):
+    """Both frozen modes work; each names its own output in the status object."""
+    for mode, key in (("hindcast", "origin_cloud"), ("forecast", "forecast")):
+        code = cli_main([
+            "--slick", str(inputs["slick"]),
+            "--currents", inputs["met"]["currents_strain"],
+            "--wind", inputs["met"]["wind_zero"],
+            "--mode", mode, "--hours", "24",
+            "--out", str(tmp_path / f"{mode}.geojson"), "--config", DRIFT_CONFIG,
+        ])
+        assert code == 0, mode
+        assert key in json.loads(capsys.readouterr().out)["outputs"]
