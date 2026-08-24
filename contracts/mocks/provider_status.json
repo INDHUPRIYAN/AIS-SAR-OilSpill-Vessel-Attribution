@@ -1,0 +1,70 @@
+{
+  "generated_utc": "2026-08-24T13:55:41Z",
+  "owner": "mock",
+  "providers": [
+    {
+      "provider": "CDSE",
+      "purpose": "Sentinel-1 SAR scene download",
+      "status": "WORKING",
+      "last_code": 200,
+      "last_latency_ms": 1840,
+      "last_success_utc": "2026-08-24T13:55:41Z",
+      "last_failure_utc": null,
+      "last_error_class": "NONE",
+      "chain": [
+        "CDSE",
+        "ASF",
+        "LocalCache"
+      ],
+      "active_provider": "CDSE"
+    },
+    {
+      "provider": "CMEMS",
+      "purpose": "surface currents for drift",
+      "status": "DEGRADED",
+      "last_code": 200,
+      "last_latency_ms": 9120,
+      "last_success_utc": "2026-08-24T13:53:41Z",
+      "last_failure_utc": "2026-08-24T13:15:41Z",
+      "last_error_class": "TIMEOUT",
+      "chain": [
+        "CMEMS",
+        "HYCOM",
+        "StaticCache"
+      ],
+      "active_provider": "CMEMS"
+    },
+    {
+      "provider": "ERA5",
+      "purpose": "historical wind for drift",
+      "status": "FAILED",
+      "last_code": 403,
+      "last_latency_ms": 512,
+      "last_success_utc": "2026-08-24T13:10:41Z",
+      "last_failure_utc": "2026-08-24T13:55:41Z",
+      "last_error_class": "AUTH_FAILED",
+      "chain": [
+        "ERA5",
+        "OpenMeteo",
+        "StaticCache"
+      ],
+      "active_provider": "OpenMeteo"
+    },
+    {
+      "provider": "AISStream",
+      "purpose": "live/historic AIS vessel tracks",
+      "status": "WORKING",
+      "last_code": 200,
+      "last_latency_ms": 340,
+      "last_success_utc": "2026-08-24T13:55:41Z",
+      "last_failure_utc": null,
+      "last_error_class": "NONE",
+      "chain": [
+        "AISStream",
+        "MarineCadastre",
+        "SyntheticGenerator"
+      ],
+      "active_provider": "AISStream"
+    }
+  ]
+}

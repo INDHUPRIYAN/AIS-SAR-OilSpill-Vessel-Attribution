@@ -1,0 +1,21 @@
+{
+  "scene_id": "S1A_IW_GRDH_20170202T0039_DEMO-A",
+  "acquired_utc": "2017-02-02T00:39:42Z",
+  "bbox": [
+    80.1,
+    12.9,
+    80.55,
+    13.35
+  ],
+  "crs": "EPSG:4326",
+  "db_range": [
+    -35.0,
+    0.0
+  ],
+  "file_path": "contracts/mocks/scene_sigma0_db.tif",
+  "provider_used": "MOCK",
+  "source": "synthetic",
+  "pixel_spacing_m": 96.0,
+  "polarisation": "VV",
+  "incidence_angle_band": null
+}

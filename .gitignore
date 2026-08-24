@@ -41,3 +41,7 @@ data/
 # Documentation
 docs/
 
+
+# Model weights are large binaries; regenerate with `python -m ml.export`
+*.onnx
+*.pt
