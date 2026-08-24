@@ -37,11 +37,11 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 ## Engine A — Characterisation (Phase 1)
 
 - [ ] **P1** Read the mask GeoTIFF with rasterio; read CRS + pixel size; assert EPSG:4326 at the boundary (convert only at ingest).
-- [ ] **P1** Label connected components; drop specks below a configurable min-area threshold.
-- [ ] **P1** Per component via `regionprops`: area (px→km² using the pixel size **at that latitude**), perimeter km, centroid lat/lon, ellipse major/minor axis km, orientation deg.
-- [ ] **P1** Polygonise the mask boundary (shapely) → WGS84 GeoJSON Polygon.
-- [ ] **P1** Damping ratio: mean dB inside the mask vs mean dB in an outside ring buffer → `damping_ratio_db`.
-- [ ] **P1** Fay spreading-law age estimate from area → `age_hours_est`, `age_method: "damping+fay"`, `age_confidence: "low"`; document every assumption.
+- [x] **P1** Label connected components; drop specks below a configurable min-area threshold.
+- [x] **P1** Per component via `regionprops`: area (px→km² using the pixel size **at that latitude**), perimeter km, centroid lat/lon, ellipse major/minor axis km, orientation deg.
+- [x] **P1** Polygonise the mask boundary (shapely) → WGS84 GeoJSON Polygon.
+- [x] **P1** Damping ratio: mean dB inside the mask vs mean dB in an outside ring buffer → `damping_ratio_db`.
+- [x] **P1** Fay spreading-law age estimate from area → `age_hours_est`, `age_method: "damping+fay"`, `age_confidence: "low"`; document every assumption.
 - [ ] **P1** Write `slick.geojson` exactly per handbook §4.2 (slick_id, scene_id, detected_utc, confidence, area_km2, perimeter_km, centroid, major/minor_axis_km, orientation_deg, damping_ratio_db, age fields); validate against the schema.
 - [ ] **P1** Handle multiple slicks in one scene (one Feature each, stable `slick_id` numbering).
 - [ ] **P1** Return `EMPTY_MASK` when nothing survives thresholding.

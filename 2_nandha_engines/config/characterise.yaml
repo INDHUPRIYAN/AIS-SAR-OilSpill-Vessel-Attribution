@@ -24,8 +24,15 @@ fay:
   nu_water_m2_s: 1.0e-6       # kinematic viscosity of seawater
   gravity_m_s2: 9.81
   # Volume is unknown from a mask alone, so it is closed with an assumed mean slick
-  # thickness: V = area * thickness. 1 um is a typical thin-sheen/film value.
-  assumed_thickness_m: 1.0e-6
+  # thickness: V = area * thickness. 1 mm is typical of a fresh operational discharge.
+  # THIS SINGLE NUMBER SETS THE WHOLE AGE SCALE: t is proportional to h^(-4/3), so a
+  # 10x thinner assumption makes every slick ~21x older. For the 14.89 km2 demo slick:
+  #     h = 1 um    -> ~297000 h  (a 1 um film over 15 km2 is only 15 m3 of oil)
+  #     h = 0.5 mm  -> ~75 h
+  #     h = 1 mm    -> ~30 h      <- default
+  #     h = 2.35 mm -> ~9.5 h     (what the handbook's illustrative example implies)
+  # This sensitivity is exactly why age_confidence is hard-wired to "low".
+  assumed_thickness_m: 1.0e-3
   # Damping ratio nudge: a strongly damped slick is thicker/fresher than the plain
   # area-based estimate suggests, a weakly damped one older. Clamped to the range.
   reference_damping_db: 7.0
