@@ -1,0 +1,11 @@
+{
+  "mask": "mask.tif",
+  "scene_db": "scene_db.tif",
+  "scene_meta": "scene_meta.json",
+  "currents": "currents.nc",
+  "wind": "wind.nc",
+  "vessels": "vessels.parquet",
+  "pixel_deg": 0.0005,
+  "culprit_mmsi": 419001234,
+  "note": "Synthetic demo inputs, regenerate with `python scripts/make_samples.py`. Tests use a higher-resolution set under tests/fixtures/data/."
+}

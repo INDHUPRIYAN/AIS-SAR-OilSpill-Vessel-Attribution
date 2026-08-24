@@ -121,8 +121,14 @@ def build_scene(
     seed: int = 26143,
     slicks: tuple[Ellipse, ...] = (MAIN_SLICK, SECOND_SLICK, SPECK),
     empty: bool = False,
+    pixel_deg: float = PIXEL_DEG,
 ) -> dict:
-    """Write mask.tif + scene_db.tif + scene_meta.json; return the ground truth dict."""
+    """Write mask.tif + scene_db.tif + scene_meta.json; return the ground truth dict.
+
+    ``pixel_deg`` defaults to the ~11 m test resolution. The committed demo set under
+    ``samples/inputs/`` uses a coarser value so the dB band fits in git: at 11 m it is
+    10 MB, which does not belong in a repository.
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(seed)
     # The empty-mask variant writes its own file names so it can never clobber the
@@ -139,13 +145,13 @@ def build_scene(
     south = min(s.lat for s in slicks) - span_deg - PAD_DEG
     north_edge = max(s.lat for s in slicks) + span_deg + PAD_DEG
 
-    width = int(round((east_edge - west) / PIXEL_DEG))
-    height = int(round((north_edge - south) / PIXEL_DEG))
-    transform = from_origin(west, north_edge, PIXEL_DEG, PIXEL_DEG)
+    width = int(round((east_edge - west) / pixel_deg))
+    height = int(round((north_edge - south) / pixel_deg))
+    transform = from_origin(west, north_edge, pixel_deg, pixel_deg)
 
     # Pixel-centre coordinates (north-up raster: row 0 is the top / highest latitude).
-    lons = west + (np.arange(width) + 0.5) * PIXEL_DEG
-    lats = north_edge - (np.arange(height) + 0.5) * PIXEL_DEG
+    lons = west + (np.arange(width) + 0.5) * pixel_deg
+    lats = north_edge - (np.arange(height) + 0.5) * pixel_deg
     lon_grid, lat_grid = np.meshgrid(lons, lats)
 
     mask = np.zeros((height, width), dtype=bool)
@@ -200,7 +206,7 @@ def build_scene(
         "scene_id": SCENE_ID,
         "acquired_utc": ACQUIRED_UTC,
         "confidence": DETECTION_CONFIDENCE,
-        "pixel_deg": PIXEL_DEG,
+        "pixel_deg": pixel_deg,
         "expected_damping_db": SEA_DB - SLICK_DB,
         "slicks": [
             {

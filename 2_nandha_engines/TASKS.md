@@ -19,7 +19,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 - [x] **P1** Pydantic schemas for all four outputs (`slick.geojson`, `origin_cloud.geojson`, `forecast.geojson`, `suspects.json`) in `engines/schemas/`, plus a `validate()` called by every writer.
 - [ ] **P1** Env 2 (conda, OpenDrift) — **riskiest install in the project, do it early**: `conda create -n drift python=3.11`, `conda install -c conda-forge opendrift`, smoke-test `import opendrift`, then `conda env export > environment.yml`. The current `environment.yml` is hand-written and untested — replace it with a real export.
 - [ ] **P2** Dockerfile (conda base) for the OpenDrift environment.
-- [ ] **P2** Escalation rule: if the conda/GDAL chain fights back for more than half a day, tell the team and proceed on the Euler fallback — the project must not stall on GDAL.
+- [x] **P2** Escalation rule: if the conda/GDAL chain fights back for more than half a day, tell the team and proceed on the Euler fallback — the project must not stall on GDAL.
 - [x] **P1** `tests/` package + pytest config; one-command test run documented in the README.
 
 ## Phase 0b — Mock inputs (unblocks everything; do not wait for teammates)
@@ -29,8 +29,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 - [x] **P0** Synthetic **uniform** current NetCDF + wind NetCDF — analytic ground truth: with a constant current the backtracked origin is hand-computable.
 - [x] **P1** Synthetic **rotating / sheared** current field NetCDF (the harder case).
 - [x] **P1** Synthetic `vessels.parquet` with exactly the contract columns and **one planted culprit** (passes the origin region in-window, slows down, has an AIS gap).
-- [~] **P1** Deliberately broken fixtures for the failure tests: empty mask, NetCDF missing `u`/`v`, zero vessels in window.
-- [~] **P1** Mock-generator scripts (seeded, reproducible) under `tests/fixtures/`.
+- [x] **P1** Deliberately broken fixtures for the failure tests: empty mask, NetCDF missing `u`/`v`, zero vessels in window.
+- [x] **P1** Mock-generator scripts (seeded, reproducible) under `tests/fixtures/`.
 
 ---
 
@@ -111,7 +111,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 - [x] **P1** CLI: `python -m engines.attribution --origin ... --vessels ... --weights config/attribution_weights.yaml --out suspects.json`.
 - [x] **P1** **Test:** the planted culprit ranks top-1 on the synthetic scenario.
 - [x] **P1** Keep it explainable — **no trained classifier** (no ground truth exists; explainability is required by the use case).
-- [ ] **P2** Weight-sensitivity check: results stay sane when the weights are re-tuned.
+- [x] **P2** Weight-sensitivity check: results stay sane when the weights are re-tuned.
 
 ## Phase 7 — Benchmark
 
@@ -122,23 +122,23 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 
 ## Phase 8 — Docs, failure tests, handover
 
-- [ ] **P1** README per engine: purpose, inputs, outputs, one-command run, known issues.
-- [ ] **P1** Update the module `README.md` (the current one describes the empty skeleton).
-- [ ] **P1** Commit sample inputs **and** sample outputs for all four contract files.
-- [ ] **P1** All four outputs validate against the Pydantic schemas (test).
-- [ ] **P1** Full failure-case suite green: `MISSING_INPUT`, `BAD_GRID`, `EMPTY_MASK`, `NO_VESSELS_IN_WINDOW` — never a crash.
-- [ ] **P1** One-command run per engine against the mocks.
-- [ ] **P1** Known-issues list.
+- [x] **P1** README per engine: purpose, inputs, outputs, one-command run, known issues.
+- [x] **P1** Update the module `README.md` (the current one describes the empty skeleton).
+- [x] **P1** Commit sample inputs **and** sample outputs for all four contract files.
+- [x] **P1** All four outputs validate against the Pydantic schemas (test).
+- [x] **P1** Full failure-case suite green: `MISSING_INPUT`, `BAD_GRID`, `EMPTY_MASK`, `NO_VESSELS_IN_WINDOW` — never a crash.
+- [x] **P1** One-command run per engine against the mocks.
+- [x] **P1** Known-issues list.
 - [ ] **P1** 30-minute walkthrough with Indhu.
-- [ ] **P1** Common handover checklist (Part G): runnable code · input schema · output schema · example inputs · example outputs · test results · error behaviour per class · README · run instructions · integration instructions.
+- [x] **P1** Common handover checklist (Part G): runnable code · input schema · output schema · example inputs · example outputs · test results · error behaviour per class · README · run instructions · integration instructions.
 
 ---
 
 ## Coordination — only two real touch-points (everything else flows through files)
 
-- [ ] **P0** Agree the NetCDF variable names with **Keerthana** ONCE, in writing — her tiny hand-built NetCDF doubles as my mock.
+- [x] **P0** Agree the NetCDF variable names with **Keerthana** ONCE, in writing — her tiny hand-built NetCDF doubles as my mock.
 - [x] **P1** Confirm the `vessels.parquet` columns with **Krishnan** once (already fixed by contract).
-- [ ] **P1** Raise with **Indhu**: `contracts/schemas/` currently holds only `sar_detection.json` + `vessel_attribution.json`, whose field names do not match the handbook's `slick.geojson` / `suspects.json`. His folder to fix — I code to handbook §4.2–4.4 in the meantime.
+- [x] **P1** Raise with **Indhu**: `contracts/schemas/` currently holds only `sar_detection.json` + `vessel_attribution.json`, whose field names do not match the handbook's `slick.geojson` / `suspects.json`. His folder to fix — I code to handbook §4.2–4.4 in the meantime.
 
 ## Standing rules (apply to every task above)
 

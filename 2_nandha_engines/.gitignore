@@ -1,0 +1,10 @@
+# Local virtualenv for Env 1 (Engines A, C and the Euler drift fallback).
+.venv/
+
+# Pipeline output from `python scripts/run_all.py`; the committed examples live in
+# samples/ instead.
+out/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
