@@ -16,7 +16,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 - [x] **P0** Restructure to the frozen CLI shape (handbook §7): `engines/characterise/__main__.py`, `engines/drift/__main__.py`, `engines/attribution/__main__.py` so `python -m engines.<x>` works. Decide the fate of `cli.py` (keep as a thin wrapper or delete).
 - [x] **P0** Add `engines/common/` for shared helpers: geo conversions (km↔deg with the latitude cosine), UTC parse/format (`Z` suffix), status-object builder, error classes.
 - [x] **P0** Define the status object `{ok, engine_used, warnings[]}` and error classes `MISSING_INPUT`, `BAD_GRID`, `EMPTY_MASK`, `NO_VESSELS_IN_WINDOW`. Structured returns, never raise to the caller.
-- [~] **P1** Pydantic schemas for all four outputs (`slick.geojson`, `origin_cloud.geojson`, `forecast.geojson`, `suspects.json`) in `engines/schemas/`, plus a `validate()` called by every writer.
+- [x] **P1** Pydantic schemas for all four outputs (`slick.geojson`, `origin_cloud.geojson`, `forecast.geojson`, `suspects.json`) in `engines/schemas/`, plus a `validate()` called by every writer.
 - [ ] **P1** Env 2 (conda, OpenDrift) — **riskiest install in the project, do it early**: `conda create -n drift python=3.11`, `conda install -c conda-forge opendrift`, smoke-test `import opendrift`, then `conda env export > environment.yml`. The current `environment.yml` is hand-written and untested — replace it with a real export.
 - [ ] **P2** Dockerfile (conda base) for the OpenDrift environment.
 - [ ] **P2** Escalation rule: if the conda/GDAL chain fights back for more than half a day, tell the team and proceed on the Euler fallback — the project must not stall on GDAL.
@@ -92,25 +92,25 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 - [x] **P1** Spatial gate: track intersects the buffered high-probability origin region.
 - [x] **P1** Temporal gate: presence within the origin window ± buffer.
 - [x] **P1** Trajectory gate: course roughly compatible with the slick major axis (discharge trails behind a moving vessel).
-- [ ] **P1** Excluded vessels stay in the output with `filtered: true` + `filter_reason` (UI shows "filtered out: outside time window").
-- [ ] **P1** `NO_VESSELS_IN_WINDOW` returned structured — a valid, expected outcome, not a bug.
+- [x] **P1** Excluded vessels stay in the output with `filtered: true` + `filter_reason` (UI shows "filtered out: outside time window").
+- [x] **P1** `NO_VESSELS_IN_WINDOW` returned structured — a valid, expected outcome, not a bug.
 - [x] **P1** **Test:** a vessel outside the time window is filtered with the reason recorded.
 
 ## Engine C — Scoring, explanation, ranking (Phase 6)
 
-- [ ] **P1** Factor `proximity` — depth of the track inside the origin cloud, weighted by cloud density.
-- [ ] **P1** Factor `temporal` — alignment between presence and the estimated discharge window.
-- [ ] **P1** Factor `trajectory` — angle vs the slick major axis + path-overlap length.
-- [ ] **P1** Factor `anomaly` — unusual slowdown, course change, loitering (rule-based).
-- [ ] **P1** Factor `ais_gap` — transmission blackout overlapping the origin window (strong suspicion signal).
-- [ ] **P1** Factor `prior` — vessel type/draft prior (tanker, bulk carrier > passenger ferry).
-- [ ] **P1** Normalise every factor to 0–1; total = weighted sum with weights loaded from `config/attribution_weights.yaml`.
-- [ ] **P1** Rank descending; assign `rank`; emit the per-factor `scores` breakdown.
-- [ ] **P1** Explanation generator: template over the factor evidence → one plain-language sentence per vessel (see §4.4 example).
-- [ ] **P1** `suspects.json` writer per §4.4 (`investigation_id`, `generated_utc`, `weights`, `vessels[]` including the filtered ones); validate against the schema.
-- [ ] **P1** CLI: `python -m engines.attribution --origin ... --vessels ... --weights config/attribution_weights.yaml --out suspects.json`.
-- [ ] **P1** **Test:** the planted culprit ranks top-1 on the synthetic scenario.
-- [ ] **P1** Keep it explainable — **no trained classifier** (no ground truth exists; explainability is required by the use case).
+- [x] **P1** Factor `proximity` — depth of the track inside the origin cloud, weighted by cloud density.
+- [x] **P1** Factor `temporal` — alignment between presence and the estimated discharge window.
+- [x] **P1** Factor `trajectory` — angle vs the slick major axis + path-overlap length.
+- [x] **P1** Factor `anomaly` — unusual slowdown, course change, loitering (rule-based).
+- [x] **P1** Factor `ais_gap` — transmission blackout overlapping the origin window (strong suspicion signal).
+- [x] **P1** Factor `prior` — vessel type/draft prior (tanker, bulk carrier > passenger ferry).
+- [x] **P1** Normalise every factor to 0–1; total = weighted sum with weights loaded from `config/attribution_weights.yaml`.
+- [x] **P1** Rank descending; assign `rank`; emit the per-factor `scores` breakdown.
+- [x] **P1** Explanation generator: template over the factor evidence → one plain-language sentence per vessel (see §4.4 example).
+- [x] **P1** `suspects.json` writer per §4.4 (`investigation_id`, `generated_utc`, `weights`, `vessels[]` including the filtered ones); validate against the schema.
+- [x] **P1** CLI: `python -m engines.attribution --origin ... --vessels ... --weights config/attribution_weights.yaml --out suspects.json`.
+- [x] **P1** **Test:** the planted culprit ranks top-1 on the synthetic scenario.
+- [x] **P1** Keep it explainable — **no trained classifier** (no ground truth exists; explainability is required by the use case).
 - [ ] **P2** Weight-sensitivity check: results stay sane when the weights are re-tuned.
 
 ## Phase 7 — Benchmark

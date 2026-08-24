@@ -1,0 +1,101 @@
+{
+  "investigation_id": "inv-001",
+  "generated_utc": "2026-08-24T13:43:37Z",
+  "weights": {
+    "proximity": 0.3,
+    "temporal": 0.2,
+    "trajectory": 0.2,
+    "anomaly": 0.1,
+    "ais_gap": 0.15,
+    "prior": 0.05
+  },
+  "origin_window": {
+    "start_utc": "2017-02-01T12:39:42Z",
+    "end_utc": "2017-02-02T00:39:42Z",
+    "peak_utc": "2017-02-01T19:39:42Z",
+    "engine_used": "euler"
+  },
+  "vessels": [
+    {
+      "mmsi": 419001234,
+      "name": "MV DEMO TRADER",
+      "vessel_type": "Tanker",
+      "score_total": 0.9249,
+      "scores": {
+        "proximity": 0.923,
+        "temporal": 1.0,
+        "trajectory": 0.991,
+        "anomaly": 0.5,
+        "ais_gap": 1.0,
+        "prior": 1.0
+      },
+      "filtered": false,
+      "reason": "Passed through the 90% origin region at 2017-02-01 19:29 UTC, slowed from 13.8 to 5.9 kn, had a 55-minute AIS gap overlapping the estimated discharge window, and ran within 1° of the slick's axis.",
+      "source": "synthetic",
+      "rank": 1
+    },
+    {
+      "mmsi": 419005555,
+      "name": "COASTAL FERRY 7",
+      "vessel_type": "Passenger",
+      "score_total": 0.6748,
+      "scores": {
+        "proximity": 0.923,
+        "temporal": 0.973,
+        "trajectory": 0.991,
+        "anomaly": 0.0,
+        "ais_gap": 0.0,
+        "prior": 0.103
+      },
+      "filtered": false,
+      "reason": "Passed through the 90% origin region at 2017-02-01 18:14 UTC, ran within 1° of the slick's axis.",
+      "source": "synthetic",
+      "rank": 2
+    },
+    {
+      "mmsi": 419002222,
+      "name": "MV EARLY BIRD",
+      "vessel_type": "Bulk Carrier",
+      "filtered": true,
+      "filter_reason": "outside time window",
+      "reason": "Filtered out: present in the origin region, but 10.08 h outside the estimated discharge window.",
+      "failed_gates": [
+        "outside time window"
+      ]
+    },
+    {
+      "mmsi": 419003333,
+      "name": "MV FAR AWAY",
+      "vessel_type": "Cargo",
+      "filtered": true,
+      "filter_reason": "outside origin region",
+      "reason": "Filtered out: closest approach was 5.472 km from the origin region.",
+      "failed_gates": [
+        "outside origin region"
+      ]
+    },
+    {
+      "mmsi": 419004444,
+      "name": "MV CROSSCUT",
+      "vessel_type": "Cargo",
+      "filtered": true,
+      "filter_reason": "course incompatible with slick axis",
+      "reason": "Filtered out: course ran 89° off the slick's axis, so a discharge trailing behind it would not match.",
+      "failed_gates": [
+        "course incompatible with slick axis"
+      ]
+    },
+    {
+      "mmsi": 419006666,
+      "name": "FV NIGHT HAUL",
+      "vessel_type": "Fishing",
+      "filtered": true,
+      "filter_reason": "outside origin region",
+      "reason": "Filtered out: closest approach was 43.4 km from the origin region.",
+      "failed_gates": [
+        "outside origin region",
+        "outside time window"
+      ]
+    }
+  ]
+}

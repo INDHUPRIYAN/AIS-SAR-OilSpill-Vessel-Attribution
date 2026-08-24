@@ -14,3 +14,25 @@ gates:
   spatial_buffer_km: 5.0      # margin around the high-probability origin region
   temporal_buffer_min: 90     # slack either side of the origin window
   max_axis_offset_deg: 45     # course vs slick major axis, folded to [0, 90]
+
+# Vessel-type prior: how plausible a discharge is before any evidence (handbook §4.8,
+# "tanker, bulk carrier > passenger ferry"). Keys are matched case-insensitively.
+priors:
+  tanker: 1.00
+  bulk carrier: 0.80
+  cargo: 0.70
+  tug: 0.45
+  fishing: 0.40
+  passenger: 0.20
+  ferry: 0.20
+  _default: 0.50
+
+# Thresholds behind the behavioural factors.
+scoring:
+  gap_min_minutes: 15          # a longer silence than this counts as an AIS gap
+  gap_saturation_min: 30       # a gap this long over the window scores 1.0
+  loiter_speed_kn: 3.0
+  slowdown_saturation: 0.5     # a 50% speed drop scores 1.0
+  course_change_saturation_deg: 60
+  draft_reference_m: 12.0      # draft that neither raises nor lowers the type prior
+  draft_influence: 0.15
