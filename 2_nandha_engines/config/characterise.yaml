@@ -1,0 +1,34 @@
+# Engine A - Characterisation tuning. Every constant the engine uses lives here so the
+# assumptions are auditable (handbook: "document assumptions").
+
+geometry:
+  # Connected components smaller than this are treated as speckle and dropped.
+  min_area_km2: 0.05
+  # Polygon simplification tolerance, in pixels. Raster boundaries are staircases;
+  # simplifying at ~1 pixel removes the zig-zag without moving the outline.
+  simplify_tolerance_px: 1.5
+
+damping:
+  # Ring buffer of open sea used as the "undamped" reference, in pixels.
+  ring_inner_px: 10   # gap between the slick edge and the ring (avoids edge blur)
+  ring_width_px: 30   # thickness of the sampled ring
+  # Percentile used instead of the plain mean, so ships/other slicks in the ring
+  # cannot drag the sea reference down.
+  sea_percentile: 50
+
+fay:
+  # Fay gravity-viscous spreading, inverted for time (see engines/characterise/age.py).
+  # A = pi * k2^2 * (delta * g * V^2 / sqrt(nu))^(1/3) * sqrt(t)
+  k2: 1.45                    # Fay's gravity-viscous constant (dimensionless)
+  delta: 0.15                 # (rho_water - rho_oil) / rho_water, medium crude
+  nu_water_m2_s: 1.0e-6       # kinematic viscosity of seawater
+  gravity_m_s2: 9.81
+  # Volume is unknown from a mask alone, so it is closed with an assumed mean slick
+  # thickness: V = area * thickness. 1 um is a typical thin-sheen/film value.
+  assumed_thickness_m: 1.0e-6
+  # Damping ratio nudge: a strongly damped slick is thicker/fresher than the plain
+  # area-based estimate suggests, a weakly damped one older. Clamped to the range.
+  reference_damping_db: 7.0
+  damping_age_factor: 0.06    # per dB away from the reference
+  damping_factor_bounds: [0.5, 1.6]
+  max_age_hours: 168.0        # 7 days - beyond this the estimate is meaningless

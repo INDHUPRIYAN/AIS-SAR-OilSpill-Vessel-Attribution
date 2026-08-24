@@ -1,4 +1,9 @@
+# Engine C - Attribution scoring weights (handbook §4.4, frozen factor names).
+# Shown in the UI and configurable; they must sum to 1.0.
 weights:
-  drift_distance: 0.5
-  temporal_alignment: 0.3
-  vessel_history: 0.2
+  proximity:  0.30   # depth of the track inside the origin cloud, density-weighted
+  temporal:   0.20   # alignment with the estimated discharge window
+  trajectory: 0.20   # course vs slick major axis + path-overlap length
+  anomaly:    0.10   # slowdown, course change, loitering
+  ais_gap:    0.15   # transmission blackout over the origin window
+  prior:      0.05   # vessel type / draft prior
