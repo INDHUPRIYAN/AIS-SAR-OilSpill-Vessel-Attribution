@@ -1,0 +1,56 @@
+[
+  {
+    "weights": "contract (0.30/0.20/0.20/0.10/0.15/0.05)",
+    "top1": 43,
+    "top3": 50,
+    "scenarios": 50,
+    "top1_rate": 0.86,
+    "top3_rate": 1.0,
+    "hard_top1_rate": 0.615
+  },
+  {
+    "weights": "uniform (all factors equal)",
+    "top1": 42,
+    "top3": 50,
+    "scenarios": 50,
+    "top1_rate": 0.84,
+    "top3_rate": 1.0,
+    "hard_top1_rate": 0.538
+  },
+  {
+    "weights": "proximity-heavy (0.50)",
+    "top1": 43,
+    "top3": 50,
+    "scenarios": 50,
+    "top1_rate": 0.86,
+    "top3_rate": 1.0,
+    "hard_top1_rate": 0.538
+  },
+  {
+    "weights": "behaviour-heavy (anomaly+gap 0.55)",
+    "top1": 45,
+    "top3": 50,
+    "scenarios": 50,
+    "top1_rate": 0.9,
+    "top3_rate": 1.0,
+    "hard_top1_rate": 0.615
+  },
+  {
+    "weights": "ais_gap discarded",
+    "top1": 40,
+    "top3": 50,
+    "scenarios": 50,
+    "top1_rate": 0.8,
+    "top3_rate": 1.0,
+    "hard_top1_rate": 0.615
+  },
+  {
+    "weights": "anomaly + ais_gap discarded",
+    "top1": 40,
+    "top3": 50,
+    "scenarios": 50,
+    "top1_rate": 0.8,
+    "top3_rate": 1.0,
+    "hard_top1_rate": 0.615
+  }
+]

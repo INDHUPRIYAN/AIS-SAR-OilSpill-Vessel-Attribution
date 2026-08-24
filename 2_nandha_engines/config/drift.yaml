@@ -1,0 +1,18 @@
+# Engine B - Drift tuning. Applies to the Euler fallback; the OpenDrift paths (Phase 3)
+# read the same values so the engines stay comparable.
+drift:
+  particles: 300           # seeded uniformly by area inside the slick polygon
+  hours: 24.0              # backward run length (handbook: 12-24 h)
+  dt_minutes: 10.0         # integration timestep
+  leeway: 0.03             # wind leeway = 3% of the 10 m wind (handbook §2.1)
+  diffusion_m2_s: 5.0      # turbulent diffusion; 0 makes the run exactly reversible
+  confidence_level: 0.9    # per-timestep uncertainty ellipse
+  output_every_h: 1.0      # thinning of particle features in the output file
+  window_fraction: 0.10    # origin window = timesteps within 10% of minimum spread
+  grid_margin_deg: 0.05    # met-ocean coverage required around the slick bbox, on top
+                           # of the distance particles could drift during the run
+  seed: 26143              # reproducible particle seeding and diffusion
+
+  # --- forecast mode (Phase 4) ---
+  forecast_horizons_h: [6, 12, 24]   # contract horizons; filtered to those --hours reaches
+  concave_ratio: 0.3                 # shapely.concave_hull ratio; 1.0 == convex hull

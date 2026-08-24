@@ -1,0 +1,20 @@
+{
+  "scene_id": "S1A_IW_GRDH_20170202T0039_DEMO-A",
+  "platform": "Sentinel-1A",
+  "acquisition_time": "2017-02-02T00:39:42Z",
+  "bbox": [
+    80.225582,
+    12.967582,
+    80.401418,
+    13.138418
+  ],
+  "crs": "EPSG:4326",
+  "db_range": [
+    -35.0,
+    0.0
+  ],
+  "file_path": "scene_db.tif",
+  "provider_used": "mock",
+  "confidence": 0.91,
+  "synthetic": true
+}
