@@ -71,11 +71,17 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 
 ## Engine B — OpenDrift path (Phase 3)
 
-- [ ] **P1** Wrap `OceanDrift` (fewer deps) behind the **same function signature** as the Euler fallback; readers = the two NetCDFs.
-- [ ] **P1** Wrap `OpenOil` behind that same signature.
-- [ ] **P1** Backward run via negative timestep; export particles through the **same** `origin_cloud.geojson` writer.
-- [ ] **P1** Runtime selection order: OpenOil → OceanDrift → Euler; record `engine_used` in the status object and in the output.
-- [ ] **P1** **Test:** Euler matches OpenDrift direction on the same field (fallback-agreement test).
+> **Status: code complete, unverified.** OpenDrift is not installed (no conda on this
+> machine), so `engines/drift/opendrift_adapter.py` has never executed. The selection
+> logic around it is fully tested. Completion steps are in
+> [`engines/drift/README.md`](engines/drift/README.md) under
+> "TO COMPLETE LATER".
+
+- [x] **P1** Wrap `OceanDrift` (fewer deps) behind the **same function signature** as the Euler fallback; readers = the two NetCDFs.  *(code written and wired; **unverified** until OpenDrift is installed)*
+- [x] **P1** Wrap `OpenOil` behind that same signature.  *(code written and wired; **unverified** until OpenDrift is installed)*
+- [x] **P1** Backward run via negative timestep; export particles through the **same** `origin_cloud.geojson` writer.  *(code written and wired; **unverified** until OpenDrift is installed)*
+- [x] **P1** Runtime selection order: OpenOil → OceanDrift → Euler; record `engine_used` in the status object and in the output.  *(code written and wired; **unverified** until OpenDrift is installed)*
+- [~] **P1** **Test:** Euler matches OpenDrift direction on the same field (fallback-agreement test).  *(written, skipped via `requires_opendrift`)*
 - [ ] **P2** Oil-type / weathering parameters for OpenOil (document the defaults).
 
 ## Engine B — Forecast (Phase 4)

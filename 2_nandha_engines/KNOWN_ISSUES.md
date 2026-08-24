@@ -5,8 +5,14 @@ are the things I would want to hear about before integrating, not after.
 
 ## 1. OpenDrift is not installed — Euler is the only drift path
 
-**Status:** Phase 3 not started. There is no conda on the development machine, so the
-`conda install -c conda-forge opendrift` chain has never run.
+**Status:** Phase 3 code is written and wired, but **unverified**. There is no conda on
+the development machine, so `conda install -c conda-forge opendrift` has never run and
+`engines/drift/opendrift_adapter.py` has never executed. The backend-selection logic
+around it *is* fully tested (15 tests), and three OpenDrift-specific tests sit skipped
+behind `requires_opendrift` until an environment exists.
+
+Completion steps, including the likely friction points on first contact, are in
+[`engines/drift/README.md`](engines/drift/README.md) under "TO COMPLETE LATER".
 
 **Impact:** `engine_used` reports `"fallback"` / `"euler"` on every drift run. The
 architecture slide claims OpenDrift `OpenOil` as the primary engine; today that is

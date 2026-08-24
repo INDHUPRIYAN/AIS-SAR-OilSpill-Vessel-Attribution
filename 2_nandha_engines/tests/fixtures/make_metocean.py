@@ -61,14 +61,36 @@ def _axes() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return times, lats, lons
 
 
+# CF standard names, keyed by the contract variable name. OpenDrift's generic reader
+# maps variables *by standard_name*, not by variable name, so getting these right is what
+# lets the OpenDrift backends read these files at all - and Keerthana's real CMEMS/ERA5
+# files will carry exactly these names.
+_STANDARD_NAMES = {
+    "u": "x_sea_water_velocity",
+    "v": "y_sea_water_velocity",
+    "u10": "x_wind",
+    "v10": "y_wind",
+}
+_LONG_NAMES = {
+    "u": "eastward_sea_water_velocity",
+    "v": "northward_sea_water_velocity",
+    "u10": "eastward_wind",
+    "v10": "northward_wind",
+}
+
+
 def _dataset(times, lats, lons, u, v, names: tuple[str, str], units: str) -> xr.Dataset:
     u_name, v_name = names
     return xr.Dataset(
         {
             u_name: (("time", "lat", "lon"), u.astype("float32"),
-                     {"units": units, "standard_name": f"eastward_{units and 'velocity'}"}),
+                     {"units": units,
+                      "standard_name": _STANDARD_NAMES[u_name],
+                      "long_name": _LONG_NAMES[u_name]}),
             v_name: (("time", "lat", "lon"), v.astype("float32"),
-                     {"units": units, "standard_name": f"northward_{units and 'velocity'}"}),
+                     {"units": units,
+                      "standard_name": _STANDARD_NAMES[v_name],
+                      "long_name": _LONG_NAMES[v_name]}),
         },
         coords={
             "time": times,

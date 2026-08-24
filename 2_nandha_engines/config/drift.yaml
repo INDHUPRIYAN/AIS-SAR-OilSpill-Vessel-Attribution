@@ -1,6 +1,9 @@
 # Engine B - Drift tuning. Applies to the Euler fallback; the OpenDrift paths (Phase 3)
 # read the same values so the engines stay comparable.
 drift:
+  # auto = OpenOil -> OceanDrift -> Euler, taking the first that is installed.
+  # Pin one of openoil | oceandrift | euler to make a run fail rather than downgrade.
+  engine: auto
   particles: 300           # seeded uniformly by area inside the slick polygon
   hours: 24.0              # backward run length (handbook: 12-24 h)
   dt_minutes: 10.0         # integration timestep

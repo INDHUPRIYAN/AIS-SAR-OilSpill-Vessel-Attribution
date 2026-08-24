@@ -26,13 +26,13 @@ from ..common.status import FALLBACK, Status
 from ..common.timeutil import format_utc, parse_utc
 from ..schemas.forecast import validate_forecast
 from ..schemas.origin_cloud import validate_origin_cloud
+from .backends import AUTO, DriftRequest, select_backend
 from .cloud import build_clouds, origin_window
-from .euler_fallback import BACKWARD, FORWARD, DriftRun, run_euler, seed_particles
+from .euler_fallback import BACKWARD, FORWARD, DriftRun, seed_particles
 from .forecast import DEFAULT_HORIZONS, build_forecast
 from .grids import load_metocean
 
 DEFAULT_CONFIG = Path("config/drift.yaml")
-EULER = "euler"
 
 DEFAULTS: dict[str, Any] = {
     "particles": 300,
@@ -47,6 +47,7 @@ DEFAULTS: dict[str, Any] = {
     "seed": 26143,
     "forecast_horizons_h": list(DEFAULT_HORIZONS),
     "concave_ratio": 0.3,
+    "engine": AUTO,
 }
 
 
@@ -100,6 +101,9 @@ class _Prepared:
     seed_lons: np.ndarray
     seed_lats: np.ndarray
     rng: np.random.Generator
+    backend: Any = None
+    currents_path: Any = None
+    wind_path: Any = None
 
 
 def _prepare(
@@ -112,6 +116,7 @@ def _prepare(
     slick_id: str | None,
     direction: int,
     status: Status,
+    engine: str | None = None,
 ) -> _Prepared:
     slick_file = require_file(slick_path, what="slick.geojson")
     document = read_json(slick_file, what="slick.geojson")
@@ -168,21 +173,34 @@ def _prepare(
     rng = np.random.default_rng(int(config["seed"]))
     seed_lons, seed_lats = seed_particles(polygon, int(config["particles"]), rng)
 
+    backend, engine_warnings = select_backend(engine or config.get("engine", AUTO))
+    for warning in engine_warnings:
+        status.warn(warning)
+
     return _Prepared(
         config, properties, polygon, start_s, run_hours, metocean,
         seed_lons, seed_lats, rng,
+        backend=backend, currents_path=currents_path, wind_path=wind_path,
     )
 
 
 def _integrate(prep: _Prepared, direction: int, status: Status) -> DriftRun:
-    run = run_euler(
-        prep.seed_lons, prep.seed_lats, prep.metocean, prep.start_s,
+    request = DriftRequest(
+        seed_lons=prep.seed_lons,
+        seed_lats=prep.seed_lats,
+        start_time_s=prep.start_s,
         hours=prep.run_hours,
         dt_seconds=float(prep.config["dt_minutes"]) * 60.0,
         direction=direction,
         diffusion_m2_s=float(prep.config["diffusion_m2_s"]),
         rng=prep.rng,
+        metocean=prep.metocean,
+        currents_path=prep.currents_path,
+        wind_path=prep.wind_path,
+        leeway=float(prep.config["leeway"]),
     )
+    run = prep.backend.run(request)
+    status.set_engine(prep.backend.kind)
 
     # Particles that leave the grid get its edge velocity held constant - defensible,
     # but the caller must know it happened rather than reading a confident answer.
@@ -242,7 +260,7 @@ def _ellipse_features(clouds, level: float) -> list[dict[str, Any]]:
     return features
 
 
-def _window_feature(window, clouds) -> dict[str, Any]:
+def _window_feature(window, clouds, engine: str) -> dict[str, Any]:
     peak = min(clouds, key=lambda c: abs(c.time_s - window.peak_s))
     return {
         "type": "Feature",
@@ -255,7 +273,7 @@ def _window_feature(window, clouds) -> dict[str, Any]:
             "start_utc": _utc(window.start_s),
             "end_utc": _utc(window.end_s),
             "peak_utc": _utc(window.peak_s),
-            "engine_used": EULER,
+            "engine_used": engine,
             "method": window.method,
         },
     }
@@ -270,6 +288,7 @@ def hindcast(
     config_path: str | Path = DEFAULT_CONFIG,
     hours: float | None = None,
     slick_id: str | None = None,
+    engine: str | None = None,
 ) -> dict[str, Any]:
     """Backtrack a slick to its probable origin. Returns the §4.5 status object."""
     status = Status(FALLBACK)          # Euler is the fallback engine by design
@@ -277,7 +296,7 @@ def hindcast(
         prep = _prepare(
             slick_path, currents_path=currents_path, wind_path=wind_path,
             config_path=config_path, hours=hours, slick_id=slick_id,
-            direction=BACKWARD, status=status,
+            direction=BACKWARD, status=status, engine=engine,
         )
         run = _integrate(prep, BACKWARD, status)
 
@@ -299,7 +318,7 @@ def hindcast(
             "features": [
                 *_particle_features(clouds),
                 *_ellipse_features(clouds, level),
-                _window_feature(window, clouds),
+                _window_feature(window, clouds, run.engine),
             ],
         }
         validate_origin_cloud(document)
@@ -322,6 +341,7 @@ def forecast(
     config_path: str | Path = DEFAULT_CONFIG,
     hours: float | None = None,
     slick_id: str | None = None,
+    engine: str | None = None,
 ) -> dict[str, Any]:
     """Predict the slick's spread at +6 / +12 / +24 h. Returns the §4.5 status object.
 
@@ -344,7 +364,7 @@ def forecast(
             slick_path, currents_path=currents_path, wind_path=wind_path,
             config_path=config_path,
             hours=hours if hours is not None else max(horizons),
-            slick_id=slick_id, direction=FORWARD, status=status,
+            slick_id=slick_id, direction=FORWARD, status=status, engine=engine,
         )
 
         reachable = [h for h in horizons if h <= prep.run_hours + 1e-9]
@@ -399,7 +419,7 @@ def forecast(
                         "particles_used": result.particles_used,
                         "particles_total": result.particles_total,
                         "hull_method": result.hull_method,
-                        "engine_used": EULER,
+                        "engine_used": run.engine,
                     },
                 }
                 for result in results

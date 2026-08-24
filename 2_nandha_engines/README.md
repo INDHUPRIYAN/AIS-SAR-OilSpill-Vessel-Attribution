@@ -7,10 +7,10 @@ demonstrate any of them.
 | Engine | Status | In → Out |
 |---|---|---|
 | **A — Characterisation** | ✅ complete | mask GeoTIFF + `scene_meta.json` → `slick.geojson` |
-| **B — Drift** (hindcast + forecast) | ✅ complete on the Euler fallback; ⬜ OpenDrift (Phase 3) | `slick.geojson` + `currents.nc` + `wind.nc` → `origin_cloud.geojson`, `forecast.geojson` |
+| **B — Drift** (hindcast + forecast) | ✅ complete on the Euler fallback; ⚠️ OpenDrift written but [unverified](engines/drift/README.md) | `slick.geojson` + `currents.nc` + `wind.nc` → `origin_cloud.geojson`, `forecast.geojson` |
 | **C — Attribution** | ✅ complete | `origin_cloud.geojson` + `vessels.parquet` → `suspects.json` |
 
-**177 tests passing.** Benchmark: **86% top-1**, **100% top-3** over 50 seeded scenarios.
+**192 tests passing** (3 skipped until OpenDrift is installed). Benchmark: **86% top-1**, **100% top-3** over 50 seeded scenarios.
 
 ## Setup
 
@@ -29,7 +29,7 @@ See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) §1 — OpenDrift is not installed yet, a
 
 ```bash
 python scripts/run_all.py     # all three engines against samples/inputs, ~3.5 s
-python -m pytest              # 177 tests
+python -m pytest              # 192 passed, 3 skipped
 ```
 
 Per engine:

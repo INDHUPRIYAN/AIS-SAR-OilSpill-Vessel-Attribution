@@ -12,7 +12,7 @@ done. Everything below is verifiable by running the commands shown.
 | 3 | Output definition (schema + description) | Pydantic models in `engines/schemas/`, enforced before every write |
 | 4 | Example input file(s) committed | `samples/inputs/` — 1.1 MB, six files, `MANIFEST.json` |
 | 5 | Example output file(s) committed | `samples/{slick,origin_cloud,forecast,suspects}` — one pipeline run |
-| 6 | Test results recorded | 177 tests, `python -m pytest`; benchmark in `benchmark/RESULTS.md` |
+| 6 | Test results recorded | 192 tests (3 skipped: OpenDrift), `python -m pytest`; benchmark in `benchmark/RESULTS.md` |
 | 7 | Error behaviour documented per class | [INTEGRATION.md](INTEGRATION.md) § "Error classes" |
 | 8 | README with setup and known issues | [README.md](README.md), [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
 | 9 | Instructions to run | [README.md](README.md) § Run; per-engine READMEs |
@@ -35,7 +35,7 @@ done. Everything below is verifiable by running the commands shown.
 
 ```bash
 python -m venv .venv && .venv/Scripts/pip install -r requirements.txt
-python -m pytest                     # 177 passed
+python -m pytest                     # 192 passed, 3 skipped
 python scripts/run_all.py            # end to end, prints the suspect list
 ```
 

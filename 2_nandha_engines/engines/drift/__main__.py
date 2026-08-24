@@ -37,6 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out", required=True, help="output GeoJSON path")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
     parser.add_argument("--slick-id", default=None, help="seed from this slick_id")
+    parser.add_argument(
+        "--engine", default=None,
+        choices=("auto", "openoil", "oceandrift", "euler"),
+        help="drift engine (default: the config's value, normally auto). Naming one "
+             "that is not installed fails rather than silently downgrading.",
+    )
     return parser
 
 
@@ -52,6 +58,7 @@ def main(argv=None) -> int:
         config_path=args.config,
         hours=args.hours,
         slick_id=args.slick_id,
+        engine=args.engine,
     )
     json.dump(status, sys.stdout, indent=2)
     sys.stdout.write("\n")

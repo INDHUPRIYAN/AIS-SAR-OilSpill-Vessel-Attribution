@@ -19,13 +19,81 @@ python -m engines.drift --slick slick.geojson --currents currents.nc --wind wind
 
 ## Engine selection
 
-Handbook order is OpenOil → OceanDrift → Euler. **Only the Euler fallback exists today**
-(Phase 3 is blocked on a conda install), so every run reports `engine_used: "fallback"`
-and the output names `"euler"`. The file format will not change when OpenDrift lands.
+Handbook order is OpenOil → OceanDrift → Euler, and all three are implemented behind one
+signature (`backends.py`). Selection is by availability:
 
-Physics: `v = current(x,t) + 0.03 · wind10(x,t)`, forward Euler with per-step Gaussian
-diffusion, backward runs by negating the timestep. Metre↔degree conversion uses each
-particle's own latitude, re-evaluated every step.
+```bash
+--engine auto        # default: first installed engine in the order above
+--engine openoil     # pin one; fails loudly if it is not installed
+--engine euler       # force the fallback
+```
+
+Pinning an engine that is missing is an error, never a silent downgrade — a run that
+quietly used different physics than the one you asked for would mean something different.
+
+`engine_used` in the status object is `"primary"` for either OpenDrift model and
+`"fallback"` for Euler; the output's `origin_window.engine_used` names the specific model.
+
+Euler physics: `v = current(x,t) + 0.03 · wind10(x,t)`, forward Euler with per-step
+Gaussian diffusion, backward runs by negating the timestep. Metre↔degree conversion uses
+each particle's own latitude, re-evaluated every step.
+
+---
+
+## ⚠️ TO COMPLETE LATER — Phase 3 is written but unverified
+
+**OpenDrift is not installed on this machine, so `opendrift_adapter.py` has never
+executed.** Everything below it in the stack is done and tested; the adapter itself is a
+reviewed draft against the OpenDrift API. Until the environment exists, every run takes
+the Euler path and says so in its warnings.
+
+### What is already done
+
+- `backends.py` — the three backends, the selection order, and the pin-vs-downgrade rule.
+  **Fully tested** (15 tests) without OpenDrift present.
+- `opendrift_adapter.py` — seeding at our exact particle positions, negative timestep for
+  backward runs, matched diffusivity and wind-drift factor, and unpacking both the modern
+  `.result` xarray layout and the older `.history` masked arrays. **Untested.**
+- The mock NetCDFs now carry proper CF `standard_name` attributes
+  (`x_sea_water_velocity`, `y_sea_water_velocity`, `x_wind`, `y_wind`), which is what
+  OpenDrift's generic reader maps by. Without this the OpenDrift path would have failed on
+  our own fixtures.
+- Three tests sit skipped behind `requires_opendrift`, including the handbook §8
+  fallback-agreement test. They start running the moment the environment exists.
+
+### What remains
+
+1. **Install Miniconda** (~400 MB). Not done here because installing system-wide software
+   is the machine owner's call.
+2. Build the environment — and note it needs *this module's* dependencies too, or pytest
+   cannot run the suite that exercises OpenDrift:
+
+   ```bash
+   conda create -n drift python=3.11
+   conda activate drift
+   conda install -c conda-forge opendrift
+   python -c "import opendrift; print(opendrift.__version__)"   # smoke test
+   pip install -r requirements.txt
+   conda env export > environment.yml                            # replaces the skeleton
+   ```
+
+3. Run `python -m pytest tests/test_drift_backends.py` **from that environment**. The
+   three skipped tests will execute. Expect the adapter to need adjustment on first
+   contact — the likely friction points are the `.result` vs `.history` API split, the
+   exact config key names (`processes:evaporation` and friends get renamed between
+   releases), and whether `seed_elements` accepts `wind_drift_factor` for `OpenOil` in
+   the installed version.
+4. Compare a hindcast under `--engine oceandrift` against `--engine euler` on the same
+   field and record the numbers in this README.
+5. Commit the real `environment.yml` export, and add the Dockerfile (P2).
+
+### If the install fights back
+
+Handbook §5.2 sets the rule: **if the conda/GDAL chain resists for more than half a day,
+tell the team and proceed on the Euler fallback.** That is not a defeat — Euler is
+complete, analytically validated against a hand-computed backtrack, and is the guaranteed
+demo path by design. The only cost is that "OpenDrift OpenOil" leaves the architecture
+slide.
 
 ## Both files are optional, separately
 
