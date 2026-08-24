@@ -7,3 +7,10 @@ weights:
   anomaly:    0.10   # slowdown, course change, loitering
   ais_gap:    0.15   # transmission blackout over the origin window
   prior:      0.05   # vessel type / draft prior
+
+# Filtering gates, applied before scoring (handbook §4.7). They live in this file
+# because the frozen CLI passes exactly one config path: --weights.
+gates:
+  spatial_buffer_km: 5.0      # margin around the high-probability origin region
+  temporal_buffer_min: 90     # slack either side of the origin window
+  max_axis_offset_deg: 45     # course vs slick major axis, folded to [0, 90]

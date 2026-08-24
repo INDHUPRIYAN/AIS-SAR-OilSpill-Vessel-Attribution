@@ -28,7 +28,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 - [x] **P0** `scene_meta.json` mock (scene_id, acquisition UTC, bbox, CRS, dB range).
 - [x] **P0** Synthetic **uniform** current NetCDF + wind NetCDF — analytic ground truth: with a constant current the backtracked origin is hand-computable.
 - [x] **P1** Synthetic **rotating / sheared** current field NetCDF (the harder case).
-- [ ] **P1** Synthetic `vessels.parquet` with exactly the contract columns and **one planted culprit** (passes the origin region in-window, slows down, has an AIS gap).
+- [x] **P1** Synthetic `vessels.parquet` with exactly the contract columns and **one planted culprit** (passes the origin region in-window, slows down, has an AIS gap).
 - [~] **P1** Deliberately broken fixtures for the failure tests: empty mask, NetCDF missing `u`/`v`, zero vessels in window.
 - [~] **P1** Mock-generator scripts (seeded, reproducible) under `tests/fixtures/`.
 
@@ -87,14 +87,14 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 
 ## Engine C — Filtering gates (Phase 5)
 
-- [ ] **P1** Load `vessels.parquet`; code against the **contract columns** (`mmsi, timestamp, lat, lon, sog_kn, cog_deg, heading_deg, vessel_name, imo, vessel_type, length_m, width_m, draft_m, status, source, culprit`), not a sample file's accidents.
-- [ ] **P1** Assemble per-MMSI tracks; assert UTC; assert EPSG:4326.
-- [ ] **P1** Spatial gate: track intersects the buffered high-probability origin region.
-- [ ] **P1** Temporal gate: presence within the origin window ± buffer.
-- [ ] **P1** Trajectory gate: course roughly compatible with the slick major axis (discharge trails behind a moving vessel).
+- [x] **P1** Load `vessels.parquet`; code against the **contract columns** (`mmsi, timestamp, lat, lon, sog_kn, cog_deg, heading_deg, vessel_name, imo, vessel_type, length_m, width_m, draft_m, status, source, culprit`), not a sample file's accidents.
+- [x] **P1** Assemble per-MMSI tracks; assert UTC; assert EPSG:4326.
+- [x] **P1** Spatial gate: track intersects the buffered high-probability origin region.
+- [x] **P1** Temporal gate: presence within the origin window ± buffer.
+- [x] **P1** Trajectory gate: course roughly compatible with the slick major axis (discharge trails behind a moving vessel).
 - [ ] **P1** Excluded vessels stay in the output with `filtered: true` + `filter_reason` (UI shows "filtered out: outside time window").
 - [ ] **P1** `NO_VESSELS_IN_WINDOW` returned structured — a valid, expected outcome, not a bug.
-- [ ] **P1** **Test:** a vessel outside the time window is filtered with the reason recorded.
+- [x] **P1** **Test:** a vessel outside the time window is filtered with the reason recorded.
 
 ## Engine C — Scoring, explanation, ranking (Phase 6)
 
@@ -137,7 +137,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 ## Coordination — only two real touch-points (everything else flows through files)
 
 - [ ] **P0** Agree the NetCDF variable names with **Keerthana** ONCE, in writing — her tiny hand-built NetCDF doubles as my mock.
-- [ ] **P1** Confirm the `vessels.parquet` columns with **Krishnan** once (already fixed by contract).
+- [x] **P1** Confirm the `vessels.parquet` columns with **Krishnan** once (already fixed by contract).
 - [ ] **P1** Raise with **Indhu**: `contracts/schemas/` currently holds only `sar_detection.json` + `vessel_attribution.json`, whose field names do not match the handbook's `slick.geojson` / `suspects.json`. His folder to fix — I code to handbook §4.2–4.4 in the meantime.
 
 ## Standing rules (apply to every task above)
