@@ -155,7 +155,13 @@ def main(argv=None) -> int:
     ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--weight-decay", type=float, default=1e-4)
     ap.add_argument("--val-fraction", type=float, default=0.2)
-    ap.add_argument("--num-workers", type=int, default=2)
+    # 0 on Windows. Spawned DataLoader workers must pickle the dataset, and
+    # the memmapped tile arrays fail that with "OSError: [Errno 22]" /
+    # "pickle data was truncated" once the cache is large -- it took down a
+    # completed 40-epoch run at teardown. Tiles are memmapped and the OS page
+    # cache already does the prefetching, so in-process loading costs little.
+    ap.add_argument("--num-workers", type=int,
+                    default=0 if sys.platform == "win32" else 2)
     ap.add_argument("--augment", choices=["default", "flips", "none"], default="default")
     ap.add_argument("--seed", type=int, default=1337)
     ap.add_argument("--no-amp", action="store_true")

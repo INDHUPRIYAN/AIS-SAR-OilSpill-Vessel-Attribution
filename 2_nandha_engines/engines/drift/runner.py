@@ -32,7 +32,12 @@ from .euler_fallback import BACKWARD, FORWARD, DriftRun, seed_particles
 from .forecast import DEFAULT_HORIZONS, build_forecast
 from .grids import load_metocean
 
-DEFAULT_CONFIG = Path("config/drift.yaml")
+# Anchored to this file, not the process CWD. These engines are launched as
+# subprocesses by the orchestrator and directly by tests, from several
+# different working directories; a CWD-relative default silently resolves to
+# nothing outside the module directory.
+MODULE_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_CONFIG = MODULE_ROOT / "config" / "drift.yaml"
 
 DEFAULTS: dict[str, Any] = {
     "particles": 300,

@@ -11,7 +11,7 @@
   "product_type": "GRD",
   "polarisation": "VV+VH",
   "orbit_direction": "DESCENDING",
-  "file_path": "D:/SIH/AIS-SAR-OilSpill-Vessel-Attribution/3_pavitra_scene_service/fixtures/demo_scene/scene_sigma0_db.tif",
+  "file_path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/3_pavitra_scene_service/fixtures/demo_scene/scene_sigma0_db.tif",
   "checksum": "6420a1e0aad8f037a3846ba1bb8502ff696f47aaf647ef211aac833fa019a579",
   "file_size_bytes": 4206,
   "download_url": "mock://cdse.dataspace.copernicus.eu/demo/S1A_IW_GRDH_1SDV_20231012T172530.tif",

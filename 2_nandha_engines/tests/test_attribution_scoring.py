@@ -32,10 +32,19 @@ from engines.schemas.suspects import validate_suspects
 from tests.fixtures.make_mask import build_scene
 from tests.fixtures.make_metocean import build_metocean
 from tests.fixtures.make_vessels import build_vessels
+from engines.attribution.runner import DEFAULT_WEIGHTS_PATH
+
+# Anchored to this file so the suite passes from any working directory.
+# These paths used to be CWD-relative, which meant the tests only ran
+# when pytest happened to be invoked from 2_nandha_engines/.
+MODULE_ROOT = Path(__file__).resolve().parents[1]
+
 
 CULPRIT_MMSI = 419001234
 FERRY_MMSI = 419005555
-WEIGHTS = "config/attribution_weights.yaml"
+# One source of truth for where the weights live; a duplicated relative
+# path here only works when pytest happens to run from this directory.
+WEIGHTS = str(DEFAULT_WEIGHTS_PATH)
 
 
 @pytest.fixture(scope="module")
@@ -47,13 +56,13 @@ def scenario(tmp_path_factory) -> dict:
     slick = work / "slick.geojson"
     assert characterise(
         scene["mask_path"], scene["scene_meta_path"], slick,
-        config_path="config/characterise.yaml",
+        config_path=str(MODULE_ROOT / "config" / "characterise.yaml"),
     )["ok"]
 
     cloud = work / "origin_cloud.geojson"
     assert hindcast(
         slick, cloud, currents_path=met["currents_strain"],
-        wind_path=met["wind_uniform"], config_path="config/drift.yaml",
+        wind_path=met["wind_uniform"], config_path=str(MODULE_ROOT / "config" / "drift.yaml"),
     )["ok"]
 
     document = json.loads(cloud.read_text(encoding="utf-8"))

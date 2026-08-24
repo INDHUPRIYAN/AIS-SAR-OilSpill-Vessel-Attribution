@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 
 import numpy as np
+from pathlib import Path
 import pytest
 
 from engines.characterise import characterise
@@ -37,6 +38,12 @@ from engines.schemas.origin_cloud import validate_origin_cloud
 from tests.fixtures.make_mask import build_scene
 from tests.fixtures.make_metocean import build_metocean
 
+# Anchored to this file so the suite passes from any working directory.
+# These paths used to be CWD-relative, which meant the tests only ran
+# when pytest happened to be invoked from 2_nandha_engines/.
+MODULE_ROOT = Path(__file__).resolve().parents[1]
+
+
 requires_opendrift = pytest.mark.skipif(
     OpenOilBackend.is_available()[0] is False,
     reason="OpenDrift is not installed; build the conda env in engines/drift/README.md",
@@ -51,7 +58,7 @@ def inputs(tmp_path_factory) -> dict:
     slick = work / "slick.geojson"
     assert characterise(
         scene["mask_path"], scene["scene_meta_path"], slick,
-        config_path="config/characterise.yaml",
+        config_path=str(MODULE_ROOT / "config" / "characterise.yaml"),
     )["ok"]
     return {"slick": slick, "met": met, "work": work}
 
@@ -137,7 +144,7 @@ def test_cli_can_pin_the_engine(inputs, tmp_path):
         "--currents", inputs["met"]["currents_strain"],
         "--wind", inputs["met"]["wind_zero"],
         "--mode", "hindcast", "--engine", "euler",
-        "--out", str(out), "--config", "config/drift.yaml",
+        "--out", str(out), "--config", str(MODULE_ROOT / "config" / "drift.yaml"),
     ])
     assert code == 0
     validate_origin_cloud(json.loads(out.read_text(encoding="utf-8")))
@@ -149,7 +156,7 @@ def test_requesting_openoil_when_absent_fails_the_run(inputs, tmp_path):
     status = hindcast(
         inputs["slick"], tmp_path / "x.geojson",
         currents_path=inputs["met"]["currents_strain"],
-        config_path="config/drift.yaml", engine="openoil",
+        config_path=str(MODULE_ROOT / "config" / "drift.yaml"), engine="openoil",
     )
     assert status["ok"] is False
     assert status["error"]["error_class"] == "MISSING_INPUT"
@@ -163,7 +170,7 @@ def test_runs_degrade_to_euler_and_report_it(inputs, tmp_path):
         inputs["slick"], out,
         currents_path=inputs["met"]["currents_strain"],
         wind_path=inputs["met"]["wind_uniform"],
-        config_path="config/drift.yaml",
+        config_path=str(MODULE_ROOT / "config" / "drift.yaml"),
     )
     assert status["ok"] is True
 
@@ -240,7 +247,7 @@ def test_opendrift_produces_a_valid_origin_cloud(inputs, tmp_path, engine):
         inputs["slick"], out,
         currents_path=inputs["met"]["currents_strain"],
         wind_path=inputs["met"]["wind_uniform"],
-        config_path="config/drift.yaml", engine=engine,
+        config_path=str(MODULE_ROOT / "config" / "drift.yaml"), engine=engine,
     )
     assert status["ok"] is True, status
     assert status["engine_used"] == "primary"
@@ -266,7 +273,7 @@ def test_euler_matches_opendrift_direction(inputs, tmp_path):
             inputs["slick"], out,
             currents_path=inputs["met"]["currents_uniform"],
             wind_path=inputs["met"]["wind_zero"],
-            config_path="config/drift.yaml", engine=engine, hours=12.0,
+            config_path=str(MODULE_ROOT / "config" / "drift.yaml"), engine=engine, hours=12.0,
         )
         assert status["ok"], status
         features = json.loads(out.read_text(encoding="utf-8"))["features"]

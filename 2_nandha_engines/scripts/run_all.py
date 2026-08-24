@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from engines.attribution import attribute            # noqa: E402
 from engines.characterise import characterise        # noqa: E402
 from engines.drift import forecast, hindcast         # noqa: E402
+from engines.attribution.runner import DEFAULT_WEIGHTS_PATH
 
 CHECK = "OK "
 CROSS = "FAIL"
@@ -89,7 +90,7 @@ def run(inputs: Path, out: Path) -> int:
 
     status, elapsed = _timed(
         attribute, origin_cloud, vessels, suspects,
-        weights_path="config/attribution_weights.yaml", slick_path=slick,
+        weights_path=str(DEFAULT_WEIGHTS_PATH), slick_path=slick,
     )
     ok &= _report("C  attribution", status, elapsed)
     if not ok:

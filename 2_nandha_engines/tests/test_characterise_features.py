@@ -19,6 +19,12 @@ from engines.characterise.damping import compute_damping
 from engines.characterise.features import extract_slicks
 from tests.fixtures.make_mask import build_scene
 
+# Anchored to this file so the suite passes from any working directory.
+# These paths used to be CWD-relative, which meant the tests only ran
+# when pytest happened to be invoked from 2_nandha_engines/.
+MODULE_ROOT = Path(__file__).resolve().parents[1]
+
+
 
 @pytest.fixture(scope="module")
 def scene(tmp_path_factory) -> dict:
@@ -194,7 +200,7 @@ def test_absurd_age_is_clamped_and_warned():
 def test_params_load_from_config_file():
     import yaml
 
-    cfg = yaml.safe_load(Path("config/characterise.yaml").read_text(encoding="utf-8"))
+    cfg = yaml.safe_load((MODULE_ROOT / "config" / "characterise.yaml").read_text(encoding="utf-8"))
     params = FayParams.from_config(cfg["fay"])
     assert params.assumed_thickness_m == pytest.approx(1.0e-3)
     assert params.damping_factor_bounds == (0.5, 1.6)

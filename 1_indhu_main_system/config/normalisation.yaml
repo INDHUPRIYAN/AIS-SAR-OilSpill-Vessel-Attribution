@@ -41,9 +41,43 @@ tiling:
   stride: 256             # non-overlapping tiles at train time
   inference_overlap: 32   # overlap at inference for seam-free stitching
 
+  # Probability above which a pixel is called oil at inference.
+  #
+  # Chosen from the measured threshold sweep on the held-out split rather than
+  # left at the 0.5 default, because the trade-off is steep and asymmetric:
+  #
+  #   thr   overall IoU   oil-tile IoU   no-oil tiles firing
+  #   0.3      0.225         0.897            19.3%
+  #   0.5      0.313         0.878            14.4%
+  #   0.6      0.334         0.700            12.6%
+  #   0.7      0.354         0.582            10.4%
+  #
+  # 0.5 keeps oil-tile IoU at 0.878 while 0.6 collapses it to 0.700 for only
+  # 1.8 points of false-positive reduction. Recall matters here -- a missed
+  # slick ends the investigation, whereas a false positive is filtered later by
+  # the screening stage and by attribution's own gates. Re-derive this from
+  # `ml.evaluate --sweep` whenever the segmenter is retrained.
+  detect_threshold: 0.5
+
   # Keep a tile if at least this fraction of its pixels are oil.
   min_oil_fraction: 0.01
 
   # Matched hard negatives per kept oil tile (no-oil tiles drawn from the
   # SAME scene, so the model learns texture, not scene identity).
   hard_negative_ratio: 1.0
+
+  # Tiles to sample from a scene that contains NO oil at all.
+  #
+  # Without this the ratio above silently discards every look-alike and no-oil
+  # scene: `n_neg = round(len(oil_tiles) * ratio)` is 0 when a scene has no oil,
+  # so two thirds of Trujillo contributed nothing and the segmenter never saw a
+  # look-alike during training. Measured effect of that omission: 27.1% of
+  # no-oil test tiles produced a false detection, while IoU on oil tiles was a
+  # healthy 0.923. The model could segment oil fine; it had simply never been
+  # shown clean water or a look-alike and had no reason to stay quiet on them.
+  # Raised from 10 after measuring the effect. At 10 the trainval mix was 34%
+  # oil while the test distribution is 9% -- the model saw far more oil than it
+  # ever will in reality and duly over-predicted it. Effect of 0 -> 10 was:
+  # no-oil tiles firing 27.1% -> 14.4%, false-positive area 15.6% -> 5.9%.
+  # 40 brings the training mix to roughly 15% oil, much closer to the real one.
+  negatives_per_empty_scene: 40

@@ -24,6 +24,7 @@ from engines.attribution.scoring import DEFAULT_WEIGHTS, FACTORS
 
 from .run import OUT_DIR, prepare_origin
 from .scenarios import build_scenario
+from engines.attribution.runner import DEFAULT_WEIGHTS_PATH
 
 
 def _normalise(weights: dict[str, float]) -> dict[str, float]:
@@ -91,7 +92,7 @@ def main(argv=None) -> int:
         out = work / f"suspects_{index:03d}.json"
         status = attribute(
             origin["cloud"], scenario.vessels_path, out,
-            weights_path="config/attribution_weights.yaml",
+            weights_path=str(DEFAULT_WEIGHTS_PATH),
             slick_path=origin["slick"],
         )
         if status["ok"]:

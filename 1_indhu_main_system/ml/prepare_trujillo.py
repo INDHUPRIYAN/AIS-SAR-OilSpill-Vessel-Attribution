@@ -206,10 +206,21 @@ def _tile_pairs(pairs, split: str, cfg, seed: int, part, poc_holdout: bool,
             for itile, mtile, r, c, frac in oil_tiles:
                 writer.add(itile, mtile, scene, r, c, frac, "oil")
             kept_oil += len(oil_tiles)
-            n_neg = int(round(len(oil_tiles) * cfg.tiling.hard_negative_ratio))
+
+            if oil_tiles:
+                # Matched hard negatives from the same scene.
+                n_neg = int(round(len(oil_tiles) * cfg.tiling.hard_negative_ratio))
+                kind = "hard_negative"
+            else:
+                # A scene with no oil anywhere -- a look-alike or clean-water
+                # scene. Scaling by len(oil_tiles) would keep ZERO tiles and
+                # throw the scene away, which is exactly backwards: these are
+                # the examples that teach the model to stay quiet.
+                n_neg = cfg.tiling.negatives_per_empty_scene
+                kind = "clean_scene"
             for itile, mtile, r, c, frac in rng.sample(
                     neg_tiles, min(n_neg, len(neg_tiles))):
-                writer.add(itile, mtile, scene, r, c, frac, "hard_negative")
+                writer.add(itile, mtile, scene, r, c, frac, kind)
                 kept_neg += 1
 
     meta = {

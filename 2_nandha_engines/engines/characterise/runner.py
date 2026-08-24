@@ -33,7 +33,12 @@ from .damping import compute_damping
 from .features import extract_slicks
 
 WGS84 = "EPSG:4326"
-DEFAULT_CONFIG = Path("config/characterise.yaml")
+# Anchored to this file, not the process CWD. These engines are launched as
+# subprocesses by the orchestrator and directly by tests, from several
+# different working directories; a CWD-relative default silently resolves to
+# nothing outside the module directory.
+MODULE_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_CONFIG = MODULE_ROOT / "config" / "characterise.yaml"
 
 # Keys a scene_meta.json might carry the acquisition time under. Pavitra's contract
 # says "acquisition time (UTC)"; the shared mock uses `acquisition_time`.

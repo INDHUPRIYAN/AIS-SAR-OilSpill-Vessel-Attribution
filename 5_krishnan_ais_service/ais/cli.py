@@ -29,6 +29,7 @@ def main():
     gen_parser.add_argument("--n-vessels", type=int, required=True)
     gen_parser.add_argument("--culprit-json", type=str, required=True)
     gen_parser.add_argument("--seed", type=int, default=42)
+    gen_parser.add_argument("--fleet-seed", type=int, default=None)
     gen_parser.add_argument("--out", type=str, default="vessels.parquet")
     
     # build-benchmark
@@ -80,7 +81,8 @@ def main():
             end_time=args.end,
             n_vessels=args.n_vessels,
             culprit_config=culprit_config,
-            seed=args.seed
+            seed=args.seed,
+            fleet_seed=getattr(args, "fleet_seed", None),
         )
         if not df.empty:
             df.to_parquet(args.out, index=False)

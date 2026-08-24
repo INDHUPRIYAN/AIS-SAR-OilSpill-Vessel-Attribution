@@ -84,7 +84,17 @@ def _polygon_lonlat(blob: np.ndarray, profile, simplify_px: float = 2.0):
     contours = find_contours(blob.astype(float), 0.5)
     if not contours:
         return None
-    contour = max(contours, key=len)  # outer boundary
+
+    # Pick the contour enclosing the largest area, NOT the one with the most
+    # points. A blob riddled with holes produces one hole boundary per hole,
+    # and a convoluted hole can easily carry more vertices than the outer ring:
+    # on a real scene this returned a hole as the slick outline, putting the
+    # centroid outside its own polygon and failing contract validation.
+    def _enclosed_area(c):
+        r, cc = c[:, 0], c[:, 1]
+        return abs(float(np.dot(r, np.roll(cc, 1)) - np.dot(cc, np.roll(r, 1))) / 2.0)
+
+    contour = max(contours, key=_enclosed_area)
 
     # Douglas-Peucker in pixel space keeps the polygon light for the UI without
     # visibly changing its shape.

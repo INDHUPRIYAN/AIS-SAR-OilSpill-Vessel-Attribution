@@ -247,8 +247,16 @@ class OpenMeteoAdapter:
         except ImportError:
             raise UnavailableError("requests library is required to query Open-Meteo API.", provider="openmeteo")
 
-        # Select endpoint: historical archive vs forecast
-        endpoint = self.base_url or (OPENMETEO_ARCHIVE_URL if request.is_historical_cmems else OPENMETEO_FORECAST_URL)
+        # Select endpoint: historical archive vs forecast. This must depend on
+        # the request's own dates -- the forecast endpoint only accepts a few
+        # months around today. It was previously keyed to the CMEMS product
+        # cutoff (2021), which sent every date from 2021 up to last week to
+        # the forecast API, where it 400s. Anything ending more than 5 days
+        # ago belongs to the archive.
+        from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+
+        is_past = request.end_dt < _dt.now(_tz.utc) - _td(days=5)
+        endpoint = self.base_url or (OPENMETEO_ARCHIVE_URL if is_past else OPENMETEO_FORECAST_URL)
         
         # Center lat/lon for point/grid query
         center_lat = (request.bbox.min_lat + request.bbox.max_lat) / 2.0
@@ -294,7 +302,16 @@ class OpenMeteoAdapter:
             if XARRAY_AVAILABLE and xr is not None and np is not None:
                 lat_arr = np.array([request.bbox.min_lat, request.bbox.max_lat])
                 lon_arr = np.array([request.bbox.min_lon, request.bbox.max_lon])
-                time_arr = [datetime.fromisoformat(t).replace(tzinfo=timezone.utc) for t in times]
+                # numpy datetime64, NOT timezone-aware Python datetimes.
+                # xarray cannot serialise tz-aware datetime objects -- to_netcdf
+                # fails with "unable to infer dtype on variable 'time'", which
+                # took down the whole Open-Meteo path and with it the only
+                # keyless wind provider in the fallback chain. Open-Meteo
+                # returns naive local-free ISO strings already in UTC, so
+                # dropping any offset and casting is the correct conversion.
+                time_arr = np.array(
+                    [np.datetime64(t.replace("Z", "").split("+")[0], "s") for t in times],
+                    dtype="datetime64[ns]")
 
                 # Broadcast 1D time vector across 2D spatial grid (2x2)
                 n_t = len(time_arr)

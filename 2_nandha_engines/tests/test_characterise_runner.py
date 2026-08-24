@@ -17,7 +17,13 @@ from engines.characterise.__main__ import main as cli_main
 from engines.schemas.slick import validate_slick
 from tests.fixtures.make_mask import build_scene
 
-CONFIG = "config/characterise.yaml"
+# Anchored to this file so the suite passes from any working directory.
+# These paths used to be CWD-relative, which meant the tests only ran
+# when pytest happened to be invoked from 2_nandha_engines/.
+MODULE_ROOT = Path(__file__).resolve().parents[1]
+
+
+CONFIG = str(MODULE_ROOT / "config" / "characterise.yaml")
 
 
 @pytest.fixture(scope="module")

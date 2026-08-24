@@ -38,8 +38,6 @@ Thumbs.db
 # Local caches and outputs
 data/
 
-# Documentation
-docs/
 
 
 # Model weights are large binaries; regenerate with `python -m ml.export`
@@ -49,3 +47,20 @@ docs/
 # Ultralytics scratch output (val plots etc); real runs live under data/runs/
 1_indhu_main_system/runs/
 runery/
+
+# Node / frontend
+node_modules/
+1_indhu_main_system/frontend/dist/
+
+# Databases and scratch
+*.db
+*.sqlite3
+._*.json
+*.log
+.pytest_cache/
+nohup.out
+
+# Large local artefacts (regenerable / downloadable)
+*.7z
+*.7z.part
+*.tiff

@@ -42,7 +42,10 @@ CMEMS_HISTORICAL_PRODUCT = "GLOBAL_MULTIYEAR_PHY_001_030"
 CMEMS_HISTORICAL_DATASET = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 
 CMEMS_RECENT_PRODUCT = "GLOBAL_ANALYSIS_FORECAST_PHY_001_024"
-CMEMS_RECENT_DATASET = "cmems_mod_glo_phy_anfc_0.083deg_P1D-m"
+# The anfc product splits variables across datasets: the plain P1D-m id has
+# no uo/vo at all (queries fail with "uo is neither a variable..."); surface
+# currents live in the dedicated -cur_ dataset.
+CMEMS_RECENT_DATASET = "cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m"
 
 
 def select_cmems_product(request_date: Union[datetime, str]) -> Dict[str, str]:

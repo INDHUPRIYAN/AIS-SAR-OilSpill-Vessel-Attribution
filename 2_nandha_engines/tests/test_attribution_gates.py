@@ -31,6 +31,13 @@ from engines.drift import hindcast
 from tests.fixtures.make_mask import build_scene
 from tests.fixtures.make_metocean import build_metocean
 from tests.fixtures.make_vessels import build_vessels
+from engines.attribution.runner import DEFAULT_WEIGHTS_PATH
+
+# Anchored to this file so the suite passes from any working directory.
+# These paths used to be CWD-relative, which meant the tests only ran
+# when pytest happened to be invoked from 2_nandha_engines/.
+MODULE_ROOT = Path(__file__).resolve().parents[1]
+
 
 CULPRIT_MMSI = 419001234
 
@@ -45,14 +52,14 @@ def scenario(tmp_path_factory) -> dict:
     slick = work / "slick.geojson"
     assert characterise(
         scene["mask_path"], scene["scene_meta_path"], slick,
-        config_path="config/characterise.yaml",
+        config_path=str(MODULE_ROOT / "config" / "characterise.yaml"),
     )["ok"]
 
     cloud_path = work / "origin_cloud.geojson"
     assert hindcast(
         slick, cloud_path,
         currents_path=met["currents_strain"], wind_path=met["wind_uniform"],
-        config_path="config/drift.yaml",
+        config_path=str(MODULE_ROOT / "config" / "drift.yaml"),
     )["ok"]
 
     document = json.loads(cloud_path.read_text(encoding="utf-8"))
@@ -70,7 +77,7 @@ def scenario(tmp_path_factory) -> dict:
         slick_axis_deg=slick_axis_from_cloud(document),
     )
 
-    config = yaml.safe_load(Path("config/attribution_weights.yaml").read_text())
+    config = yaml.safe_load(DEFAULT_WEIGHTS_PATH.read_text())
     return {
         "document": document,
         "truth": truth,

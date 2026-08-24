@@ -21,7 +21,13 @@ from engines.schemas.origin_cloud import validate_origin_cloud
 from tests.fixtures.make_mask import build_scene
 from tests.fixtures.make_metocean import build_metocean
 
-DRIFT_CONFIG = "config/drift.yaml"
+# Anchored to this file so the suite passes from any working directory.
+# These paths used to be CWD-relative, which meant the tests only ran
+# when pytest happened to be invoked from 2_nandha_engines/.
+MODULE_ROOT = Path(__file__).resolve().parents[1]
+
+
+DRIFT_CONFIG = str(MODULE_ROOT / "config" / "drift.yaml")
 
 
 @pytest.fixture(scope="module")
@@ -34,7 +40,7 @@ def inputs(tmp_path_factory) -> dict:
     slick_path = work / "slick.geojson"
     status = characterise(
         scene["mask_path"], scene["scene_meta_path"], slick_path,
-        config_path="config/characterise.yaml",
+        config_path=str(MODULE_ROOT / "config" / "characterise.yaml"),
     )
     assert status["ok"], status
     return {"slick": slick_path, "met": met, "scene": scene, "work": work}

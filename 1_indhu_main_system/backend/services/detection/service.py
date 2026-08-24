@@ -54,6 +54,10 @@ class DetectionOutcome:
     model_version: str
     regions: List[dict]
     warnings: List[str]
+    # Stage-1 output, kept so each delineated region can be labelled oil or
+    # look-alike. None means the screen did not run, which is NOT the same as
+    # "the screen found nothing" and must not be reported as a look-alike.
+    screen: Optional[dict] = None
 
 
 # --------------------------------------------------------------------------
@@ -61,13 +65,32 @@ class DetectionOutcome:
 # --------------------------------------------------------------------------
 
 
-def read_scene(path: Path):
-    """Return (db_array, profile, valid_mask). Land/nodata is False in valid."""
+def read_scene(path: Path, band: Optional[int] = None):
+    """Return (db_array, profile, valid_mask). Land/nodata is False in valid.
+
+    The band is NOT hardcoded. Training reads `sar.primary_band` from the
+    shared config (band 2: measured damping 8.12 dB, versus band 1's 1.45 dB,
+    which sits inside the speckle noise), and inference has to read the same
+    band or the model sees data unlike anything it was trained on.
+
+    This was silently wrong for a long time because the demo scene is
+    single-band, so band 1 happened to be correct there. On a real two-band
+    scene it put the whole image near the -35 dB floor and the segmenter
+    labelled 99.4% of it oil.
+    """
     import rasterio
 
+    if band is None:
+        band = int(load_config().sar.primary_band)
+
     with rasterio.open(path) as src:
-        db = src.read(1).astype(np.float32)
+        # Single-band scenes are legitimate (already-extracted Sigma0); asking
+        # for band 2 there is a config/scene mismatch, not a reason to fail.
+        use = band if band <= src.count else 1
+        db = src.read(use).astype(np.float32)
         profile = src.profile.copy()
+        profile["_band_used"] = use
+        profile["_band_requested"] = band
         nodata = src.nodata
         valid = np.isfinite(db)
         if nodata is not None:
@@ -83,7 +106,9 @@ def write_mask(mask: np.ndarray, profile: dict, out_path: Path) -> Path:
     import rasterio
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    prof = profile.copy()
+    # Drop our own annotations (_band_used etc): everything left in the profile
+    # is forwarded to GDAL as a creation option.
+    prof = {k: v for k, v in profile.items() if not k.startswith("_")}
     prof.update(dtype="uint8", count=1, nodata=None, compress="deflate")
     with rasterio.open(out_path, "w", **prof) as dst:
         dst.write(mask.astype(np.uint8), 1)
@@ -143,15 +168,18 @@ def load_onnx(weights: Path):
         providers = [p for p in ("CUDAExecutionProvider", "CPUExecutionProvider")
                      if p in ort.get_available_providers()]
         sess = ort.InferenceSession(str(weights), providers=providers)
-        meta = {m.key: m.value for m in sess.get_modelmeta().custom_metadata_map.items()} \
-            if hasattr(sess.get_modelmeta(), "custom_metadata_map") else {}
         return sess, dict(sess.get_modelmeta().custom_metadata_map)
-    except Exception:
+    except Exception as exc:
+        # Deliberately non-fatal -- but say why. This silently returned None for
+        # a perfectly good model because of a typo here, and the pipeline dutifully
+        # ran the threshold fallback while reporting "no usable ONNX model".
+        print(f"[detect] ONNX load failed for {weights.name}: "
+              f"{type(exc).__name__}: {exc}")
         return None
 
 
 def infer_tiled(sess, db: np.ndarray, valid: np.ndarray, cfg,
-                threshold: float = 0.5, batch_size: int = 8) -> Tuple[np.ndarray, float]:
+                threshold: Optional[float] = None, batch_size: int = 8) -> Tuple[np.ndarray, float]:
     """Tile the scene, run the segmenter, stitch the probabilities back.
 
     Tiles overlap and are averaged in the seams. Without overlap, every tile
@@ -159,6 +187,11 @@ def infer_tiled(sess, db: np.ndarray, valid: np.ndarray, cfg,
     beyond the tile, so its prediction jumps discontinuously across the join.
     """
     from ml.config import db_to_model
+
+    # Operating point comes from the config, which records the measured
+    # sweep it was chosen from -- not a literal buried in the code.
+    if threshold is None:
+        threshold = cfg.tiling.detect_threshold
 
     tile = cfg.tiling.tile_size
     overlap = cfg.tiling.inference_overlap
@@ -296,6 +329,65 @@ def regions_from_mask(mask: np.ndarray, db: np.ndarray) -> List[dict]:
 # --------------------------------------------------------------------------
 
 
+def _boxes_overlap(a, b) -> float:
+    """Intersection over the area of `a` (the segmented region).
+
+    Asymmetric on purpose: the screen draws one loose box around a whole slick
+    while the segmenter may split it into several components. Asking "how much
+    of this region did the screen cover" answers the right question; plain IoU
+    would reject every small piece of a correctly-screened slick.
+    """
+    ar0, ac0, ar1, ac1 = a
+    br0, bc0, br1, bc1 = b
+    ir = max(0, min(ar1, br1) - max(ar0, br0))
+    ic = max(0, min(ac1, bc1) - max(ac0, bc0))
+    area = max((ar1 - ar0) * (ac1 - ac0), 1)
+    return (ir * ic) / area
+
+
+def classify_regions(regions: List[dict], screen: Optional[dict],
+                     min_overlap: float = 0.1) -> None:
+    """Label each region oil or look-alike, in place, using the screening model.
+
+    The screen is a single-class oil detector trained with 2,290 DARTIS
+    look-alike patches as background, so its *silence* over a dark feature is a
+    trained signal, not an absence of evidence: it saw the patch and declined to
+    call it oil. That is what makes "lookalike" a measured label here rather
+    than a guess.
+
+    Two conditions must BOTH hold before silence counts as a rejection:
+
+      1. the screen ran at all, and
+      2. it fired somewhere in this scene.
+
+    Condition 2 is not a formality. Measured on Trujillo Part III, the
+    DARTIS-trained screen produces zero detections on scenes it has never seen
+    the domain of -- oil, look-alike and clear water alike. Treating that
+    blanket silence as a rejection labelled 100% of genuine oil regions as
+    look-alikes. A detector with no recall on a scene has no opinion about it,
+    and inventing one from its silence is worse than not classifying at all.
+
+    Without a responsive screen every region stays "oil" -- the same
+    conservative behaviour the threshold engine has always had.
+    """
+    responsive = bool(screen and screen.get("detections"))
+    for r in regions:
+        r["class"] = "oil"
+        r["screen_score"] = None
+        if not responsive:
+            continue
+        best = 0.0
+        for det in screen["detections"]:
+            ov = _boxes_overlap(r["bbox_rc"], det["bbox_rc"])
+            if ov >= min_overlap and det["score"] > best:
+                best = det["score"]
+        if best > 0.0:
+            r["screen_score"] = round(best, 4)
+        else:
+            # The oil detector looked here and stayed quiet.
+            r["class"] = "lookalike"
+
+
 def run_detection(db, valid, cfg, weights: Path, scene_db_range=None,
                   force_engine: Optional[str] = None,
                   screen_weights: Optional[Path] = None) -> DetectionOutcome:
@@ -341,9 +433,20 @@ def run_detection(db, valid, cfg, weights: Path, scene_db_range=None,
                     version = meta.get("model_version", "unet-r34-onnx")
                     if screen is not None:
                         version += "+yolo-screen"
-                    return DetectionOutcome(
-                        mask, conf, "ml", version,
-                        regions_from_mask(mask, db), warnings)
+                    regions = regions_from_mask(mask, db)
+                    classify_regions(regions, screen)
+                    n_look = sum(r["class"] == "lookalike" for r in regions)
+                    if n_look:
+                        warnings.append(
+                            f"screen rejected {n_look}/{len(regions)} segmented "
+                            f"region(s) as look-alike")
+                    elif regions and screen is not None and not screen["detections"]:
+                        warnings.append(
+                            "screen returned no detections anywhere in this scene, "
+                            "so look-alike rejection was NOT applied; candidates "
+                            "are reported as oil without stage-1 confirmation")
+                    return DetectionOutcome(mask, conf, "ml", version,
+                                            regions, warnings, screen)
                 except Exception as exc:
                     warnings.append(f"ML path failed ({type(exc).__name__}: {exc}); "
                                     f"falling back to threshold")
@@ -354,8 +457,12 @@ def run_detection(db, valid, cfg, weights: Path, scene_db_range=None,
 
     res = detect_threshold(db, ThresholdParams(), valid)
     warnings.extend(res.notes)
+    # The screen still applies on the fallback path when it loaded: a threshold
+    # mask is exactly the kind of output that needs look-alike rejection most.
+    classify_regions(res.regions, screen)
     return DetectionOutcome(res.mask, res.confidence, "threshold_fallback",
-                            "threshold-morphology-v1", res.regions, warnings)
+                            "threshold-morphology-v1", res.regions, warnings,
+                            screen)
 
 
 def detect(scene_path: Path, scene_id: str, out_dir: Path,
@@ -379,13 +486,19 @@ def detect(scene_path: Path, scene_id: str, out_dir: Path,
         if bbox is None:
             outcome.warnings.append(f"dropped a region with an out-of-range bbox: {r['bbox_rc']}")
             continue
-        # The threshold engine has no look-alike classifier; anything that
-        # survives its gates is reported as oil. Real look-alike labelling is
-        # the DARTIS screening model's job.
+        # Where the screen confirmed this region, its own confidence is the
+        # honest per-candidate score; the scene-level segmentation confidence
+        # says nothing about THIS region. phenomenon stays null because the
+        # screen is single-class -- it can tell oil from not-oil, but naming
+        # which look-alike this is would be invention.
+        kind = r.get("class", "oil")
+        score = r.get("screen_score")
+        if score is None:
+            score = min(0.99, outcome.confidence)
         candidates.append(Candidate(
             bbox=bbox,
-            **{"class": "oil"},
-            score=round(min(0.99, outcome.confidence), 4),
+            **{"class": kind},
+            score=round(float(score), 4),
         ))
 
     response = DetectResponse(

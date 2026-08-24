@@ -18,6 +18,12 @@ import pytest
 from benchmark.run import evaluate, prepare_origin, summarise
 from benchmark.scenarios import TIER_MIX, TIERS, build_scenario
 
+# Anchored to this file so the suite passes from any working directory.
+# These paths used to be CWD-relative, which meant the tests only ran
+# when pytest happened to be invoked from 2_nandha_engines/.
+MODULE_ROOT = Path(__file__).resolve().parents[1]
+
+
 
 @pytest.fixture(scope="module")
 def origin(tmp_path_factory) -> dict:
@@ -142,7 +148,7 @@ def test_summary_reports_behaviour_breakdown():
 
 def test_committed_results_are_present_and_self_consistent():
     """The number on the metrics slide has to come from a file anyone can re-derive."""
-    results = Path("benchmark/results.json")
+    results = (MODULE_ROOT / "benchmark" / "results.json")
     assert results.is_file(), "run `python -m benchmark.run` and commit the results"
 
     payload = json.loads(results.read_text(encoding="utf-8"))
@@ -153,4 +159,4 @@ def test_committed_results_are_present_and_self_consistent():
         1 for r in records if r["rank"] is not None and r["rank"] <= 3
     )
     assert summary["top1_rate"] <= summary["top3_rate"]
-    assert Path("benchmark/RESULTS.md").is_file()
+    assert (MODULE_ROOT / "benchmark" / "RESULTS.md").is_file()

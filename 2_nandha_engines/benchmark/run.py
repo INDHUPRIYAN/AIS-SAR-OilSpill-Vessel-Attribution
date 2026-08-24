@@ -33,6 +33,7 @@ from tests.fixtures.make_mask import build_scene
 from tests.fixtures.make_metocean import build_metocean
 
 from .scenarios import TIERS, build_scenario
+from engines.attribution.runner import DEFAULT_WEIGHTS_PATH
 
 DEFAULT_COUNT = 50
 OUT_DIR = Path("benchmark")
@@ -82,7 +83,7 @@ def evaluate(scenario, origin: dict[str, Any], work: Path) -> dict[str, Any]:
     out = work / f"suspects_{scenario.index:03d}.json"
     status = attribute(
         origin["cloud"], scenario.vessels_path, out,
-        weights_path="config/attribution_weights.yaml",
+        weights_path=str(DEFAULT_WEIGHTS_PATH),
         slick_path=origin["slick"],
         investigation_id=f"bench-{scenario.index:03d}",
     )

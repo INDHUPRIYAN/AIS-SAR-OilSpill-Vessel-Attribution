@@ -18,13 +18,19 @@ from pathlib import Path
 import pytest
 
 from engines.schemas import (
+
     validate_forecast,
     validate_origin_cloud,
     validate_slick,
     validate_suspects,
 )
 
-SAMPLES = Path("samples")
+# Anchored to this file so the suite passes from any working directory.
+# These paths used to be CWD-relative, which meant the tests only ran
+# when pytest happened to be invoked from 2_nandha_engines/.
+MODULE_ROOT = Path(__file__).resolve().parents[1]
+
+SAMPLES = (MODULE_ROOT / "samples")
 INPUTS = SAMPLES / "inputs"
 
 CONTRACTS = [

@@ -27,7 +27,12 @@ from .gates import GateConfig, apply_gates, build_origin_context
 from .scoring import ScoringConfig, build_density, score_vessel
 from .tracks import load_vessels
 
-DEFAULT_WEIGHTS_PATH = Path("config/attribution_weights.yaml")
+# Anchored to this file, not the process CWD. These engines are launched as
+# subprocesses by the orchestrator and directly by tests, from several
+# different working directories; a CWD-relative default silently resolves to
+# nothing outside the module directory.
+MODULE_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_WEIGHTS_PATH = MODULE_ROOT / "config" / "attribution_weights.yaml"
 DEFAULT_INVESTIGATION_ID = "inv-001"
 
 

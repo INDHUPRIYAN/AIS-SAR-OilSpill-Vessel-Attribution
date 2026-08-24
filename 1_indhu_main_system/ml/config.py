@@ -36,6 +36,8 @@ class TilingConfig:
     inference_overlap: int
     min_oil_fraction: float
     hard_negative_ratio: float
+    negatives_per_empty_scene: int
+    detect_threshold: float
 
 
 @dataclass(frozen=True)
@@ -85,6 +87,8 @@ def load_config(path: Path | None = None) -> NormalisationConfig:
             inference_overlap=int(tiling["inference_overlap"]),
             min_oil_fraction=float(tiling["min_oil_fraction"]),
             hard_negative_ratio=float(tiling["hard_negative_ratio"]),
+            negatives_per_empty_scene=int(tiling.get("negatives_per_empty_scene", 0)),
+            detect_threshold=float(tiling.get("detect_threshold", 0.5)),
         ),
     )
 
@@ -123,5 +127,6 @@ if __name__ == "__main__":
     print(f"version     : {c.version}   fingerprint: {c.fingerprint}")
     print(f"dB range    : [{c.sar.db_min}, {c.sar.db_max}]  band {c.sar.primary_band}")
     print(f"tiling      : {c.tiling.tile_size}px stride {c.tiling.stride} "
-          f"min_oil {c.tiling.min_oil_fraction} hard_neg {c.tiling.hard_negative_ratio}")
+          f"min_oil {c.tiling.min_oil_fraction} hard_neg {c.tiling.hard_negative_ratio} "
+          f"empty_scene_negs {c.tiling.negatives_per_empty_scene}")
     print(f"data root   : {DATA_ROOT}")
