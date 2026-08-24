@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VesselAttribution",
+  "type": "object",
+  "properties": {
+    "spill_id": { "type": "string" },
+    "attribution_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "mmsi": { "type": "integer" },
+          "vessel_name": { "type": "string" },
+          "attribution_score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "closest_distance_meters": { "type": "number" },
+          "rank": { "type": "integer" }
+        },
+        "required": ["mmsi", "attribution_score", "rank"]
+      }
+    }
+  },
+  "required": ["spill_id", "attribution_results"]
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "mmsi": 244123456,
+    "timestamp": "2023-10-12T17:00:00Z",
+    "latitude": 51.75,
+    "longitude": 2.85,
+    "speed_knots": 12.5,
+    "heading_degrees": 45
+  },
+  {
+    "mmsi": 244123456,
+    "timestamp": "2023-10-12T17:30:00Z",
+    "latitude": 51.85,
+    "longitude": 2.98,
+    "speed_knots": 12.6,
+    "heading_degrees": 43
+  }
+]

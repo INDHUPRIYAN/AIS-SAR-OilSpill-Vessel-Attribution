@@ -1,0 +1,4 @@
+weights:
+  drift_distance: 0.5
+  temporal_alignment: 0.3
+  vessel_history: 0.2

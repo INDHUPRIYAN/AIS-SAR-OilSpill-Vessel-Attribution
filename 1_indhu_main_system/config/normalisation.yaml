@@ -1,0 +1,17 @@
+normalization:
+  sar:
+    db_min: -30.0
+    db_max: 0.0
+  metocean:
+    wind_u:
+      mean: 1.2
+      std: 5.4
+    wind_v:
+      mean: -0.8
+      std: 4.9
+    current_u:
+      mean: 0.05
+      std: 0.22
+    current_v:
+      mean: -0.02
+      std: 0.21

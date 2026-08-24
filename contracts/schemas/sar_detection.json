@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SARDetection",
+  "type": "object",
+  "properties": {
+    "detection_id": { "type": "string" },
+    "scene_id": { "type": "string" },
+    "geometry_geojson": { "type": "object" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "spill_area_sq_km": { "type": "number" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "required": ["detection_id", "scene_id", "geometry_geojson", "confidence", "timestamp"]
+}
