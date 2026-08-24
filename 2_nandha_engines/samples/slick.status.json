@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "engine_used": "primary",
+  "warnings": [
+    "1 component(s) below the 0.05 km2 minimum area were dropped as speckle"
+  ],
+  "outputs": {
+    "slick": "samples\\slick.geojson"
+  }
+}

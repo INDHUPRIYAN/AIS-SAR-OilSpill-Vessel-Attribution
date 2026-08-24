@@ -13,21 +13,21 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 - [x] **P0** Fix `config/attribution_weights.yaml` to the frozen 6 factors: `proximity 0.30, temporal 0.20, trajectory 0.20, anomaly 0.10, ais_gap 0.15, prior 0.05` (current keys `drift_distance/temporal_alignment/vessel_history` are off-contract).
 - [x] **P0** Expand `requirements.txt` (Env 1, plain venv): numpy, scipy, shapely, rasterio, scikit-image, geopandas, pyproj, xarray, netcdf4, pandas, pyarrow, pydantic, pytest, PyYAML.
 - [x] **P0** Create the Env 1 venv, install, verify every import.
-- [ ] **P0** Restructure to the frozen CLI shape (handbook §7): `engines/characterise/__main__.py`, `engines/drift/__main__.py`, `engines/attribution/__main__.py` so `python -m engines.<x>` works. Decide the fate of `cli.py` (keep as a thin wrapper or delete).
+- [x] **P0** Restructure to the frozen CLI shape (handbook §7): `engines/characterise/__main__.py`, `engines/drift/__main__.py`, `engines/attribution/__main__.py` so `python -m engines.<x>` works. Decide the fate of `cli.py` (keep as a thin wrapper or delete).
 - [x] **P0** Add `engines/common/` for shared helpers: geo conversions (km↔deg with the latitude cosine), UTC parse/format (`Z` suffix), status-object builder, error classes.
 - [x] **P0** Define the status object `{ok, engine_used, warnings[]}` and error classes `MISSING_INPUT`, `BAD_GRID`, `EMPTY_MASK`, `NO_VESSELS_IN_WINDOW`. Structured returns, never raise to the caller.
 - [~] **P1** Pydantic schemas for all four outputs (`slick.geojson`, `origin_cloud.geojson`, `forecast.geojson`, `suspects.json`) in `engines/schemas/`, plus a `validate()` called by every writer.
 - [ ] **P1** Env 2 (conda, OpenDrift) — **riskiest install in the project, do it early**: `conda create -n drift python=3.11`, `conda install -c conda-forge opendrift`, smoke-test `import opendrift`, then `conda env export > environment.yml`. The current `environment.yml` is hand-written and untested — replace it with a real export.
 - [ ] **P2** Dockerfile (conda base) for the OpenDrift environment.
 - [ ] **P2** Escalation rule: if the conda/GDAL chain fights back for more than half a day, tell the team and proceed on the Euler fallback — the project must not stall on GDAL.
-- [~] **P1** `tests/` package + pytest config; one-command test run documented in the README.
+- [x] **P1** `tests/` package + pytest config; one-command test run documented in the README.
 
 ## Phase 0b — Mock inputs (unblocks everything; do not wait for teammates)
 
 - [x] **P0** Hand-drawn slick mask: 0/1 GeoTIFF with known CRS + pixel size, plus a dB backscatter band for the damping ratio.
 - [x] **P0** `scene_meta.json` mock (scene_id, acquisition UTC, bbox, CRS, dB range).
-- [ ] **P0** Synthetic **uniform** current NetCDF + wind NetCDF — analytic ground truth: with a constant current the backtracked origin is hand-computable.
-- [ ] **P1** Synthetic **rotating / sheared** current field NetCDF (the harder case).
+- [x] **P0** Synthetic **uniform** current NetCDF + wind NetCDF — analytic ground truth: with a constant current the backtracked origin is hand-computable.
+- [x] **P1** Synthetic **rotating / sheared** current field NetCDF (the harder case).
 - [ ] **P1** Synthetic `vessels.parquet` with exactly the contract columns and **one planted culprit** (passes the origin region in-window, slows down, has an AIS gap).
 - [~] **P1** Deliberately broken fixtures for the failure tests: empty mask, NetCDF missing `u`/`v`, zero vessels in window.
 - [~] **P1** Mock-generator scripts (seeded, reproducible) under `tests/fixtures/`.
@@ -36,37 +36,37 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 
 ## Engine A — Characterisation (Phase 1)
 
-- [ ] **P1** Read the mask GeoTIFF with rasterio; read CRS + pixel size; assert EPSG:4326 at the boundary (convert only at ingest).
+- [x] **P1** Read the mask GeoTIFF with rasterio; read CRS + pixel size; assert EPSG:4326 at the boundary (convert only at ingest).
 - [x] **P1** Label connected components; drop specks below a configurable min-area threshold.
 - [x] **P1** Per component via `regionprops`: area (px→km² using the pixel size **at that latitude**), perimeter km, centroid lat/lon, ellipse major/minor axis km, orientation deg.
 - [x] **P1** Polygonise the mask boundary (shapely) → WGS84 GeoJSON Polygon.
 - [x] **P1** Damping ratio: mean dB inside the mask vs mean dB in an outside ring buffer → `damping_ratio_db`.
 - [x] **P1** Fay spreading-law age estimate from area → `age_hours_est`, `age_method: "damping+fay"`, `age_confidence: "low"`; document every assumption.
-- [ ] **P1** Write `slick.geojson` exactly per handbook §4.2 (slick_id, scene_id, detected_utc, confidence, area_km2, perimeter_km, centroid, major/minor_axis_km, orientation_deg, damping_ratio_db, age fields); validate against the schema.
-- [ ] **P1** Handle multiple slicks in one scene (one Feature each, stable `slick_id` numbering).
-- [ ] **P1** Return `EMPTY_MASK` when nothing survives thresholding.
-- [ ] **P1** CLI: `python -m engines.characterise --mask <tif> --scene-meta <json> --out slick.geojson`.
-- [ ] **P1** **Test:** known-shape — a drawn ellipse returns its own axes/area within tolerance.
-- [ ] **P1** **Test:** empty mask → `EMPTY_MASK`, never a crash.
+- [x] **P1** Write `slick.geojson` exactly per handbook §4.2 (slick_id, scene_id, detected_utc, confidence, area_km2, perimeter_km, centroid, major/minor_axis_km, orientation_deg, damping_ratio_db, age fields); validate against the schema.
+- [x] **P1** Handle multiple slicks in one scene (one Feature each, stable `slick_id` numbering).
+- [x] **P1** Return `EMPTY_MASK` when nothing survives thresholding.
+- [x] **P1** CLI: `python -m engines.characterise --mask <tif> --scene-meta <json> --out slick.geojson`.
+- [x] **P1** **Test:** known-shape — a drawn ellipse returns its own axes/area within tolerance.
+- [x] **P1** **Test:** empty mask → `EMPTY_MASK`, never a crash.
 - [ ] **P2** Extra shape descriptors (eccentricity, solidity, elongation) if the UI wants them.
 
 ## Engine B — Drift, Euler fallback (Phase 2) — **WRITE THIS FIRST**
 
-- [ ] **P0** Rewrite `engines/drift/euler_fallback.py`: the current version is a single particle with constant scalar fields — it needs particles plus gridded fields.
-- [ ] **P1** Seed N particles uniformly inside the slick polygon (configurable N, seeded RNG).
-- [ ] **P1** Open `currents.nc` / `wind.nc` with xarray; validate the expected variables (`u`,`v` / `u10`,`v10`) and that the grid covers the slick bbox ± margin → else `BAD_GRID`.
-- [ ] **P1** Bilinear interpolation of both grids in **space and time**.
-- [ ] **P1** Step: `v = current(x,t) + 0.03 * wind10(x,t)`; keep the u/v sign conventions straight (eastward/northward positive); backward = negative dt.
-- [ ] **P1** Gaussian diffusion added per step (configurable coefficient).
-- [ ] **P1** Correct metre→degree conversion per step using the latitude cosine — never treat degrees as metres.
-- [ ] **P1** Per-timestep weighted particle cloud; fit a covariance/confidence ellipse per timestep (90% level).
-- [ ] **P1** Derive the origin window: where and when cloud density peaks over the 12–24 h backward run → `start_utc`, `end_utc`, `peak_utc`.
-- [ ] **P1** `origin_cloud.geojson` writer per §4.3: particle Points `{time_utc, weight, timestep_h}` + one `confidence_ellipse` Polygon per timestep + the `origin_window` summary Point carrying `engine_used`.
-- [ ] **P1** Never emit a single origin point — always cloud + ellipse + time window.
-- [ ] **P1** CLI: `python -m engines.drift --slick ... --currents ... --wind ... --mode hindcast|forecast --hours 24 --out <geojson>`.
-- [ ] **P1** **Test (analytic):** constant current field → the backtracked origin equals the hand-computed point.
-- [ ] **P1** **Test (round-trip):** forward then backward returns near the start.
-- [ ] **P1** **Test:** missing NetCDF variable → `BAD_GRID`; missing file → `MISSING_INPUT`.
+- [x] **P0** Rewrite `engines/drift/euler_fallback.py`: the current version is a single particle with constant scalar fields — it needs particles plus gridded fields.
+- [x] **P1** Seed N particles uniformly inside the slick polygon (configurable N, seeded RNG).
+- [x] **P1** Open `currents.nc` / `wind.nc` with xarray; validate the expected variables (`u`,`v` / `u10`,`v10`) and that the grid covers the slick bbox ± margin → else `BAD_GRID`.
+- [x] **P1** Bilinear interpolation of both grids in **space and time**.
+- [x] **P1** Step: `v = current(x,t) + 0.03 * wind10(x,t)`; keep the u/v sign conventions straight (eastward/northward positive); backward = negative dt.
+- [x] **P1** Gaussian diffusion added per step (configurable coefficient).
+- [x] **P1** Correct metre→degree conversion per step using the latitude cosine — never treat degrees as metres.
+- [x] **P1** Per-timestep weighted particle cloud; fit a covariance/confidence ellipse per timestep (90% level).
+- [x] **P1** Derive the origin window: where and when cloud density peaks over the 12–24 h backward run → `start_utc`, `end_utc`, `peak_utc`.
+- [x] **P1** `origin_cloud.geojson` writer per §4.3: particle Points `{time_utc, weight, timestep_h}` + one `confidence_ellipse` Polygon per timestep + the `origin_window` summary Point carrying `engine_used`.
+- [x] **P1** Never emit a single origin point — always cloud + ellipse + time window.
+- [x] **P1** CLI: `python -m engines.drift --slick ... --currents ... --wind ... --mode hindcast|forecast --hours 24 --out <geojson>`.
+- [x] **P1** **Test (analytic):** constant current field → the backtracked origin equals the hand-computed point.
+- [x] **P1** **Test (round-trip):** forward then backward returns near the start.
+- [x] **P1** **Test:** missing NetCDF variable → `BAD_GRID`; missing file → `MISSING_INPUT`.
 - [ ] **P2** Optional Stokes-drift term if Keerthana supplies it.
 
 ## Engine B — OpenDrift path (Phase 3)
