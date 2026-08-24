@@ -1,0 +1,32 @@
+{
+  "scene_id": "S1A_IW_GRDH_20170202T0039_DEMO-A",
+  "mask_path": "contracts/mocks/raw_mask.tif",
+  "confidence": 0.91,
+  "candidates": [
+    {
+      "bbox": [
+        80.2737,
+        13.0107,
+        80.3563,
+        13.0933
+      ],
+      "class": "oil",
+      "score": 0.93,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        80.435,
+        13.215,
+        80.485,
+        13.265
+      ],
+      "class": "lookalike",
+      "score": 0.78,
+      "phenomenon": "low_wind"
+    }
+  ],
+  "model_version": "mock-v0",
+  "engine": "ml",
+  "runtime_ms": 1840
+}

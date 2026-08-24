@@ -1,0 +1,176 @@
+{
+  "scene_id": "S1A_IW_GRDH_20170202T0039_DEMO-A",
+  "run_id": "inv-001-run-001",
+  "generated_utc": "2017-02-02T01:04:42Z",
+  "weights": {
+    "proximity": 0.25,
+    "temporal": 0.2,
+    "trajectory": 0.2,
+    "behaviour": 0.15,
+    "ais_gap": 0.15,
+    "vessel_prior": 0.05
+  },
+  "suspects": [
+    {
+      "rank": 1,
+      "mmsi": 419000631,
+      "vessel_name": "MV DEMO ALPHA",
+      "vessel_type": "tanker",
+      "total_score": 0.884,
+      "sub_scores": {
+        "proximity": 0.94,
+        "temporal": 0.91,
+        "trajectory": 0.88,
+        "behaviour": 0.79,
+        "ais_gap": 0.85,
+        "vessel_prior": 0.9
+      },
+      "reason": "Passed through the 90% origin region at 14:19 UTC, slowed from 13.6 to 5.9 kn along the slick major axis, and transmitted nothing for 47 minutes inside the estimated discharge window.",
+      "evidence": {
+        "closest_approach_km": 0.4,
+        "time_in_origin_window_min": 92,
+        "ais_gap_minutes": 47,
+        "course_delta_deg": 3.0,
+        "min_sog_kn": 5.9,
+        "track_points_in_cloud": 19
+      },
+      "source": "synthetic"
+    },
+    {
+      "rank": 2,
+      "mmsi": 419001000,
+      "vessel_name": "MV DEMO BRAVO",
+      "vessel_type": "tanker",
+      "total_score": 0.3865,
+      "sub_scores": {
+        "proximity": 0.52,
+        "temporal": 0.61,
+        "trajectory": 0.34,
+        "behaviour": 0.21,
+        "ais_gap": 0.0,
+        "vessel_prior": 0.7
+      },
+      "reason": "Crossed the edge of the origin region during the window but held course and speed throughout, with continuous AIS reporting.",
+      "evidence": {
+        "closest_approach_km": 6.2,
+        "time_in_origin_window_min": 25,
+        "ais_gap_minutes": 0,
+        "course_delta_deg": 24.0,
+        "min_sog_kn": 12.1,
+        "track_points_in_cloud": 5
+      },
+      "source": "synthetic"
+    },
+    {
+      "rank": 3,
+      "mmsi": 419001037,
+      "vessel_name": "MV DEMO CHARLIE",
+      "vessel_type": "cargo",
+      "total_score": 0.309,
+      "sub_scores": {
+        "proximity": 0.41,
+        "temporal": 0.38,
+        "trajectory": 0.29,
+        "behaviour": 0.18,
+        "ais_gap": 0.12,
+        "vessel_prior": 0.55
+      },
+      "reason": "Present in the wider search area during the window; track never entered the high-probability origin region and course differs from the slick axis by 61 degrees.",
+      "evidence": {
+        "closest_approach_km": 11.8,
+        "time_in_origin_window_min": 0,
+        "ais_gap_minutes": 4,
+        "course_delta_deg": 61.0,
+        "min_sog_kn": 9.8,
+        "track_points_in_cloud": 0
+      },
+      "source": "synthetic"
+    },
+    {
+      "rank": 4,
+      "mmsi": 419001074,
+      "vessel_name": "MV DEMO DELTA",
+      "vessel_type": "bulk",
+      "total_score": 0.1865,
+      "sub_scores": {
+        "proximity": 0.22,
+        "temporal": 0.3,
+        "trajectory": 0.19,
+        "behaviour": 0.09,
+        "ais_gap": 0.0,
+        "vessel_prior": 0.4
+      },
+      "reason": "Brief presence near the search-area boundary, no behavioural anomalies, course unrelated to the slick.",
+      "evidence": {
+        "closest_approach_km": 19.5,
+        "time_in_origin_window_min": 0,
+        "ais_gap_minutes": 0,
+        "course_delta_deg": 88.0,
+        "min_sog_kn": 14.0,
+        "track_points_in_cloud": 0
+      },
+      "source": "synthetic"
+    },
+    {
+      "rank": 5,
+      "mmsi": 419001111,
+      "vessel_name": "MV DEMO ECHO",
+      "vessel_type": "fishing",
+      "total_score": 0.106,
+      "sub_scores": {
+        "proximity": 0.15,
+        "temporal": 0.12,
+        "trajectory": 0.11,
+        "behaviour": 0.05,
+        "ais_gap": 0.0,
+        "vessel_prior": 0.3
+      },
+      "reason": "Low-speed fishing activity far from the origin region; retained only for completeness.",
+      "evidence": {
+        "closest_approach_km": 27.3,
+        "time_in_origin_window_min": 0,
+        "ais_gap_minutes": 0,
+        "course_delta_deg": 132.0,
+        "min_sog_kn": 3.2,
+        "track_points_in_cloud": 0
+      },
+      "source": "synthetic"
+    }
+  ],
+  "filtered_out": [
+    {
+      "mmsi": 419001148,
+      "reason": "track never intersected the buffered origin cloud"
+    },
+    {
+      "mmsi": 419001185,
+      "reason": "track never intersected the buffered origin cloud"
+    },
+    {
+      "mmsi": 419001222,
+      "reason": "track never intersected the buffered origin cloud"
+    },
+    {
+      "mmsi": 419001259,
+      "reason": "track never intersected the buffered origin cloud"
+    },
+    {
+      "mmsi": 419001296,
+      "reason": "track never intersected the buffered origin cloud"
+    },
+    {
+      "mmsi": 419001333,
+      "reason": "track never intersected the buffered origin cloud"
+    },
+    {
+      "mmsi": 419001370,
+      "reason": "track never intersected the buffered origin cloud"
+    },
+    {
+      "mmsi": 419001407,
+      "reason": "track never intersected the buffered origin cloud"
+    }
+  ],
+  "total_vessels_considered": 20,
+  "source": "synthetic"
+}

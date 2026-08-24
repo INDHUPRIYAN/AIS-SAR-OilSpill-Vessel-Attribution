@@ -1,17 +1,40 @@
-normalization:
-  sar:
-    db_min: -30.0
-    db_max: 0.0
-  metocean:
-    wind_u:
-      mean: 1.2
-      std: 5.4
-    wind_v:
-      mean: -0.8
-      std: 4.9
-    current_u:
-      mean: 0.05
-      std: 0.22
-    current_v:
-      mean: -0.02
-      std: 0.21
+# FROZEN CONTRACT — shared by TRAINING and INFERENCE alike.
+#
+# If these constants differ between the two, real-scene performance
+# silently collapses (the classic SAR domain-gap failure). Both the
+# training prep pipeline and the /detect service MUST read this file;
+# neither is allowed to hardcode its own values.
+#
+# Source: PS26143_Handbook_1_Indhu_Priyan.md, Phase 2 step 3.
+# Changing anything here requires re-preparing tiles AND retraining.
+
+version: 1
+
+sar:
+  # Sigma0 clip range in dB. Pixels are clipped to [db_min, db_max],
+  # then linearly mapped to [0, 1] float32 for the model.
+  # Storage on disk is uint8 (0-255) to keep the tile cache small;
+  # the uint8 <-> float mapping is exactly this same range.
+  db_min: -35.0
+  db_max: 0.0
+
+  # Value marking "no data" in source rasters (land mask, scene edge).
+  # These pixels are clipped to db_min and excluded from loss.
+  nodata_db: -999.0
+
+  # Bands expected in a prepared scene. Trujillo ships 2-band rasters;
+  # `primary_band` is the one the segmenter consumes (1-indexed, as rasterio).
+  # Confirm against real data with `python -m ml.audit` before preparing tiles.
+  primary_band: 1
+
+tiling:
+  tile_size: 256          # model input size; batch 12-16 fits 6 GB VRAM at fp16
+  stride: 256             # non-overlapping tiles at train time
+  inference_overlap: 32   # overlap at inference for seam-free stitching
+
+  # Keep a tile if at least this fraction of its pixels are oil.
+  min_oil_fraction: 0.01
+
+  # Matched hard negatives per kept oil tile (no-oil tiles drawn from the
+  # SAME scene, so the model learns texture, not scene identity).
+  hard_negative_ratio: 1.0
