@@ -1,0 +1,74 @@
+oceantrace/
+│
+├── contracts/                        # SHARED LAW — Indhu writes, all read
+│   ├── schemas/                      # frozen field names + types
+│   └── mocks/                        # tiny sample files (day 1–2)
+│
+├── 1_indhu_main_system/              # Indhu
+│   ├── backend/                      # FastAPI: main.py, api/, core/,
+│   │   │                             #   models/, schemas/
+│   │   └── services/detection/       # /detect ML + threshold fallback
+│   ├── ml/                           # DARTIS + Trujillo train/eval/export
+│   ├── frontend/                     # React + MapLibre
+│   ├── config/normalisation.yaml
+│   ├── tests/
+│   ├── requirements.txt
+│   └── README.md
+│
+├── 2_nandha_engines/                 # Nandha
+│   ├── engines/
+│   │   ├── characterise/             # Engine A
+│   │   ├── drift/                    # Engine B (euler_fallback.py first)
+│   │   └── attribution/              # Engine C
+│   ├── cli.py                        # python -m engines.<name>
+│   ├── config/attribution_weights.yaml
+│   ├── tests/
+│   ├── environment.yml               # conda (OpenDrift)
+│   ├── requirements.txt              # non-conda deps
+│   └── README.md
+│
+├── 3_pavitra_scene_service/          # Pavitra
+│   ├── satellite/
+│   │   ├── cdse_adapter.py           # OAuth + token refresh + OData
+│   │   ├── asf_adapter.py
+│   │   ├── chain.py                  # CDSE → ASF → LocalCache
+│   │   ├── cache.py
+│   │   ├── status.py
+│   │   └── cli.py                    # fetch-scene
+│   ├── tests/requests/
+│   ├── requirements.txt
+│   └── README.md
+│
+├── 4_keerthana_metocean_service/     # Keerthana
+│   ├── metocean/
+│   │   ├── cmems_adapter.py          # GLORYS / forecast routing
+│   │   ├── era5_adapter.py
+│   │   ├── hycom_adapter.py
+│   │   ├── openmeteo_adapter.py
+│   │   ├── chain.py                  # primary → fallback → StaticCache
+│   │   ├── cache.py
+│   │   ├── status.py
+│   │   └── cli.py                    # fetch-metocean
+│   ├── tests/requests/
+│   ├── requirements.txt
+│   └── README.md
+│
+├── 5_krishnan_ais_service/           # Krishnan
+│   ├── ais/
+│   │   ├── dma_ingest.py
+│   │   ├── mc_ingest.py
+│   │   ├── clean.py
+│   │   ├── interpolate.py
+│   │   ├── generator.py              # synthetic + culprit planting
+│   │   ├── benchmark.py              # 50 scenarios, seed 1337
+│   │   ├── status.py
+│   │   └── cli.py                    # fetch-ais / generate-ais
+│   ├── tests/
+│   ├── requirements.txt
+│   └── README.md
+│
+├── data/                             # gitignored — all caches/outputs land here
+├── scripts/get_demo_data.sh
+├── .env.example
+├── .gitignore                        # same one as before
+└── README.md                         # repo rules + integration plan
