@@ -33,7 +33,20 @@ from engines.common.geo import m_per_deg_lat, m_per_deg_lon
 from tests.fixtures.make_vessels import VESSEL_DIMENSIONS, VesselSpec, _track_frame
 
 TIERS = ("easy", "medium", "hard")
-TIER_MIX = ("easy",) * 20 + ("medium",) * 17 + ("hard",) * 13   # 50 scenarios
+
+
+def _tier_mix() -> tuple[str, ...]:
+    """20 easy / 17 medium / 13 hard, interleaved deterministically.
+
+    Shuffled rather than blocked so that a short run (``--count 6``) still samples all
+    three tiers - a prefix of a blocked list would report a flattering 100%.
+    """
+    mix = ["easy"] * 20 + ["medium"] * 17 + ["hard"] * 13
+    np.random.default_rng(7).shuffle(mix)
+    return tuple(mix)
+
+
+TIER_MIX = _tier_mix()   # 50 scenarios
 
 DECOY_TYPES_LOW = ("Fishing", "Passenger", "Tug" if "Tug" in VESSEL_DIMENSIONS else "Fishing")
 DECOY_TYPES_HIGH = ("Tanker", "Bulk Carrier", "Cargo")

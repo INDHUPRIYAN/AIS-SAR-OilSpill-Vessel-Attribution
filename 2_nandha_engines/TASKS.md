@@ -115,10 +115,10 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · **P0** blocks everythin
 
 ## Phase 7 — Benchmark
 
-- [ ] **P1** Run Engine C over Krishnan's 50 seeded scenarios (each has a known culprit).
-- [ ] **P1** Report the top-1 / top-3 hit rate — this number goes on the metrics slide.
-- [ ] **P1** Commit the benchmark script + results table to `docs/`.
-- [ ] **P2** Error analysis: which scenarios miss, and which factor is responsible.
+- [x] **P1** Run Engine C over Krishnan's 50 seeded scenarios (each has a known culprit).
+- [x] **P1** Report the top-1 / top-3 hit rate — this number goes on the metrics slide.
+- [x] **P1** Commit the benchmark script + results table to `docs/`.
+- [x] **P2** Error analysis: which scenarios miss, and which factor is responsible.
 
 ## Phase 8 — Docs, failure tests, handover
 
