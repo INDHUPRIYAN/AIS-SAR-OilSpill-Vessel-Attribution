@@ -1,3 +1,26 @@
-numpy>=1.24.0
-scipy>=1.10.0
+# Env 1 — plain venv: Engine A (characterise), Engine C (attribution), Euler drift fallback.
+# Engine B's primary path (OpenDrift) lives in the separate conda env — see environment.yml.
+# Install:  python -m venv .venv && .venv/Scripts/pip install -r requirements.txt
+
+# --- numerics ---
+numpy>=1.26.0
+scipy>=1.11.0
+
+# --- raster / geometry (Engine A) ---
+rasterio>=1.3.9
+scikit-image>=0.22.0
+shapely>=2.0.0
+pyproj>=3.6.0
+
+# --- gridded met-ocean (Engine B, Euler fallback) ---
+xarray>=2024.1.0
+netCDF4>=1.6.5
+
+# --- tabular AIS (Engine C) ---
+pandas>=2.1.0
+pyarrow>=15.0.0
+
+# --- contracts, config, tests ---
+pydantic>=2.6.0
 PyYAML>=6.0
+pytest>=8.0.0
