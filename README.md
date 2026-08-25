@@ -209,4 +209,4 @@ Contains modified Copernicus Sentinel data and Copernicus Marine/Climate service
 
 ---
 
-*Built for Smart India Hackathon 2026 by The DevFounders. OilGuard AI supports investigators — final attribution always rests with the competent maritime authority.*
+*Built for Smart India Hackathon 2026 by The DevFounders. Ocean Trace supports investigators — final attribution always rests with the competent maritime authority.*
