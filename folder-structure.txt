@@ -4,7 +4,7 @@ oceantrace/
 │   ├── schemas/                      # frozen field names + types
 │   └── mocks/                        # tiny sample files (day 1–2)
 │
-├── 1_indhu_main_system/              # Indhu
+├── main_system/              # Indhu
 │   ├── backend/                      # FastAPI: main.py, api/, core/,
 │   │   │                             #   models/, schemas/
 │   │   └── services/detection/       # /detect ML + threshold fallback
@@ -15,7 +15,7 @@ oceantrace/
 │   ├── requirements.txt
 │   └── README.md
 │
-├── 2_nandha_engines/                 # Nandha
+├── analysis_engines/                 # Nandha
 │   ├── engines/
 │   │   ├── characterise/             # Engine A
 │   │   ├── drift/                    # Engine B (euler_fallback.py first)
@@ -27,7 +27,7 @@ oceantrace/
 │   ├── requirements.txt              # non-conda deps
 │   └── README.md
 │
-├── 3_pavitra_scene_service/          # Pavitra
+├── scene_service/          # Pavitra
 │   ├── satellite/
 │   │   ├── cdse_adapter.py           # OAuth + token refresh + OData
 │   │   ├── asf_adapter.py
@@ -39,7 +39,7 @@ oceantrace/
 │   ├── requirements.txt
 │   └── README.md
 │
-├── 4_keerthana_metocean_service/     # Keerthana
+├── metocean_service/     # Keerthana
 │   ├── metocean/
 │   │   ├── cmems_adapter.py          # GLORYS / forecast routing
 │   │   ├── era5_adapter.py
@@ -53,7 +53,7 @@ oceantrace/
 │   ├── requirements.txt
 │   └── README.md
 │
-├── 5_krishnan_ais_service/           # Krishnan
+├── ais_service/           # Krishnan
 │   ├── ais/
 │   │   ├── dma_ingest.py
 │   │   ├── mc_ingest.py

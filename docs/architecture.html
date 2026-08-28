@@ -1,0 +1,333 @@
+<title>OceanTrace Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@85,400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --paper: #eef3f7;
+    --card: #ffffff;
+    --ink: #1a2836;
+    --muted: #55697e;
+    --line: #c3d2df;
+    --amber: #a85708;          /* detection · learned models */
+    --amber-soft: #fdf3e4;
+    --teal: #0c6e63;           /* physics engines */
+    --teal-soft: #e2f4f0;
+    --rose: #ab2350;           /* scoring · evidence */
+    --rose-soft: #fbe9ef;
+    --slate: #33587f;          /* contracts · platform */
+    --slate-soft: #e8eff7;
+    --dash: #7d90a2;
+  }
+  :root:not([data-theme="light"]) { color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0d1622; --card: #14202e; --ink: #e7eef6; --muted: #93a7ba;
+      --line: #2c405458;
+      --amber: #f0a943; --amber-soft: #2a2110;
+      --teal: #3fcab1; --teal-soft: #0e2823;
+      --rose: #f0688e; --rose-soft: #2c141d;
+      --slate: #90b6de; --slate-soft: #16283c;
+      --dash: #62788c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0d1622; --card: #14202e; --ink: #e7eef6; --muted: #93a7ba;
+    --line: #2c405458;
+    --amber: #f0a943; --amber-soft: #2a2110;
+    --teal: #3fcab1; --teal-soft: #0e2823;
+    --rose: #f0688e; --rose-soft: #2c141d;
+    --slate: #90b6de; --slate-soft: #16283c;
+    --dash: #62788c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Archivo", "Segoe UI", system-ui, sans-serif;
+    font-stretch: 85%;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1480px; margin: 0 auto; padding: 34px 28px 46px; }
+  header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+  h1 { font-size: 30px; font-weight: 750; letter-spacing: -0.3px; margin: 0; text-wrap: balance; }
+  .tag {
+    font-family: "JetBrains Mono", monospace; font-size: 11.5px;
+    color: var(--muted); letter-spacing: .8px;
+  }
+  .sub { color: var(--muted); font-size: 14.5px; margin: 4px 0 22px; max-width: 72ch; line-height: 1.5; }
+  figure { margin: 0; background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; padding: 18px 14px 8px; overflow-x: auto; }
+  svg { display: block; min-width: 1240px; max-width: 100%; height: auto; margin: 0 auto; }
+  figcaption { font-size: 12.5px; color: var(--muted); padding: 10px 8px 8px; line-height: 1.55; max-width: 110ch; }
+
+  /* --- svg element classes ------------------------------------------- */
+  text { font-family: "Archivo", system-ui, sans-serif; font-stretch: 85%; fill: var(--ink); }
+  .t-title { font-size: 13px; font-weight: 700; letter-spacing: .2px; }
+  .t-sub   { font-size: 10.5px; fill: var(--muted); }
+  .t-mono  { font-family: "JetBrains Mono", monospace; font-size: 10px; }
+  .t-lab   { font-size: 10px; fill: var(--muted); letter-spacing: .4px; }
+  .t-band  { font-size: 11px; font-weight: 700; letter-spacing: 1.6px; }
+  .t-num   { font-family: "JetBrains Mono", monospace; font-size: 9.5px; font-weight: 600; }
+  .box     { fill: var(--card); stroke: var(--line); stroke-width: 1.2; }
+  .src     { fill: var(--paper); stroke: var(--line); }
+  .ml      { stroke: var(--amber); fill: var(--amber-soft); }
+  .ml-t    { fill: var(--amber); }
+  .phy     { stroke: var(--teal); fill: var(--teal-soft); }
+  .phy-t   { fill: var(--teal); }
+  .ev      { stroke: var(--rose); fill: var(--rose-soft); }
+  .ev-t    { fill: var(--rose); }
+  .ct      { stroke: var(--slate); fill: var(--slate-soft); }
+  .ct-t    { fill: var(--slate); }
+  .fb      { stroke: var(--dash); stroke-dasharray: 5 4; fill: none; }
+  .fb-t    { fill: var(--dash); font-size: 9.5px; }
+  .edge    { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+  .edge-c  { stroke: var(--slate); stroke-width: 1.2; fill: none; opacity: .75; }
+  .arr     { fill: var(--muted); }
+  .arr-c   { fill: var(--slate); }
+
+  /* --- below-figure grid --------------------------------------------- */
+  .meta { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; margin-top: 14px; }
+  @media (max-width: 980px) { .meta { grid-template-columns: 1fr; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .panel h2 { font-size: 11px; letter-spacing: 1.6px; font-weight: 700; color: var(--muted); margin: 0 0 10px; }
+  .lg { display: flex; align-items: center; gap: 9px; font-size: 12.5px; padding: 3px 0; }
+  .sw { width: 22px; height: 12px; border-radius: 3px; border: 1.6px solid; flex: none; }
+  .rules { margin: 0; padding: 0 0 0 16px; font-size: 12.5px; line-height: 1.75; }
+  .stack { font-family: "JetBrains Mono", monospace; font-size: 11.5px; line-height: 2.05; color: var(--muted); }
+  .stack b { color: var(--ink); font-weight: 600; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>OceanTrace Architecture</h1>
+    <span class="tag">SIH 2026 · PS 26143 · NTRO</span>
+  </header>
+  <p class="sub">
+    SAR oil-spill detection with AIS vessel attribution. Modules never call each
+    other — every stage writes a frozen file contract, the next stage reads it,
+    and the platform renders nothing that isn't in a contract file. Every
+    external dependency carries a fallback chain that ends network-free.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 1450 760" role="img"
+         aria-label="OceanTrace pipeline: four data sources with fallback chains feed a nine-stage pipeline from scene calibration through two-stage detection, characterisation, drift hindcast and forecast, probable origin, AIS reconstruction, gating and attribution; every stage writes to a frozen file-contract layer which is the only thing the platform reads.">
+      <defs>
+        <marker id="a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" class="arr"/>
+        </marker>
+        <marker id="ac" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" class="arr-c"/>
+        </marker>
+      </defs>
+
+      <!-- ================= data sources (left rail) ==================== -->
+      <text x="18" y="30" class="t-band">DATA SOURCES · FALLBACK CHAINS</text>
+
+      <rect x="18" y="44" width="212" height="64" rx="7" class="src"/>
+      <text x="32" y="66" class="t-title">Sentinel-1 SAR</text>
+      <text x="32" y="83" class="t-sub">CDSE → ASF → local cache</text>
+      <text x="32" y="97" class="fb-t">circuit breaker · 3 fails → 120 s</text>
+
+      <rect x="18" y="122" width="212" height="58" rx="7" class="src"/>
+      <text x="32" y="144" class="t-title">Ocean currents</text>
+      <text x="32" y="161" class="t-sub">CMEMS → HYCOM → static cache</text>
+
+      <rect x="18" y="194" width="212" height="58" rx="7" class="src"/>
+      <text x="32" y="216" class="t-title">Wind 10 m</text>
+      <text x="32" y="233" class="t-sub">ERA5 → Open-Meteo → static cache</text>
+
+      <rect x="18" y="266" width="212" height="70" rx="7" class="src"/>
+      <text x="32" y="288" class="t-title">AIS traffic</text>
+      <text x="32" y="305" class="t-sub">DMA / MarineCadastre archives</text>
+      <text x="32" y="320" class="fb-t">→ synthetic generator (labelled)</text>
+
+      <!-- source edges -->
+      <path d="M230 76 H262" class="edge" marker-end="url(#a)"/>
+      <path d="M230 151 H620 V210" class="edge" marker-end="url(#a)"/>
+      <path d="M230 223 H600 V210" class="edge"/>
+      <path d="M230 301 H262 V470 H316" class="edge" marker-end="url(#a)"/>
+
+      <!-- ================= row A: sense → simulate ===================== -->
+      <rect x="266" y="44" width="168" height="88" rx="8" class="box"/>
+      <text x="280" y="60" class="t-num ct-t">01</text>
+      <text x="280" y="78" class="t-title">Scene calibration</text>
+      <text x="280" y="95" class="t-sub">σ⁰ dB · band select · despeckle</text>
+      <text x="280" y="110" class="t-sub">normalisation fingerprint</text>
+
+      <path d="M434 88 H460" class="edge" marker-end="url(#a)"/>
+
+      <!-- detection: two learned stages + guaranteed fallback -->
+      <rect x="464" y="30" width="216" height="128" rx="8" class="box ml"/>
+      <text x="478" y="47" class="t-num ml-t">02</text>
+      <text x="500" y="47" class="t-title">Detection · two-stage</text>
+      <rect x="478" y="58" width="188" height="26" rx="5" class="box"/>
+      <text x="488" y="75" class="t-sub">1 · YOLO11 screen — DARTIS, look-alike reject</text>
+      <rect x="478" y="90" width="188" height="26" rx="5" class="box"/>
+      <text x="488" y="107" class="t-sub">2 · U-Net R34 segment — Trujillo</text>
+      <rect x="478" y="122" width="188" height="24" rx="5" class="fb"/>
+      <text x="488" y="138" class="fb-t">fallback · threshold + morphology (no GPU)</text>
+
+      <path d="M680 88 H706" class="edge" marker-end="url(#a)"/>
+
+      <rect x="710" y="44" width="178" height="88" rx="8" class="box"/>
+      <text x="724" y="60" class="t-num ct-t">03</text>
+      <text x="724" y="78" class="t-title">Characterisation</text>
+      <text x="724" y="95" class="t-sub">area · perimeter · ellipse</text>
+      <text x="724" y="110" class="t-sub">orientation · damping · age</text>
+
+      <path d="M888 88 H914" class="edge" marker-end="url(#a)"/>
+
+      <!-- drift -->
+      <rect x="918" y="30" width="196" height="128" rx="8" class="box phy"/>
+      <text x="932" y="47" class="t-num phy-t">04</text>
+      <text x="954" y="47" class="t-title">Drift engine</text>
+      <text x="932" y="66" class="t-sub">OpenDrift · OpenOil particles</text>
+      <text x="932" y="81" class="t-sub">currents + wind forcing, per-direction</text>
+      <rect x="932" y="122" width="168" height="24" rx="5" class="fb"/>
+      <text x="942" y="138" class="fb-t">fallback · Euler integrator</text>
+
+      <path d="M1114 66 H1150" class="edge" marker-end="url(#a)"/>
+      <path d="M1114 112 H1150" class="edge" marker-end="url(#a)"/>
+
+      <rect x="1154" y="38" width="188" height="52" rx="8" class="box phy"/>
+      <text x="1168" y="56" class="t-num phy-t">05</text>
+      <text x="1190" y="56" class="t-title">Forecast +6/+12/+24 h</text>
+      <text x="1168" y="76" class="t-sub">spread polygons · uncertainty</text>
+
+      <rect x="1154" y="100" width="188" height="52" rx="8" class="box phy"/>
+      <text x="1168" y="118" class="t-num phy-t">06</text>
+      <text x="1190" y="118" class="t-title">Hindcast −24 h</text>
+      <text x="1168" y="138" class="t-sub">7,500 particles · hourly steps</text>
+
+      <!-- return edge: the mechanism that closes the loop -->
+      <path d="M1248 152 V200 H360 V236" class="edge" marker-end="url(#a)"/>
+      <text x="700" y="192" class="t-lab">origin cloud + time window drives the AIS search</text>
+
+      <!-- ================= row B: reconstruct → attribute ============== -->
+      <rect x="266" y="240" width="188" height="82" rx="8" class="box phy"/>
+      <text x="280" y="257" class="t-num phy-t">07</text>
+      <text x="302" y="257" class="t-title">Probable origin</text>
+      <text x="280" y="276" class="t-sub">densest region + time window</text>
+      <text x="280" y="291" class="t-sub">confidence ellipse per step</text>
+      <text x="280" y="308" class="fb-t">uncertainty stated, never implied precision</text>
+
+      <path d="M454 281 H480" class="edge" marker-end="url(#a)"/>
+
+      <rect x="484" y="240" width="196" height="82" rx="8" class="box"/>
+      <text x="498" y="257" class="t-num ct-t">08</text>
+      <text x="520" y="257" class="t-title">AIS reconstruction</text>
+      <text x="498" y="276" class="t-sub">tracks over the origin window</text>
+      <text x="498" y="291" class="t-sub">kinematic synthetic fleet when</text>
+      <text x="498" y="305" class="t-sub">no archive covers the region</text>
+
+      <path d="M680 281 H706" class="edge" marker-end="url(#a)"/>
+
+      <rect x="710" y="240" width="178" height="82" rx="8" class="box ev"/>
+      <text x="724" y="257" class="t-num ev-t">09</text>
+      <text x="746" y="257" class="t-title">Gates</text>
+      <text x="724" y="276" class="t-sub">spatial · temporal · trajectory</text>
+      <text x="724" y="291" class="t-sub">excluded vessels kept on map,</text>
+      <text x="724" y="305" class="t-sub">each with its reason</text>
+
+      <path d="M888 281 H914" class="edge" marker-end="url(#a)"/>
+
+      <rect x="918" y="240" width="196" height="82" rx="8" class="box ev"/>
+      <text x="932" y="257" class="t-num ev-t">10</text>
+      <text x="954" y="257" class="t-title">Attribution scoring</text>
+      <text x="932" y="276" class="t-sub">proximity · temporal · trajectory</text>
+      <text x="932" y="291" class="t-sub">behaviour · AIS-gap · prior</text>
+      <text x="932" y="306" class="t-sub">weighted, explainable</text>
+
+      <path d="M1114 281 H1150" class="edge" marker-end="url(#a)"/>
+
+      <rect x="1154" y="240" width="188" height="82" rx="8" class="box ev"/>
+      <text x="1168" y="257" class="t-num ev-t">11</text>
+      <text x="1190" y="257" class="t-title">Ranked suspects</text>
+      <text x="1168" y="276" class="t-sub">per-factor evidence + plain-</text>
+      <text x="1168" y="291" class="t-sub">language reason per vessel</text>
+      <text x="1168" y="308" class="fb-t">likelihood — not a verdict</text>
+
+      <!-- ================= contracts bus =============================== -->
+      <path d="M572 158 V352" class="edge-c" marker-end="url(#ac)"/>
+      <path d="M799 132 V240" class="edge-c"/>
+      <path d="M799 322 V352" class="edge-c" marker-end="url(#ac)"/>
+      <path d="M1016 158 V240" class="edge-c"/>
+      <path d="M1016 322 V352" class="edge-c" marker-end="url(#ac)"/>
+      <path d="M1248 322 V352" class="edge-c" marker-end="url(#ac)"/>
+      <path d="M360 322 V352" class="edge-c" marker-end="url(#ac)"/>
+
+      <rect x="266" y="356" width="1076" height="74" rx="9" class="ct"/>
+      <text x="284" y="380" class="t-band ct-t">FROZEN FILE CONTRACTS</text>
+      <text x="284" y="398" class="t-sub">Pydantic-validated · WGS84 · UTC · extra fields forbidden — the only interface between modules</text>
+      <text x="284" y="418" class="t-mono">scene_meta.json · detect_response.json · slick.geojson · origin_cloud.geojson · forecast.geojson · vessels.parquet · suspects.json · provider_status.json</text>
+
+      <path d="M804 430 V462" class="edge-c" marker-end="url(#ac)"/>
+      <text x="818" y="452" class="t-lab">the platform reads contracts only — no engine internals</text>
+
+      <!-- ================= platform ==================================== -->
+      <rect x="266" y="466" width="1076" height="108" rx="9" class="box"/>
+      <text x="284" y="490" class="t-band">PLATFORM</text>
+
+      <rect x="284" y="500" width="510" height="58" rx="7" class="src"/>
+      <text x="298" y="520" class="t-title">FastAPI orchestrator</text>
+      <text x="298" y="537" class="t-sub">live per-stage status · replay mode (&lt; 5 s, zero network) · provenance</text>
+      <text x="298" y="551" class="t-sub">REAL / CACHED / SYNTHETIC per layer · encrypted key vault · health probes</text>
+
+      <rect x="812" y="500" width="510" height="58" rx="7" class="src"/>
+      <text x="826" y="520" class="t-title">React + deck.gl investigation UI</text>
+      <text x="826" y="537" class="t-sub">Workspace (map · stepper · time slider · evidence) · 11-step Incident Replay</text>
+      <text x="826" y="551" class="t-sub">Analytics (measured metrics only) · Monitoring · 20 incidents worldwide</text>
+
+      <!-- guarantees strip -->
+      <rect x="266" y="592" width="1076" height="44" rx="9" class="fb"/>
+      <text x="284" y="610" class="fb-t">OFFLINE GUARANTEE</text>
+      <text x="284" y="626" class="t-sub">every chain ends in a network-free member: cached scene · static forcing · synthetic AIS · threshold detector · Euler drift · replay from disk — the demo cannot go dark</text>
+
+      <!-- verification strip -->
+      <rect x="266" y="652" width="1076" height="44" rx="9" class="box"/>
+      <text x="284" y="670" class="t-lab">VERIFICATION</text>
+      <text x="284" y="686" class="t-sub">444 pytest + 5 Playwright E2E (incl. airplane-mode) · contract validation on every serve · 50-scenario attribution benchmark · normalisation fingerprint stamped tiles → checkpoints → ONNX</text>
+
+      <!-- corner note -->
+      <text x="1342" y="750" class="t-lab" text-anchor="end">detection, drift and attribution run as subprocesses — a crashed engine fails one stage, never the run</text>
+    </svg>
+    <figcaption>
+      The pipeline runs left-to-right then folds back: the hindcast's origin cloud (06 → 07) is what
+      the AIS search is anchored to — vessels are judged against where the spill <em>began</em>, not where
+      it was seen. Stages communicate only through the contract band; the platform renders only what a
+      contract file contains, which is why a run can be replayed byte-identical with the network unplugged.
+    </figcaption>
+  </figure>
+
+  <div class="meta">
+    <div class="panel">
+      <h2>LEGEND</h2>
+      <div class="lg"><span class="sw" style="border-color:var(--amber);background:var(--amber-soft)"></span>Learned models — YOLO11 screen (DARTIS) · U-Net segment (Trujillo)</div>
+      <div class="lg"><span class="sw" style="border-color:var(--teal);background:var(--teal-soft)"></span>Physics — OpenDrift particle transport, hindcast &amp; forecast</div>
+      <div class="lg"><span class="sw" style="border-color:var(--rose);background:var(--rose-soft)"></span>Evidence — gates and weighted attribution scoring</div>
+      <div class="lg"><span class="sw" style="border-color:var(--slate);background:var(--slate-soft)"></span>Contracts &amp; platform — the file bus and everything that reads it</div>
+      <div class="lg"><span class="sw" style="border-color:var(--dash);border-style:dashed;background:transparent"></span>Fallback path — always labelled in the UI, never hidden</div>
+    </div>
+    <div class="panel">
+      <h2>DESIGN RULES</h2>
+      <ul class="rules">
+        <li>Every fallback chain ends network-free — the demo survives airplane mode</li>
+        <li>Provenance is worn, not hidden: each layer badges REAL / CACHED / SYNTHETIC</li>
+        <li>Scores are evidence for investigators, never verdicts</li>
+        <li>One normalisation config is fingerprinted end-to-end; a mismatched model refuses to run</li>
+        <li>A failed stage marks itself and the run continues — the page never goes blank</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>TECH STACK</h2>
+      <div class="stack">
+        <b>ML</b> PyTorch · Ultralytics YOLO11 · U-Net (ResNet-34) · ONNX Runtime<br>
+        <b>Physics</b> OpenDrift · xarray · NetCDF forcing<br>
+        <b>Geo</b> rasterio/GDAL · scikit-image · pandas + Parquet<br>
+        <b>Backend</b> Python · FastAPI · SQLAlchemy + SQLite · Pydantic contracts<br>
+        <b>Frontend</b> React · Vite · deck.gl · MapLibre GL · Recharts<br>
+        <b>Testing</b> pytest (444) · Playwright E2E · synthetic attribution benchmark
+      </div>
+    </div>
+  </div>
+</div>

@@ -56,7 +56,7 @@ The single biggest accuracy lever left.
 ### 2. Real AIS ingestion — at least one real incident end-to-end
 AIS is the half of the problem statement that has never touched real data.
 - Danish DMA and MarineCadastre archives are free. The parsers already exist
-  (`5_krishnan_ais_service/ais/dma_ingest.py`, `mc_ingest.py`) and are
+  (`ais_service/ais/dma_ingest.py`, `mc_ingest.py`) and are
   untested against real files.
 - Pick an archive date/region, ingest, run attribution on genuine traffic.
   Even without a known culprit, a vessel layer that says `source: REAL`
@@ -111,7 +111,7 @@ investigator would actually file. React-to-print is sufficient.
 ### 7. Fix the ellipse writer + re-run the attribution benchmark on realistic traffic
 - Engine B writes `semi_major_m: 0.0` on **every** origin ellipse; the UI
   currently works around it by measuring the ring geometry. Fix at the source
-  (`2_nandha_engines`, drift output writer).
+  (`analysis_engines`, drift output writer).
 - Nandha's 50-scenario benchmark (the 86% top-1 headline) was measured on
   straight-line tracks with random headings. Port the kinematic traffic
   model into `benchmark/scenarios.py` and re-measure. Accept the number may

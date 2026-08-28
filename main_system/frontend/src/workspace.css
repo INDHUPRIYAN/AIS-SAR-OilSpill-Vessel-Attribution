@@ -1,0 +1,127 @@
+/* Investigation workspace layout + pieces. Imported from App.jsx. */
+
+.ws-header {
+  top: 12px; left: 12px; right: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 9px 14px;
+}
+.ws-title { font-size: 14px; font-weight: 700; }
+.ws-header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.ws-header-right select { width: auto; max-width: 260px; padding: 5px 8px; font-size: 12px; }
+.ws-health {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: var(--ink-1); text-decoration: none;
+  padding: 4px 8px; border-radius: var(--r-sm);
+  border: 1px solid var(--line-bright);
+}
+.ws-health:hover { border-color: var(--accent-dim); color: var(--ink-0); }
+
+.ws-left {
+  top: 66px; left: 12px; bottom: 88px; width: 278px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ws-right {
+  top: 66px; right: 12px; bottom: 88px; width: 330px;
+  display: flex; flex-direction: column;
+}
+.ws-bottom { left: 12px; right: 12px; bottom: 12px; }
+.ws-hover { bottom: 88px; left: 50%; transform: translateX(-50%); padding: 11px; min-width: 220px; }
+
+.ws-panel-title {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 700; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--ink-1); margin-bottom: 9px;
+}
+
+/* stepper */
+.ws-step {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 0; font-size: 12px; color: var(--ink-1);
+}
+.ws-step-ico {
+  width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center; flex-shrink: 0;
+  background: var(--bg-3); color: var(--ink-2);
+}
+.ws-step-ok .ws-step-ico, .ws-step-fallback .ws-step-ico { background: rgba(16,185,129,.18); color: var(--ok); }
+.ws-step-fallback .ws-step-ico { background: rgba(245,158,11,.18); color: var(--warn); }
+.ws-step-mock .ws-step-ico { background: rgba(168,85,247,.18); color: var(--mock); }
+.ws-step-failed .ws-step-ico { background: rgba(244,63,94,.2); color: var(--danger); }
+.ws-step-running .ws-step-ico { background: rgba(56,189,248,.18); color: var(--accent); }
+.ws-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-3); }
+.ws-spin { animation: spin .8s linear infinite; }
+.ws-step-label { flex-shrink: 0; }
+
+/* layer rows */
+.ws-layer-row { display: flex; align-items: center; gap: 7px; }
+.ws-legend { border-top: 1px solid var(--line); margin-top: 9px; }
+
+/* tabs */
+.ws-tabs { display: flex; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.ws-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 6px; background: none; border: none; cursor: pointer;
+  color: var(--ink-2); font-size: 12px; font-weight: 600; font-family: inherit;
+  border-bottom: 2px solid transparent;
+}
+.ws-tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+.ws-count {
+  background: var(--bg-3); border-radius: 9px; padding: 1px 6px; font-size: 10px;
+}
+
+/* suspects */
+.ws-disclaimer {
+  padding: 7px 9px; margin-bottom: 9px; border-radius: var(--r-sm);
+  background: var(--bg-2); border: 1px solid var(--line);
+  font-style: italic;
+}
+.ws-suspect {
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: 10px 11px; margin-bottom: 8px; cursor: pointer;
+  transition: border-color 140ms;
+}
+.ws-suspect:hover { border-color: var(--line-bright); }
+.ws-suspect.top { border-color: rgba(244,63,94,.5); }
+.ws-suspect.open { background: var(--bg-2); }
+.ws-rank { font-size: 15px; font-weight: 700; color: var(--ink-2); width: 30px; }
+.ws-suspect.top .ws-rank { color: var(--danger); }
+.ws-suspect-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws-score { font-size: 14px; font-weight: 700; }
+.ws-suspect-detail { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); }
+.ws-reason { margin-top: 8px; line-height: 1.55; color: var(--ink-1); }
+
+/* time slider */
+.ws-timeslider {
+  display: flex; align-items: center; gap: 12px; padding: 9px 14px;
+}
+.ws-rail {
+  position: relative; flex: 1; height: 26px; cursor: pointer;
+  border-bottom: 2px solid var(--line-bright);
+}
+.ws-tick { position: absolute; bottom: -2px; transform: translateX(-50%); text-align: center; }
+.ws-tick i { display: block; width: 1px; height: 5px; background: var(--line-bright); margin: 0 auto; }
+.ws-tick em { font-style: normal; font-size: 8.5px; color: var(--ink-3); }
+.ws-now {
+  position: absolute; bottom: 8px; transform: translateX(-50%);
+  font-size: 8.5px; font-weight: 800; letter-spacing: 1px; color: var(--oil);
+}
+.ws-head {
+  position: absolute; bottom: -6px; transform: translateX(-50%);
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 9px var(--accent);
+  border: 2px solid var(--bg-0);
+}
+.ws-clock { display: flex; gap: 8px; color: var(--ink-1); flex-shrink: 0; }
+.ws-rel { color: var(--accent); font-weight: 700; }
+
+/* toasts + empty */
+.ws-toasts {
+  position: absolute; top: 66px; left: 50%; transform: translateX(-50%);
+  z-index: 30; display: flex; flex-direction: column; gap: 8px; max-width: 480px;
+}
+.ws-toast { padding: 10px 14px; font-size: 12px; }
+.ws-toast-danger { border-color: rgba(244,63,94,.5); color: var(--danger); }
+.ws-empty-page {
+  height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px;
+}

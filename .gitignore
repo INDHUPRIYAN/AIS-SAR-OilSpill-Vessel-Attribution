@@ -45,12 +45,12 @@ data/
 *.pt
 
 # Ultralytics scratch output (val plots etc); real runs live under data/runs/
-1_indhu_main_system/runs/
+main_system/runs/
 runery/
 
 # Node / frontend
 node_modules/
-1_indhu_main_system/frontend/dist/
+main_system/frontend/dist/
 
 # Databases and scratch
 *.db
