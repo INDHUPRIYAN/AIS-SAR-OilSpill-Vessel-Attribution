@@ -1,0 +1,106 @@
+# OceanTrace — one-command local stack (design doc Part VII).
+#
+#   cp .env.example .env        # fill in credentials (or leave blank: the demo
+#                               # replays cached artefacts from ./data)
+#   docker compose up --build   # backend :8000 + frontend :5173
+#
+# The core demo needs ONLY backend + frontend: the backend reads cached runs
+# from the ./data bind mount and pulls model weights at container start via
+# scripts/get_weights.sh (set OILGUARD_WEIGHTS_URL; weights are never in git
+# or in the image). Postgres/PostGIS, MinIO and Redis are future-facing and
+# live behind the "extras" profile:
+#
+#   docker compose --profile extras up
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    image: oceantrace-backend
+    env_file:
+      - path: .env
+        required: false        # demo must boot with zero credentials
+    environment:
+      # Inside the container the repo lives at /app; data is the bind mount.
+      DATA_ROOT: /app/data
+      OILGUARD_WEIGHTS_URL: ${OILGUARD_WEIGHTS_URL:-}
+    volumes:
+      # All cached scenes, run artefacts and the sqlite DB live on the host so
+      # `docker compose down` loses nothing and a laptop-local demo can seed
+      # data/runs/ outside docker.
+      - ./data:/app/data
+      # Weights survive container recreation (pulled once, then skipped).
+      - weights:/app/main_system/backend/services/detection/weights
+    ports:
+      - "8000:8000"
+    healthcheck:
+      # /health is the process liveness route in backend/main.py (a /healthz
+      # alias should be added there by the backend owner to match the design
+      # doc; compose uses the one that exists today).
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    image: oceantrace-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Future-facing services (design doc Part VII LOCAL environment). Not needed
+  # for the demo; enable with:  docker compose --profile extras up
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.4
+    profiles: ["extras"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-oceantrace}
+      POSTGRES_USER: ${POSTGRES_USER:-oceantrace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oceantrace-dev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-oceantrace}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    profiles: ["extras"]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-oceantrace}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-oceantrace-dev}
+    volumes:
+      - miniodata:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  redis:
+    image: redis:7-alpine
+    profiles: ["extras"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+volumes:
+  weights:
+  pgdata:
+  miniodata:
+  redisdata:

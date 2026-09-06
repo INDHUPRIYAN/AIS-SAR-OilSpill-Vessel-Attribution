@@ -1,0 +1,104 @@
+# Registered areas of interest for the scheduler (design doc v2 §21, §4 Stage 0).
+#
+#     STAGE 0  TRIGGER
+#       Scheduler detects a new S1 pass over a registered AOI
+#
+# This file is what turns OceanTrace from request-driven ("an analyst asks about
+# a scene") into surveillance ("the system tells the analyst"). The watcher
+# polls each enabled AOI, and any Sentinel-1 scene it has not seen before opens
+# an investigation automatically.
+#
+# CONVENTIONS, all frozen by Standing Rule 1:
+#   bbox   [lon_min, lat_min, lon_max, lat_max] in WGS84. LONGITUDE FIRST.
+#   times  UTC. There is no local-time field anywhere in this file, deliberately.
+#
+# FIELDS
+#   id             stable slug; the watcher keys its state on this, so renaming
+#                  an id makes the watcher treat the AOI as brand new and
+#                  re-open investigations for scenes it has already handled.
+#   name           what the UI shows.
+#   bbox           the search footprint.
+#   ais_region     which AISStore region partition covers this AOI. Null means
+#                  no public bulk AIS exists here -- Stage 6 will synthesise and
+#                  badge it SYNTHETIC (§8, §23 Scenario B). Being explicit here
+#                  is what stops a Chennai run quietly presenting fabricated
+#                  traffic as real.
+#   poll_minutes   how often to search. Sentinel-1 revisit over a given point is
+#                  measured in days, so polling faster than ~30 min only burns
+#                  the CDSE rate limit.
+#   lookback_hours on the FIRST poll only, how far back to consider a scene
+#                  "new". Without a bound, enabling an AOI would open an
+#                  investigation for every scene in the archive.
+#   auto_run       true  -> open an investigation AND start the pipeline
+#                  false -> open the investigation, leave it for a human to run.
+#                  Set false for an AOI you are still tuning.
+#   enabled        the off switch. Disabled AOIs keep their watch state, so
+#                  re-enabling does not replay the gap.
+#   notes          why this AOI is registered. Read by humans only.
+
+version: 1
+
+defaults:
+  poll_minutes: 60
+  lookback_hours: 24
+  auto_run: true
+  enabled: true
+
+aois:
+  # ---- Scenario A: the credibility run (§23) -----------------------------
+  # SAR coverage AND public bulk AIS both exist here, so every provenance
+  # badge on a run from this AOI can read REAL.
+  - id: danish-straits
+    name: Danish Straits (Kattegat / Great Belt)
+    bbox: [10.20, 55.20, 12.60, 57.20]
+    ais_region: denmark
+    poll_minutes: 60
+    lookback_hours: 48
+    auto_run: true
+    enabled: true
+    notes: >
+      DMA publishes bulk historic AIS for these waters (web.ais.dk), and it is
+      dense commercial traffic through a narrow strait. This is the AOI a fully
+      real end-to-end demo comes from.
+
+  - id: us-gulf-coast
+    name: US Gulf Coast (Louisiana shelf)
+    bbox: [-93.50, 27.80, -88.50, 30.20]
+    ais_region: us-gulf
+    poll_minutes: 60
+    lookback_hours: 48
+    auto_run: false
+    enabled: false
+    notes: >
+      MarineCadastre covers US waters, so this is the Scenario A alternative if
+      the Danish scene selection does not work out. Left disabled and manual
+      until a scene is actually chosen -- an enabled AOI with no ingested AIS
+      would produce runs whose AIS stage silently falls back to synthetic.
+
+  # ---- Scenario B: regional relevance (§23) ------------------------------
+  - id: chennai-coast
+    name: Chennai coast (Bay of Bengal)
+    bbox: [79.90, 12.60, 80.90, 13.60]
+    ais_region: null
+    poll_minutes: 120
+    lookback_hours: 72
+    auto_run: true
+    enabled: true
+    notes: >
+      No public bulk historic AIS exists for Indian waters (§8) -- this is a
+      data-availability fact, not a gap we can engineer around. ais_region is
+      deliberately null so Stage 6 synthesises and the UI badges it SYNTHETIC.
+      Scene, met-ocean, detection and drift are all real.
+
+  - id: mumbai-offshore
+    name: Mumbai High offshore field
+    bbox: [71.60, 18.80, 73.00, 20.20]
+    ais_region: null
+    poll_minutes: 180
+    lookback_hours: 72
+    auto_run: false
+    enabled: false
+    notes: >
+      Dense offshore platform traffic; a good second Indian AOI once the
+      Chennai path is proven. Manual until then -- platform flaring and rig
+      wakes generate look-alikes that are worth reviewing by eye first.

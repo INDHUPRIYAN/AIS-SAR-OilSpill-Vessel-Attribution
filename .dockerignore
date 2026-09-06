@@ -1,0 +1,37 @@
+# Keep the build context small and the image reproducible.
+.git
+.venv
+venv
+env
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+.pytest_cache
+
+# All data/caches stay on the host and reach the container via bind mount.
+data
+
+# Model weights are pulled at container START by scripts/get_weights.sh —
+# never baked into the image (design doc Part VII).
+**/*.onnx
+**/*.pt
+**/*.pth
+
+# Frontend build artefacts are produced inside the node build stage.
+**/node_modules
+main_system/frontend/dist
+main_system/frontend/test-results
+
+# Scratch / large local artefacts
+main_system/runs
+runery
+*.7z
+*.7z.part
+*.tiff
+*.log
+*.db
+*.sqlite3
+nohup.out
+
+# Local secrets never enter an image.
+.env

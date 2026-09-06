@@ -1,0 +1,102 @@
+# OceanTrace — SIH 2026 PS 26143
+#
+# One `pip install -e .` gives every developer the runtime + test dependency
+# set. This install is DEPENDENCIES-ONLY on purpose: the repo is a multi-root
+# workspace (main_system/, analysis_engines/, scene_service/, metocean_service/,
+# ais_service/), each module bootstraps its own sys.path, and pytest.ini
+# declares the import roots for tests — so no Python packages are installed
+# from here, and the module split keeps working untouched.
+#
+# GPU training is NOT covered by the base install (see [project.optional-dependencies]
+# and main_system/requirements.txt): PyTorch CUDA wheels must come from
+# PyTorch's own index or `pip install torch` silently gives you a CPU wheel
+# that cannot train:
+#
+#   .venv/Scripts/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#   .venv/Scripts/python -m pip install -e ".[train,gpu]"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oceantrace"
+version = "0.1.0"
+description = "SAR oil-spill detection with AIS vessel attribution (SIH 2026 - PS 26143)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+authors = [
+    { name = "OceanTrace team (SIH PS 26143)" },
+]
+
+# Union of the per-module requirements.txt files, CPU-only by default so a
+# fresh clone (and the Docker image) can serve the demo without CUDA.
+dependencies = [
+    # --- backend / API (main_system) ---
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.6",
+    "sqlalchemy>=2.0",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27",
+    "cryptography>=42.0",          # encrypted credential store (backend.core.security)
+    # --- inference (CPU; swap in the `gpu` extra for CUDA EP) ---
+    "onnxruntime>=1.18",
+    # --- geospatial / raster ---
+    "rasterio>=1.3",
+    "scikit-image>=0.22",
+    "tifffile>=2024.1",
+    "opencv-python-headless>=4.9",
+    "shapely>=2.0",
+    "pyproj>=3.6",
+    # --- gridded met-ocean + drift (metocean_service, analysis_engines) ---
+    "xarray>=2024.1.0",
+    "netCDF4>=1.6.5",
+    "scipy>=1.11",
+    # --- tabular contracts / AIS ---
+    "pandas>=2.1",
+    "pyarrow>=15.0",
+    # --- shared ---
+    "numpy>=1.26",
+    "PyYAML>=6.0",
+    "requests>=2.31",
+    "tqdm>=4.66",
+    "matplotlib>=3.8",
+    "tenacity>=8.2",
+    # --- testing (kept in base so `pytest` works for every dev out of the box) ---
+    "pytest>=8.0",
+]
+
+[project.optional-dependencies]
+# CUDA inference for the /detect service. Mutually exclusive with the CPU
+# onnxruntime in practice — install into a GPU venv only.
+gpu = [
+    "onnxruntime-gpu>=1.18",
+]
+# Model training + ONNX export (main_system/ml). Install torch/torchvision
+# from the PyTorch cu121 index FIRST (see header comment).
+train = [
+    "segmentation-models-pytorch>=0.3.4",
+    "albumentations>=1.4",
+    "ultralytics>=8.2",
+    "onnx>=1.16",
+]
+# Heavy optional providers for metocean_service (the Open-Meteo/HYCOM fallback
+# paths work without any of these).
+metocean = [
+    "copernicusmarine>=1.0.0",
+    "cdsapi>=0.7.0",
+    "dask>=2023.1.0",
+]
+
+[project.urls]
+Repository = "https://github.com/INDHUPRIYAN/AIS-SAR-OilSpill-Vessel-Attribution"
+
+[tool.setuptools]
+# Dependencies-only install — see the header comment. Import roots live in
+# pytest.ini (tests) and each module's own sys.path bootstrap (runtime).
+packages = []
+
+# Pytest configuration stays in pytest.ini (it wins over pyproject when both
+# exist, and the whole team already relies on its importlib-mode notes).
