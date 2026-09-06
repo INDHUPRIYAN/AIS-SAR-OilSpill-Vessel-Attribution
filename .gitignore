@@ -92,3 +92,12 @@ analysis_engines/engines/drift/weights/
 
 # Superseded POC checkpoint dir (kept on disk, never the metrics source)
 main_system/backend/services/detection/weights/previous_poc/
+
+# [PROMPT-00b] Docs: keep authoritative specs + build dependencies, drop evidence bulk.
+docs/qa/
+docs/video/
+docs/audit/*.png
+Road-to-Production/*.png
+
+# Superseded archive — kept on disk for reference, never a requirements source.
+Old-files-and-some-audit-report/

@@ -1,0 +1,169 @@
+ README.md                                          |  82 +++-
+ ais_service/README.md                              | 209 ++++++++-
+ ais_service/ais/benchmark.py                       |  62 ++-
+ ais_service/ais/clean.py                           | 136 +++++-
+ ais_service/ais/cli.py                             | 199 +++++++-
+ ais_service/ais/dma_ingest.py                      |  59 ++-
+ ais_service/ais/generator.py                       | 183 ++++++--
+ ais_service/ais/interpolate.py                     | 159 +++----
+ ais_service/ais/mc_ingest.py                       |  46 +-
+ ais_service/ais/status.py                          | 186 +++++++-
+ ais_service/requirements.txt                       |   4 +
+ .../test_output/benchmark/scenario_001/truth.json  |  15 +-
+ .../benchmark/scenario_001/vessels.parquet         | Bin 371157 -> 367417 bytes
+ .../test_output/benchmark/scenario_002/truth.json  |  15 +-
+ .../benchmark/scenario_002/vessels.parquet         | Bin 106550 -> 110050 bytes
+ .../test_output/benchmark/scenario_003/truth.json  |  15 +-
+ .../benchmark/scenario_003/vessels.parquet         | Bin 499107 -> 720488 bytes
+ .../test_output/benchmark/scenario_004/truth.json  |  15 +-
+ .../benchmark/scenario_004/vessels.parquet         | Bin 200403 -> 188367 bytes
+ .../test_output/benchmark/scenario_005/truth.json  |  15 +-
+ .../benchmark/scenario_005/vessels.parquet         | Bin 75989 -> 835877 bytes
+ .../test_output/benchmark/scenario_006/truth.json  |  15 +-
+ .../benchmark/scenario_006/vessels.parquet         | Bin 395590 -> 999072 bytes
+ .../test_output/benchmark/scenario_007/truth.json  |  15 +-
+ .../benchmark/scenario_007/vessels.parquet         | Bin 315985 -> 1067385 bytes
+ .../test_output/benchmark/scenario_008/truth.json  |  15 +-
+ .../benchmark/scenario_008/vessels.parquet         | Bin 209809 -> 578143 bytes
+ .../test_output/benchmark/scenario_009/truth.json  |  15 +-
+ .../benchmark/scenario_009/vessels.parquet         | Bin 283272 -> 331693 bytes
+ .../test_output/benchmark/scenario_010/truth.json  |  15 +-
+ .../benchmark/scenario_010/vessels.parquet         | Bin 439122 -> 931665 bytes
+ .../test_output/benchmark/scenario_011/truth.json  |  15 +-
+ .../benchmark/scenario_011/vessels.parquet         | Bin 277748 -> 245342 bytes
+ .../test_output/benchmark/scenario_012/truth.json  |  15 +-
+ .../benchmark/scenario_012/vessels.parquet         | Bin 246966 -> 877793 bytes
+ .../test_output/benchmark/scenario_013/truth.json  |  15 +-
+ .../benchmark/scenario_013/vessels.parquet         | Bin 560358 -> 376972 bytes
+ .../test_output/benchmark/scenario_014/truth.json  |  15 +-
+ .../benchmark/scenario_014/vessels.parquet         | Bin 270132 -> 554501 bytes
+ .../test_output/benchmark/scenario_015/truth.json  |  15 +-
+ .../benchmark/scenario_015/vessels.parquet         | Bin 168428 -> 280031 bytes
+ .../test_output/benchmark/scenario_016/truth.json  |  15 +-
+ .../benchmark/scenario_016/vessels.parquet         | Bin 151996 -> 596810 bytes
+ .../test_output/benchmark/scenario_017/truth.json  |  15 +-
+ .../benchmark/scenario_017/vessels.parquet         | Bin 457730 -> 954900 bytes
+ .../test_output/benchmark/scenario_018/truth.json  |  15 +-
+ .../benchmark/scenario_018/vessels.parquet         | Bin 757597 -> 546508 bytes
+ .../test_output/benchmark/scenario_019/truth.json  |  15 +-
+ .../benchmark/scenario_019/vessels.parquet         | Bin 601501 -> 1092305 bytes
+ .../test_output/benchmark/scenario_020/truth.json  |  15 +-
+ .../benchmark/scenario_020/vessels.parquet         | Bin 297472 -> 312813 bytes
+ .../test_output/benchmark/scenario_021/truth.json  |  15 +-
+ .../benchmark/scenario_021/vessels.parquet         | Bin 245281 -> 605323 bytes
+ .../test_output/benchmark/scenario_022/truth.json  |  15 +-
+ .../benchmark/scenario_022/vessels.parquet         | Bin 290171 -> 709702 bytes
+ .../test_output/benchmark/scenario_023/truth.json  |  15 +-
+ .../benchmark/scenario_023/vessels.parquet         | Bin 248326 -> 208282 bytes
+ .../test_output/benchmark/scenario_024/truth.json  |  15 +-
+ .../benchmark/scenario_024/vessels.parquet         | Bin 214144 -> 1003156 bytes
+ .../test_output/benchmark/scenario_025/truth.json  |  15 +-
+ .../benchmark/scenario_025/vessels.parquet         | Bin 212411 -> 478181 bytes
+ .../test_output/benchmark/scenario_026/truth.json  |  15 +-
+ .../benchmark/scenario_026/vessels.parquet         | Bin 582246 -> 489282 bytes
+ .../test_output/benchmark/scenario_027/truth.json  |  15 +-
+ .../benchmark/scenario_027/vessels.parquet         | Bin 236181 -> 841490 bytes
+ .../test_output/benchmark/scenario_028/truth.json  |  15 +-
+ .../benchmark/scenario_028/vessels.parquet         | Bin 356915 -> 314343 bytes
+ .../test_output/benchmark/scenario_029/truth.json  |  15 +-
+ .../benchmark/scenario_029/vessels.parquet         | Bin 217975 -> 367339 bytes
+ .../test_output/benchmark/scenario_030/truth.json  |  15 +-
+ .../benchmark/scenario_030/vessels.parquet         | Bin 191542 -> 1123289 bytes
+ .../test_output/benchmark/scenario_031/truth.json  |  15 +-
+ .../benchmark/scenario_031/vessels.parquet         | Bin 117978 -> 972730 bytes
+ .../test_output/benchmark/scenario_032/truth.json  |  15 +-
+ .../benchmark/scenario_032/vessels.parquet         | Bin 214926 -> 373573 bytes
+ .../test_output/benchmark/scenario_033/truth.json  |  15 +-
+ .../benchmark/scenario_033/vessels.parquet         | Bin 408671 -> 443268 bytes
+ .../test_output/benchmark/scenario_034/truth.json  |  15 +-
+ .../benchmark/scenario_034/vessels.parquet         | Bin 768901 -> 536907 bytes
+ .../test_output/benchmark/scenario_035/truth.json  |  15 +-
+ .../benchmark/scenario_035/vessels.parquet         | Bin 499795 -> 933217 bytes
+ .../test_output/benchmark/scenario_036/truth.json  |  15 +-
+ .../benchmark/scenario_036/vessels.parquet         | Bin 675515 -> 355505 bytes
+ .../test_output/benchmark/scenario_037/truth.json  |  15 +-
+ .../benchmark/scenario_037/vessels.parquet         | Bin 415411 -> 722598 bytes
+ .../test_output/benchmark/scenario_038/truth.json  |  15 +-
+ .../benchmark/scenario_038/vessels.parquet         | Bin 156905 -> 715598 bytes
+ .../test_output/benchmark/scenario_039/truth.json  |  15 +-
+ .../benchmark/scenario_039/vessels.parquet         | Bin 135332 -> 257319 bytes
+ .../test_output/benchmark/scenario_040/truth.json  |  15 +-
+ .../benchmark/scenario_040/vessels.parquet         | Bin 127677 -> 134895 bytes
+ .../test_output/benchmark/scenario_041/truth.json  |  15 +-
+ .../benchmark/scenario_041/vessels.parquet         | Bin 872546 -> 601785 bytes
+ .../test_output/benchmark/scenario_042/truth.json  |  15 +-
+ .../benchmark/scenario_042/vessels.parquet         | Bin 350509 -> 924384 bytes
+ .../test_output/benchmark/scenario_043/truth.json  |  15 +-
+ .../benchmark/scenario_043/vessels.parquet         | Bin 675687 -> 463703 bytes
+ .../test_output/benchmark/scenario_044/truth.json  |  15 +-
+ .../benchmark/scenario_044/vessels.parquet         | Bin 370075 -> 545974 bytes
+ .../test_output/benchmark/scenario_045/truth.json  |  15 +-
+ .../benchmark/scenario_045/vessels.parquet         | Bin 64926 -> 307555 bytes
+ .../test_output/benchmark/scenario_046/truth.json  |  15 +-
+ .../benchmark/scenario_046/vessels.parquet         | Bin 125614 -> 431141 bytes
+ .../test_output/benchmark/scenario_047/truth.json  |  15 +-
+ .../benchmark/scenario_047/vessels.parquet         | Bin 184435 -> 677931 bytes
+ .../test_output/benchmark/scenario_048/truth.json  |  15 +-
+ .../benchmark/scenario_048/vessels.parquet         | Bin 367948 -> 734704 bytes
+ .../test_output/benchmark/scenario_049/truth.json  |  15 +-
+ .../benchmark/scenario_049/vessels.parquet         | Bin 94594 -> 251502 bytes
+ .../test_output/benchmark/scenario_050/truth.json  |  15 +-
+ .../benchmark/scenario_050/vessels.parquet         | Bin 654787 -> 600710 bytes
+ ais_service/test_output/vessels.parquet            | Bin 55062 -> 83364 bytes
+ analysis_engines/README.md                         |  10 +-
+ analysis_engines/config/drift.yaml                 |   7 +
+ analysis_engines/engines/attribution/README.md     |   7 +
+ analysis_engines/engines/attribution/runner.py     |  32 ++
+ analysis_engines/engines/attribution/scoring.py    |  17 +-
+ analysis_engines/engines/attribution/tracks.py     |  32 ++
+ .../engines/characterise/spill_features.py         |   3 -
+ analysis_engines/engines/drift/README.md           |  30 +-
+ analysis_engines/engines/drift/backends.py         |  24 +
+ analysis_engines/engines/drift/euler_fallback.py   |  24 +-
+ analysis_engines/engines/drift/forecast.py         |  59 ++-
+ .../engines/drift/opendrift_adapter.py             |  50 +-
+ analysis_engines/engines/drift/runner.py           | 126 ++++-
+ analysis_engines/engines/schemas/forecast.py       |  36 +-
+ analysis_engines/engines/schemas/suspects.py       |  23 +-
+ analysis_engines/tests/test_attribution_scoring.py |  72 +++
+ analysis_engines/tests/test_drift_forecast.py      |  78 +++-
+ analysis_engines/tests/test_drift_runner.py        |  21 +-
+ docs/data_card.md                                  |  20 +-
+ main_system/backend/api/routes.py                  | 205 +++++++-
+ main_system/backend/core/config.py                 |   8 +
+ main_system/backend/main.py                        |  37 +-
+ main_system/backend/models/db.py                   | 100 ++++
+ main_system/backend/services/detection/service.py  |  18 +
+ .../services/detection/weights/model_card.md       |  19 +-
+ main_system/backend/services/pipeline/engines.py   |  62 ++-
+ main_system/backend/services/pipeline/normalise.py |  39 +-
+ main_system/backend/services/pipeline/run.py       | 239 +++++++++-
+ main_system/frontend/app.py                        | 519 ---------------------
+ main_system/frontend/src/App.jsx                   |   2 +
+ main_system/frontend/src/components/ui.jsx         |  15 +-
+ .../src/components/workspace/LayerPanel.jsx        |  16 +-
+ .../src/components/workspace/SuspectsPanel.jsx     |  92 +++-
+ .../src/components/workspace/WorkspaceMap.jsx      |  64 ++-
+ .../frontend/src/components/workspace/palette.js   |   4 +
+ main_system/frontend/src/pages/Investigation.jsx   |  35 +-
+ main_system/frontend/src/workspace.css             |  34 ++
+ main_system/frontend/test-results/.last-run.json   |   6 +-
+ .../frontend/tests-e2e/investigation.spec.js       |  69 ++-
+ main_system/frontend/vite.config.js                |  24 +-
+ main_system/ml/README.md                           |  13 +-
+ main_system/ml/export.py                           |  27 +-
+ main_system/ml/prepare_trujillo.py                 |  81 +++-
+ main_system/ml/train_unet.py                       |  25 +-
+ main_system/ml/train_yolo.py                       |  29 ++
+ main_system/requirements.txt                       |   2 +-
+ metocean_service/metocean/era5_adapter.py          |  23 +
+ scene_service/fixtures/__init__.py                 |  60 ++-
+ scene_service/fixtures/demo_scene/scene_meta.json  |  18 +-
+ scene_service/satellite/asf_adapter.py             |  35 +-
+ scene_service/satellite/cdse_adapter.py            |  51 +-
+ scene_service/satellite/chain.py                   |  16 +-
+ scene_service/satellite/cli.py                     | 107 +++++
+ scene_service/satellite/status.py                  | 123 +++++
+ scene_service/tests/test_demo_fixture.py           |  69 +--
+ scene_service/tests/test_end_to_end.py             |  11 +-
+ 168 files changed, 3791 insertions(+), 1252 deletions(-)

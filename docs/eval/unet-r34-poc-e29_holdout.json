@@ -1,0 +1,193 @@
+{
+  "generated_utc": "2026-08-24T18:52:20+00:00",
+  "checkpoint": "..\\data\\runs\\training\\unet-r34\\best.pt",
+  "checkpoint_epoch": 29,
+  "encoder": "resnet34",
+  "config_fingerprint": "01e24b0fb0e8",
+  "db_range": [
+    -35.0,
+    0.0
+  ],
+  "tile_size": 256,
+  "test_split": "C:\\Users\\Indhu Priyan\\Documents\\GitHub\\AIS-SAR-OilSpill-Vessel-Attribution\\data\\processed\\trujillo\\test",
+  "test_tiles": 5760,
+  "min_blob_frac": 0.001,
+  "results": {
+    "0.3": {
+      "overall": {
+        "has_true_oil": true,
+        "tiles": 0,
+        "iou": 0.22462385356572814,
+        "precision": 0.22716387189366824,
+        "recall": 0.9525819112949513,
+        "f1": 0.36684546478707286,
+        "dice": 0.3668454650980259,
+        "pixels_oil_true": 10880215.0,
+        "pixels_oil_pred": 45624755.0
+      },
+      "per_kind": {
+        "background": {
+          "has_true_oil": false,
+          "tiles": 5248,
+          "false_positive_pixels": 34587789.0,
+          "false_positive_pixel_rate": 0.10056550619078845
+        },
+        "oil": {
+          "has_true_oil": true,
+          "tiles": 512,
+          "iou": 0.8971175598129816,
+          "precision": 0.939052996992108,
+          "recall": 0.9525819112949513,
+          "f1": 0.9457690744554222,
+          "dice": 0.9457690749553969,
+          "pixels_oil_true": 10880215.0,
+          "pixels_oil_pred": 11036966.0
+        }
+      },
+      "no_oil_tiles": 5248,
+      "no_oil_tiles_with_false_detection": 1015,
+      "scene_level_false_positive_rate": 0.19340701219512196
+    },
+    "0.4": {
+      "overall": {
+        "has_true_oil": true,
+        "tiles": 0,
+        "iou": 0.2744316002898961,
+        "precision": 0.2795444206201479,
+        "recall": 0.9375179626505541,
+        "f1": 0.43067293686375013,
+        "dice": 0.4306729372176128,
+        "pixels_oil_true": 10880215.0,
+        "pixels_oil_pred": 36489360.0
+      },
+      "per_kind": {
+        "background": {
+          "has_true_oil": false,
+          "tiles": 5248,
+          "false_positive_pixels": 25766631.0,
+          "false_positive_pixel_rate": 0.07491760428358869
+        },
+        "oil": {
+          "has_true_oil": true,
+          "tiles": 512,
+          "iou": 0.8945718004933457,
+          "precision": 0.9512874008099989,
+          "recall": 0.9375179626505541,
+          "f1": 0.9443524914566783,
+          "dice": 0.9443524919566518,
+          "pixels_oil_true": 10880215.0,
+          "pixels_oil_pred": 10722729.0
+        }
+      },
+      "no_oil_tiles": 5248,
+      "no_oil_tiles_with_false_detection": 960,
+      "scene_level_false_positive_rate": 0.18292682926829268
+    },
+    "0.5": {
+      "overall": {
+        "has_true_oil": true,
+        "tiles": 0,
+        "iou": 0.3128109437233022,
+        "precision": 0.32266046434538137,
+        "recall": 0.9110903598871896,
+        "f1": 0.47655139525663165,
+        "dice": 0.47655139564289395,
+        "pixels_oil_true": 10880215.0,
+        "pixels_oil_pred": 30722261.0
+      },
+      "per_kind": {
+        "background": {
+          "has_true_oil": false,
+          "tiles": 5248,
+          "false_positive_pixels": 20400272.0,
+          "false_positive_pixel_rate": 0.05931468126250476
+        },
+        "oil": {
+          "has_true_oil": true,
+          "tiles": 512,
+          "iou": 0.878072111358099,
+          "precision": 0.960363259445442,
+          "recall": 0.9110903598871896,
+          "f1": 0.9350781640156958,
+          "dice": 0.9350781645153494,
+          "pixels_oil_true": 10880215.0,
+          "pixels_oil_pred": 10321989.0
+        }
+      },
+      "no_oil_tiles": 5248,
+      "no_oil_tiles_with_false_detection": 755,
+      "scene_level_false_positive_rate": 0.14386432926829268
+    },
+    "0.6": {
+      "overall": {
+        "has_true_oil": true,
+        "tiles": 0,
+        "iou": 0.33402950953685556,
+        "precision": 0.3837467462869392,
+        "recall": 0.7205326365333772,
+        "f1": 0.500782789055898,
+        "dice": 0.5007827895093909,
+        "pixels_oil_true": 10880215.0,
+        "pixels_oil_pred": 20428968.0
+      },
+      "per_kind": {
+        "background": {
+          "has_true_oil": false,
+          "tiles": 5248,
+          "false_positive_pixels": 12275818.0,
+          "false_positive_pixel_rate": 0.035692476644748596
+        },
+        "oil": {
+          "has_true_oil": true,
+          "tiles": 512,
+          "iou": 0.7003465753186021,
+          "precision": 0.961536338715711,
+          "recall": 0.7205326365333772,
+          "f1": 0.8237692068994987,
+          "dice": 0.8237692073892346,
+          "pixels_oil_true": 10880215.0,
+          "pixels_oil_pred": 8153150.0
+        }
+      },
+      "no_oil_tiles": 5248,
+      "no_oil_tiles_with_false_detection": 659,
+      "scene_level_false_positive_rate": 0.12557164634146342
+    },
+    "0.7": {
+      "overall": {
+        "has_true_oil": true,
+        "tiles": 0,
+        "iou": 0.35426938111409295,
+        "precision": 0.4754156009869924,
+        "recall": 0.5816361165657111,
+        "f1": 0.5231889396886515,
+        "dice": 0.5231889401836027,
+        "pixels_oil_true": 10880215.0,
+        "pixels_oil_pred": 13311145.0
+      },
+      "per_kind": {
+        "background": {
+          "has_true_oil": false,
+          "tiles": 5248,
+          "false_positive_pixels": 6759404.0,
+          "false_positive_pixel_rate": 0.01965326216162705
+        },
+        "oil": {
+          "has_true_oil": true,
+          "tiles": 512,
+          "iou": 0.5699330759400303,
+          "precision": 0.9658999035523533,
+          "recall": 0.5816361165657111,
+          "f1": 0.7260603452545091,
+          "dice": 0.7260603457236813,
+          "pixels_oil_true": 10880215.0,
+          "pixels_oil_pred": 6551741.0
+        }
+      },
+      "no_oil_tiles": 5248,
+      "no_oil_tiles_with_false_detection": 546,
+      "scene_level_false_positive_rate": 0.10403963414634146
+    }
+  },
+  "note": "Pixel accuracy is intentionally not reported: sea-class dominance makes it meaningless."
+}

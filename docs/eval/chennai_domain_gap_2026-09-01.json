@@ -1,0 +1,17 @@
+{
+  "sigma0_path": "../data/scenes/S1A_CHENNAI_20170129/scene_sigma0_db.tif",
+  "n_sea_pixels": 86770882,
+  "p1_db": -30.35,
+  "p50_db": -18.85,
+  "p99_db": -13.55,
+  "db_min": -35.0,
+  "db_max": 0.0,
+  "frac_at_or_below_db_min": 0.0004,
+  "frac_at_or_above_db_max": 0.0,
+  "verdict": "PASS",
+  "scene_id": "S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_8B05_COG",
+  "normalisation": "main_system/config/normalisation.yaml",
+  "config_fingerprint": "01e24b0fb0e8",
+  "generated_utc": "2026-09-01T01:28:32Z",
+  "seconds": 23.6
+}

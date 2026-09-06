@@ -1,0 +1,12 @@
+{
+  "weights": "..\\data\\runs\\training\\screen\\weights\\best.pt",
+  "map50": 0.6230005340795313,
+  "map50_95": 0.2970426941096986,
+  "precision": 0.656953743046394,
+  "recall": 0.5652519676833311,
+  "background_images": 458,
+  "background_false_positives": 14,
+  "background_fp_rate": 0.03056768558951965,
+  "conf_threshold": 0.25,
+  "generated_utc": "2026-09-01T01:23:12+00:00"
+}

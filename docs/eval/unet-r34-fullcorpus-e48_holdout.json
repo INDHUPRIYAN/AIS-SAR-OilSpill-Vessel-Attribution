@@ -1,0 +1,193 @@
+{
+  "generated_utc": "2026-09-01T00:53:44+00:00",
+  "checkpoint": "C:\\Users\\Indhu Priyan\\Documents\\GitHub\\AIS-SAR-OilSpill-Vessel-Attribution\\data\\runs\\training\\unet-r34-fullcorpus\\best.pt",
+  "checkpoint_epoch": 48,
+  "encoder": "resnet34",
+  "config_fingerprint": "01e24b0fb0e8",
+  "db_range": [
+    -35.0,
+    0.0
+  ],
+  "tile_size": 256,
+  "test_split": "C:\\Users\\Indhu Priyan\\Documents\\GitHub\\AIS-SAR-OilSpill-Vessel-Attribution\\data\\processed\\trujillo\\test",
+  "test_tiles": 5760,
+  "min_blob_frac": 0.001,
+  "results": {
+    "0.3": {
+      "overall": {
+        "has_true_oil": true,
+        "tiles": 0,
+        "iou": 0.3750028867778997,
+        "precision": 0.4041401638326415,
+        "recall": 0.8387452821474575,
+        "f1": 0.5454575987908501,
+        "dice": 0.545457599229714,
+        "pixels_oil_true": 10880215.0,
+        "pixels_oil_pred": 22580604.0
+      },
+      "per_kind": {
+        "background": {
+          "has_true_oil": false,
+          "tiles": 5248,
+          "false_positive_pixels": 12850408.0,
+          "false_positive_pixel_rate": 0.03736312214921161
+        },
+        "oil": {
+          "has_true_oil": true,
+          "tiles": 512,
+          "iou": 0.7946000594531044,
+          "precision": 0.9378772020625277,
+          "recall": 0.8387452821474575,
+          "f1": 0.8855455618874789,
+          "dice": 0.8855455623859223,
+          "pixels_oil_true": 10880215.0,
+          "pixels_oil_pred": 9730196.0
+        }
+      },
+      "no_oil_tiles": 5248,
+      "no_oil_tiles_with_false_detection": 400,
+      "scene_level_false_positive_rate": 0.07621951219512195
+    },
+    "0.4": {
+      "overall": {
+        "has_true_oil": true,
+        "tiles": 0,
+        "iou": 0.4350322793901904,
+        "precision": 0.5323484115647064,
+        "recall": 0.7041207365847089,
+        "f1": 0.6063031268163818,
+        "dice": 0.6063031273067323,
+        "pixels_oil_true": 10880215.0,
+        "pixels_oil_pred": 14390923.0
+      },
+      "per_kind": {
+        "background": {
+          "has_true_oil": false,
+          "tiles": 5248,
+          "false_positive_pixels": 6237602.0,
+          "false_positive_pixel_rate": 0.018136100071232494
+        },
+        "oil": {
+          "has_true_oil": true,
+          "tiles": 512,
+          "iou": 0.6736382189009308,
+          "precision": 0.939615280693597,
+          "recall": 0.7041207365847089,
+          "f1": 0.8049986082816438,
+          "dice": 0.8049986087713812,
+          "pixels_oil_true": 10880215.0,
+          "pixels_oil_pred": 8153321.0
+        }
+      },
+      "no_oil_tiles": 5248,
+      "no_oil_tiles_with_false_detection": 365,
+      "scene_level_false_positive_rate": 0.06955030487804878
+    },
+    "0.5": {
+      "overall": {
+        "has_true_oil": true,
+        "tiles": 0,
+        "iou": 0.4445016912379933,
+        "precision": 0.6386748459028889,
+        "recall": 0.593835415936174,
+        "f1": 0.6154394883350961,
+        "dice": 0.6154394888344344,
+        "pixels_oil_true": 10880215.0,
+        "pixels_oil_pred": 10116348.0
+      },
+      "per_kind": {
+        "background": {
+          "has_true_oil": false,
+          "tiles": 5248,
+          "false_positive_pixels": 3246344.0,
+          "false_positive_pixel_rate": 0.009438886875059546
+        },
+        "oil": {
+          "has_true_oil": true,
+          "tiles": 512,
+          "iou": 0.5723238801958904,
+          "precision": 0.9404735426646038,
+          "recall": 0.593835415936174,
+          "f1": 0.7279974400078045,
+          "dice": 0.7279974404822837,
+          "pixels_oil_true": 10880215.0,
+          "pixels_oil_pred": 6870004.0
+        }
+      },
+      "no_oil_tiles": 5248,
+      "no_oil_tiles_with_false_detection": 280,
+      "scene_level_false_positive_rate": 0.053353658536585365
+    },
+    "0.6": {
+      "overall": {
+        "has_true_oil": true,
+        "tiles": 0,
+        "iou": 0.43316540043869817,
+        "precision": 0.6885547925613051,
+        "recall": 0.5387148139995395,
+        "f1": 0.6044876606051943,
+        "dice": 0.6044876610977412,
+        "pixels_oil_true": 10880215.0,
+        "pixels_oil_pred": 8512515.0
+      },
+      "per_kind": {
+        "background": {
+          "has_true_oil": false,
+          "tiles": 5248,
+          "false_positive_pixels": 2312937.0,
+          "false_positive_pixel_rate": 0.006724965281602813
+        },
+        "oil": {
+          "has_true_oil": true,
+          "tiles": 512,
+          "iou": 0.522472157497553,
+          "precision": 0.9454406412823582,
+          "recall": 0.5387148139995395,
+          "f1": 0.6863470764605551,
+          "dice": 0.6863470769230049,
+          "pixels_oil_true": 10880215.0,
+          "pixels_oil_pred": 6199578.0
+        }
+      },
+      "no_oil_tiles": 5248,
+      "no_oil_tiles_with_false_detection": 198,
+      "scene_level_false_positive_rate": 0.037728658536585365
+    },
+    "0.7": {
+      "overall": {
+        "has_true_oil": true,
+        "tiles": 0,
+        "iou": 0.4209259505173079,
+        "precision": 0.738427794585808,
+        "recall": 0.4946855370045536,
+        "f1": 0.5924671162810584,
+        "dice": 0.592467116761523,
+        "pixels_oil_true": 10880215.0,
+        "pixels_oil_pred": 7288844.0
+      },
+      "per_kind": {
+        "background": {
+          "has_true_oil": false,
+          "tiles": 5248,
+          "false_positive_pixels": 1634639.0,
+          "false_positive_pixel_rate": 0.004752784240536574
+        },
+        "oil": {
+          "has_true_oil": true,
+          "tiles": 512,
+          "iou": 0.48262373079235493,
+          "precision": 0.951908358469493,
+          "recall": 0.4946855370045536,
+          "f1": 0.6510400723193602,
+          "dice": 0.6510400727694107,
+          "pixels_oil_true": 10880215.0,
+          "pixels_oil_pred": 5654205.0
+        }
+      },
+      "no_oil_tiles": 5248,
+      "no_oil_tiles_with_false_detection": 177,
+      "scene_level_false_positive_rate": 0.033727134146341466
+    }
+  },
+  "note": "Pixel accuracy is intentionally not reported: sea-class dominance makes it meaningless."
+}

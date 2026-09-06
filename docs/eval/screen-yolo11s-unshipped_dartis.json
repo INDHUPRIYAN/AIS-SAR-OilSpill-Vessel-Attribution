@@ -1,0 +1,12 @@
+{
+  "weights": "C:\\Users\\Indhu Priyan\\Documents\\GitHub\\AIS-SAR-OilSpill-Vessel-Attribution\\data\\runs\\training\\screen_s\\weights\\best.pt",
+  "map50": 0.6253643810279075,
+  "map50_95": 0.2987548400489409,
+  "precision": 0.6675794457135564,
+  "recall": 0.5629032258064516,
+  "background_images": 458,
+  "background_false_positives": 20,
+  "background_fp_rate": 0.043668122270742356,
+  "conf_threshold": 0.25,
+  "generated_utc": "2026-08-24T15:46:30+00:00"
+}

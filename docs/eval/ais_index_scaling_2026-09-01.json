@@ -1,0 +1,39 @@
+{
+  "generated": "2026-09-01",
+  "window_h": 6,
+  "bbox_deg": [
+    79.8,
+    12.8,
+    80.6,
+    13.4
+  ],
+  "results": [
+    {
+      "rows": 2000,
+      "partitions": 30,
+      "ingest_s": 0.6,
+      "fullscan_ms": 33.9,
+      "index_query_ms": 8.4,
+      "hits_scan": 0,
+      "hits_index": 0
+    },
+    {
+      "rows": 100000,
+      "partitions": 30,
+      "ingest_s": 2.28,
+      "fullscan_ms": 44.3,
+      "index_query_ms": 17.9,
+      "hits_scan": 10,
+      "hits_index": 10
+    },
+    {
+      "rows": 1000000,
+      "partitions": 30,
+      "ingest_s": 16.97,
+      "fullscan_ms": 171.3,
+      "index_query_ms": 31.1,
+      "hits_scan": 116,
+      "hits_index": 116
+    }
+  ]
+}
