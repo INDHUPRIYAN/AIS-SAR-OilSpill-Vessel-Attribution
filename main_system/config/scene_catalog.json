@@ -1,0 +1,90 @@
+{
+  "_comment": [
+    "Curated demo scenes offered by GET /api/scenes/local (audit N-14).",
+    "The UI used to hardcode contracts/mocks/scene_meta.json, so every run",
+    "launched from the browser was a 1-of-5-real smoke test. This catalog is",
+    "the honest replacement: the default is a genuine Sentinel-1 acquisition,",
+    "and every entry carries the caveats that apply to it.",
+    "",
+    "provenance values:",
+    "  sentinel1_real  - a real Sentinel-1 product; acquired_utc comes from the",
+    "                    product identifier, so the timestamp is measured.",
+    "  corpus_heldout  - real SAR from the Trujillo corpus, in the held-out test",
+    "                    split (the deployed segmenter never trained on it).",
+    "  corpus_train    - real SAR from the Trujillo corpus, but NOT held out;",
+    "                    the segmenter was trained on it, so detection",
+    "                    confidence on this scene is not evidence of accuracy.",
+    "  mock            - synthetic raster for pipeline smoke tests only.",
+    "",
+    "Corpus scenes carry no acquisition metadata (the rasters hold only",
+    "AREA_OR_POINT, and the Zenodo records are file manifests), so their",
+    "acquired_utc was ASSIGNED for the demo, not measured. That is declared",
+    "per entry via time_basis and must reach the UI: the hindcast integrates",
+    "backward from this timestamp, so it anchors the whole temporal chain."
+  ],
+  "scenes": [
+    {
+      "id": "chennai-2017-01-29",
+      "label": "Chennai / Ennore, India",
+      "scene_meta_path": "data/runs/inv-chennai-real2/scene_meta.json",
+      "provenance": "sentinel1_real",
+      "time_basis": "measured",
+      "default": true,
+      "notes": "Real Sentinel-1A IW GRDH acquisition. acquired_utc is read from the product identifier (20170129T003132). Full-resolution 28072 x 21162 scene."
+    },
+    {
+      "id": "emed-oil-00000",
+      "label": "Eastern Mediterranean (held-out)",
+      "scene_meta_path": "data/runs/inv-14ed07b56e-222306/scene_meta.json",
+      "provenance": "corpus_heldout",
+      "time_basis": "assigned",
+      "default": false,
+      "notes": "Trujillo Part III scene Oil/00000, present in the held-out test split."
+    },
+    {
+      "id": "gulf-oil-00035",
+      "label": "Persian Gulf (held-out)",
+      "scene_meta_path": "data/runs/inv-32ae0d4727-212836/scene_meta.json",
+      "provenance": "corpus_heldout",
+      "time_basis": "assigned",
+      "default": false,
+      "notes": "Trujillo Part III scene Oil/00035, present in the held-out test split."
+    },
+    {
+      "id": "sumatra-oil-00055",
+      "label": "Sumatra (held-out)",
+      "scene_meta_path": "data/runs/inv-e168a3dfab-222845/scene_meta.json",
+      "provenance": "corpus_heldout",
+      "time_basis": "assigned",
+      "default": false,
+      "notes": "Trujillo Part III scene Oil/00055, present in the held-out test split."
+    },
+    {
+      "id": "java-oil-00081",
+      "label": "Java Sea (held-out)",
+      "scene_meta_path": "data/runs/inv-f51fac9c12-222753/scene_meta.json",
+      "provenance": "corpus_heldout",
+      "time_basis": "assigned",
+      "default": false,
+      "notes": "Trujillo Part III scene Oil/00081, present in the held-out test split."
+    },
+    {
+      "id": "bali-oil-00074",
+      "label": "Bali Strait, Indonesia",
+      "scene_meta_path": "data/runs/inv-final-audit/scene_meta.json",
+      "provenance": "corpus_train",
+      "time_basis": "assigned",
+      "default": false,
+      "notes": "Trujillo Part III scene Oil/00074. NOT in the held-out test split, so the segmenter trained on it. Retained because existing sealed runs reference it; never cite its confidence as accuracy evidence."
+    },
+    {
+      "id": "mock-smoke",
+      "label": "Mock raster (pipeline smoke test)",
+      "scene_meta_path": "contracts/mocks/scene_meta.json",
+      "provenance": "mock",
+      "time_basis": "assigned",
+      "default": false,
+      "notes": "Synthetic raster with no oil. Produces a 1-of-5-real run by design; useful only for exercising the pipeline wiring."
+    }
+  ]
+}

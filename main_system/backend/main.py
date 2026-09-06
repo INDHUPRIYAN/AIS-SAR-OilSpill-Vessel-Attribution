@@ -27,6 +27,7 @@ from backend.api.analytics import router as analytics_router  # noqa: E402
 from backend.api.replay import router as replay_router  # noqa: E402
 from backend.api.investigation_page import router as invpage_router  # noqa: E402
 from backend.api.routes import router  # noqa: E402
+from backend.api.scenes import router as scenes_router  # noqa: E402
 from backend.api.scheduler_routes import router as scheduler_router  # noqa: E402
 from backend.core.config import get_settings  # noqa: E402
 from backend.models.db import SessionLocal, init_db, utcnow  # noqa: E402
@@ -120,6 +121,7 @@ app.include_router(analytics_router, prefix="/api")
 app.include_router(replay_router, prefix="/api")
 app.include_router(invpage_router, prefix="/api")
 app.include_router(scheduler_router, prefix="/api")
+app.include_router(scenes_router, prefix="/api")
 
 
 @app.get("/health")

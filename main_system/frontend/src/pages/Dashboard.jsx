@@ -18,17 +18,26 @@ export default function Dashboard() {
   const { data: runs, reload } = useApi(() => api.listRuns(), [], { interval: 6000 });
   const { data: replay } = useApi(() => api.replayRuns(), []);
   const { data: invs, reload: reloadInvs } = useApi(() => api.listInvestigations(), []);
+  const { data: catalog } = useApi(() => api.localScenes(), []);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("Chennai / Ennore investigation");
+  // Null until the catalog arrives, then the server's declared default -- a
+  // real acquisition. The mock raster used to be hardcoded here, which made
+  // every run started from this page a 1-of-5-real smoke test (audit N-14).
+  const [sceneId, setSceneId] = useState(null);
+
+  const scenes = (catalog?.scenes || []).filter((s) => s.available);
+  const chosen = scenes.find((s) => s.id === (sceneId ?? catalog?.default_id)) || null;
 
   const complete = (runs || []).filter((r) => r.status === "complete");
   const fullyReal = complete.filter((r) => r.stages_real === r.stages_total && !r.stages_mock);
 
   async function createAndRun() {
+    if (!chosen) return;
     setCreating(true);
     try {
       const inv = await api.createInvestigation({
-        name, scene_meta_path: "contracts/mocks/scene_meta.json",
+        name, scene_meta_path: chosen.scene_meta_path,
       });
       const started = await api.startRun(inv.id, { engine: "auto" });
       await reloadInvs();
@@ -56,15 +65,52 @@ export default function Dashboard() {
       </div>
 
       <Card title="New investigation" style={{ marginBottom: 18 }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-          <div style={{ flex: 1 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 220px" }}>
             <div className="stat-label" style={{ marginBottom: 5 }}>Name</div>
             <input value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <button className="btn btn-primary" onClick={createAndRun} disabled={creating || !name}>
+          <div style={{ flex: "1 1 260px" }}>
+            <div className="stat-label" style={{ marginBottom: 5 }}>Scene</div>
+            <select
+              value={chosen?.id || ""}
+              onChange={(e) => setSceneId(e.target.value)}
+              disabled={!scenes.length}
+              style={{ width: "100%" }}
+            >
+              {scenes.map((s) => (
+                <option key={s.id} value={s.id}>{s.label} — {s.source}</option>
+              ))}
+            </select>
+          </div>
+          <button className="btn btn-primary" onClick={createAndRun}
+                  disabled={creating || !name || !chosen}>
             {creating ? <Spinner /> : <Plus size={13} />} Create &amp; run
           </button>
         </div>
+
+        {chosen && (
+          <div style={{ marginTop: 11 }}>
+            <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap" }}>
+              {/* Reuses the shared status vocabulary: a training scene is
+                  evidentially DEGRADED, the mock raster is MOCK. */}
+              <Badge status={chosen.provenance === "mock" ? "MOCK"
+                           : chosen.provenance === "corpus_train" ? "DEGRADED" : "OK"}>
+                {chosen.source}
+              </Badge>
+              <span className="tiny muted">
+                {chosen.scene_id} · {fmt.utc(chosen.acquired_utc)}
+                {chosen.time_basis === "assigned" && " · time assigned, not measured"}
+              </span>
+            </div>
+            {/* Caveats are rendered, never summarised away: a scene the model
+                trained on cannot be read as evidence of accuracy. */}
+            {chosen.caveats?.map((c) => (
+              <div key={c} className="tiny muted" style={{ marginTop: 6, lineHeight: 1.55 }}>⚠ {c}</div>
+            ))}
+          </div>
+        )}
+
         <div className="tiny muted" style={{ marginTop: 9 }}>
           Runs the full pipeline: detect → characterise → hindcast → forecast → attribute.
           Typically ~30 seconds.
