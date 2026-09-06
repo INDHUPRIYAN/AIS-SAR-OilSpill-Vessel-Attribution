@@ -8,7 +8,9 @@ is at least honest.
 """
 from __future__ import annotations
 
+import hashlib
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -23,6 +25,16 @@ REPO_ROOT = settings.data_root.parent
 TRAIN_RUNS = settings.data_root / "runs" / "training"
 BENCHMARK = REPO_ROOT / "analysis_engines" / "benchmark" / "results.json"
 SENSITIVITY = REPO_ROOT / "analysis_engines" / "benchmark" / "sensitivity.json"
+
+# The metrics page must describe the checkpoint that actually ships, so the
+# weights directory the detection service loads from is the only identity
+# source here. `data/runs/training/metrics.json` is a training-time scratch
+# file that still holds the superseded POC epoch, and reading it is what made
+# this endpoint advertise a model nobody deploys (audit M-05).
+WEIGHTS_DIR = REPO_ROOT / "main_system" / "backend" / "services" / "detection" / "weights"
+SEGMENT_ONNX = WEIGHTS_DIR / "segment.onnx"
+SCREEN_ONNX = WEIGHTS_DIR / "screen.onnx"
+EVAL_DIR = REPO_ROOT / "docs" / "eval"
 
 
 def _relative(path: Optional[str]) -> Optional[str]:
@@ -57,6 +69,56 @@ def _read(path: Path) -> Optional[dict]:
         return json.loads(Path(path).read_text(encoding="utf-8"))
     except Exception:
         return None
+
+
+@lru_cache(maxsize=4)
+def _deployed_checkpoint(weights: str) -> Optional[Dict[str, Any]]:
+    """Identity of the ONNX file the detection service actually loads.
+
+    The exported weights carry their own provenance in ONNX metadata_props
+    (``model_version``, ``checkpoint_epoch``, ``config_fingerprint``), so the
+    shipped artefact is its own source of truth -- there is no side-file to
+    drift out of sync with it. Cached because the bytes cannot change while
+    the process is alive, and the sha256 reads ~98 MB.
+    """
+    path = Path(weights)
+    if not path.exists():
+        return None
+    raw = path.read_bytes()
+    info: Dict[str, Any] = {
+        "file": _relative(str(path)),
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "bytes": len(raw),
+        "name": None,
+        "epoch": None,
+        "config_fingerprint": None,
+    }
+    try:
+        import onnx
+
+        props = {kv.key: kv.value
+                 for kv in onnx.load(str(path), load_external_data=False).metadata_props}
+        info["name"] = props.get("model_version")
+        info["config_fingerprint"] = props.get("config_fingerprint")
+        epoch = props.get("checkpoint_epoch")
+        info["epoch"] = int(epoch) if epoch and str(epoch).isdigit() else None
+    except Exception:
+        # A hash with no identity is still more than the stale file gave us.
+        pass
+    return info
+
+
+def _deployed_segmentation_eval(name: Optional[str]) -> Optional[dict]:
+    """The held-out evaluation belonging to the deployed checkpoint.
+
+    Keyed by the checkpoint's own ``model_version`` so a re-export cannot
+    silently keep quoting the previous model's numbers. Returns None rather
+    than falling back to any other file: an absent evaluation is reported as
+    a gap (see the module docstring), never papered over.
+    """
+    if not name:
+        return None
+    return _read(EVAL_DIR / f"{name}_holdout.json")
 
 
 # --------------------------------------------------------------------------
@@ -199,7 +261,9 @@ def vessels_geojson(run_id: str, max_vessels: int = Query(200, le=2000)):
 @router.get("/metrics")
 def metrics():
     """Everything the Analytics page renders, measured only."""
-    seg = _read(TRAIN_RUNS / "metrics.json")
+    seg_ckpt = _deployed_checkpoint(str(SEGMENT_ONNX))
+    screen_ckpt = _deployed_checkpoint(str(SCREEN_ONNX))
+    seg = _deployed_segmentation_eval((seg_ckpt or {}).get("name"))
     screen = _read(TRAIN_RUNS / "screen_metrics.json")
     bench = _read(BENCHMARK)
     sens = _read(SENSITIVITY)
@@ -212,12 +276,30 @@ def metrics():
             # There is no ground-truth drift dataset, so no accuracy figure can
             # honestly be quoted. Saying so is the point.
             "accuracy_reported": False,
+            # The learned residual was trained and then evaluated *negative*
+            # (held-out: better on 0 of 6 trajectories), so it is disabled in
+            # the shipped configuration. The hindcast is physics, and this
+            # block is what stops the UI implying otherwise.
+            "status": "experimental",
+            "applied": False,
+            "evaluated": "negative",
+            "experiment": "drift-residual-mlp-20260906",
             "note": "Drift output is a probability cloud with an uncertainty "
                     "ellipse. No accuracy is claimed: no ground-truth drift "
                     "dataset exists for these scenes.",
+            "ml_note": "A learned drift residual exists but is EXPERIMENTAL and "
+                       "disabled: held-out evaluation improved 0 of 6 trajectories, "
+                       "so the deployed hindcast is physics only (Engine B).",
         },
         "notes": [],
     }
+
+    if seg_ckpt and not seg:
+        out["notes"].append(
+            f"No held-out evaluation found for the deployed checkpoint "
+            f"'{seg_ckpt.get('name')}' at docs/eval/{seg_ckpt.get('name')}_holdout.json. "
+            f"Segmentation metrics are reported as absent rather than substituted "
+            f"from another checkpoint.")
 
     if seg:
         # The split's own index.json is the authority on how the test set was
@@ -234,6 +316,9 @@ def metrics():
         oil = per_kind.get("oil", {})
         out["segmentation"] = {
             "model": "U-Net · ResNet-34 encoder",
+            # The checkpoint that ships, read from the ONNX file the detection
+            # service loads -- not from any training-time scratch file.
+            "checkpoint": seg_ckpt,
             # Relative, so the API never leaks an absolute local path.
             "test_split": _relative(seg.get("test_split")),
             "dataset": split_meta.get("dataset"),
@@ -247,12 +332,19 @@ def metrics():
             "test_tiles": seg.get("test_tiles"),
             "db_range": seg.get("db_range"),
             "threshold": 0.5,
+            # Both scopes are published side by side on purpose. The oil-tile
+            # figures cover only the 512 tiles that contain oil; the overall
+            # figures include the 5,248 background tiles where the model can
+            # fire falsely. Quoting the oil-tile IoU alone reads ~29% better
+            # than the model is, so the UI must show the pair.
             "oil_tile_iou": oil.get("iou"),
             "oil_tile_precision": oil.get("precision"),
             "oil_tile_recall": oil.get("recall"),
+            "oil_tile_f1": oil.get("f1"),
             "overall_iou": overall.get("iou"),
             "overall_precision": overall.get("precision"),
             "overall_recall": overall.get("recall"),
+            "overall_f1": overall.get("f1"),
             "no_oil_tiles": half.get("no_oil_tiles"),
             "no_oil_firing": half.get("no_oil_tiles_with_false_detection"),
             "no_oil_firing_rate": half.get("scene_level_false_positive_rate"),
@@ -283,6 +375,7 @@ def metrics():
     if screen:
         out["screening"] = {
             "model": "YOLO11n · 1 class (oil)",
+            "checkpoint": screen_ckpt,
             "map50": screen.get("map50"),
             "map50_95": screen.get("map50_95"),
             "precision": screen.get("precision"),
