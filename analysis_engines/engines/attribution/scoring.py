@@ -279,14 +279,17 @@ def score_anomaly(track, config: ScoringConfig, indices) -> tuple[float, dict]:
     outside = speeds[mask]
 
     slowdown = 0.0
-    if np.isfinite(inside).any() and np.isfinite(outside).any():
-        cruise = float(np.nanmedian(outside))
+    if np.isfinite(inside).any():
+        # The slowest speed near the origin is evidence in its own right (the frozen
+        # contract's min_sog_kn), so it is recorded even without a cruise baseline.
         slowest = float(np.nanmin(inside))
-        if cruise > 0.5:
-            drop = max(0.0, (cruise - slowest) / cruise)
-            slowdown = float(np.clip(drop / config.slowdown_saturation, 0.0, 1.0))
-            evidence["cruise_kn"] = round(cruise, 1)
-            evidence["slowest_kn"] = round(slowest, 1)
+        evidence["slowest_kn"] = round(slowest, 1)
+        if np.isfinite(outside).any():
+            cruise = float(np.nanmedian(outside))
+            if cruise > 0.5:
+                drop = max(0.0, (cruise - slowest) / cruise)
+                slowdown = float(np.clip(drop / config.slowdown_saturation, 0.0, 1.0))
+                evidence["cruise_kn"] = round(cruise, 1)
 
     courses = [track.course_at(int(i)) for i in indices]
     courses = [c for c in courses if c is not None]

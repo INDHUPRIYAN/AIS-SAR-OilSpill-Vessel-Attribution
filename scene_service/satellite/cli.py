@@ -81,6 +81,20 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         help="Geographic bounding box for search: 'min_lon,min_lat,max_lon,max_lat' (e.g., '2.5,51.5,3.2,52.1')",
     )
+    group.add_argument(
+        "--calibrate",
+        type=str,
+        metavar="SAFE_DIR",
+        help="Radiometrically calibrate an unpacked Sentinel-1 .SAFE product "
+        "(DN -> Sigma0 dB, thermal noise removed, GCP-warped to EPSG:4326, land-masked)",
+    )
+    group.add_argument(
+        "--check-domain-gap",
+        type=str,
+        metavar="SIGMA0_TIF",
+        help="Run the domain-gap gate: compare a calibrated scene's sea-pixel "
+        "p1-p99 dB against the normalisation.yaml clip range (PASS / DOMAIN GAP)",
+    )
 
     parser.add_argument(
         "--start-time",
@@ -117,6 +131,41 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run in offline mock mode without remote network requests or credentials",
     )
+    parser.add_argument(
+        "--out",
+        type=str,
+        default=None,
+        help="Output path for --calibrate (defaults to <SAFE_DIR>/scene_sigma0_db.tif)",
+    )
+    parser.add_argument(
+        "--pol",
+        type=str,
+        default="vv",
+        choices=["vv", "vh", "hh", "hv"],
+        help="Polarisation to calibrate",
+    )
+    parser.add_argument(
+        "--no-land-mask",
+        action="store_true",
+        help="Skip the land mask step during calibration (debugging only)",
+    )
+    parser.add_argument(
+        "--no-clip",
+        action="store_true",
+        help="Skip the db_range clip (audit/diagnostics only — NEVER for production output)",
+    )
+    parser.add_argument(
+        "--calibrate-after-fetch",
+        action="store_true",
+        help="After --scene-id retrieval, calibrate the delivered product if its "
+        "annotation XMLs are present alongside (adds minutes of runtime)",
+    )
+    parser.add_argument(
+        "--status-out",
+        type=str,
+        default=None,
+        help="With --check-status: also write provider_status.json (frozen contract 8) to this path",
+    )
 
     return parser
 
@@ -130,6 +179,37 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    # 0a. Radiometric calibration of an unpacked SAFE product
+    if args.calibrate:
+        from .calibrate import calibrate_safe
+
+        try:
+            out_path = args.out or os.path.join(args.calibrate, "scene_sigma0_db.tif")
+            stats = calibrate_safe(
+                safe_dir=args.calibrate,
+                out_path=out_path,
+                polarisation=args.pol,
+                land_mask=not args.no_land_mask,
+                clip=not args.no_clip,
+            )
+            print(json.dumps({"success": True, **stats}, indent=2))
+            return 0
+        except Exception as err:
+            print(json.dumps({"success": False, "error": f"Calibration failed: {err}"}, indent=2))
+            return 1
+
+    # 0b. Domain-gap gate on a calibrated Sigma0 dB scene
+    if args.check_domain_gap:
+        from .calibrate import check_domain_gap
+
+        try:
+            result = check_domain_gap(args.check_domain_gap)
+            print(json.dumps({"success": True, **result}, indent=2))
+            return 0 if result["verdict"] == "PASS" else 1
+        except Exception as err:
+            print(json.dumps({"success": False, "error": f"Domain-gap check failed: {err}"}, indent=2))
+            return 1
+
     # 1. Health Status Check
     if args.check_status:
         try:
@@ -141,6 +221,11 @@ def main(argv: Optional[List[str]] = None) -> int:
                     prov: health.model_dump() for prov, health in status_map.items()
                 },
             }
+            if args.status_out:
+                from .status import write_provider_status_file
+
+                write_provider_status_file(args.status_out, status_map)
+                output_dict["status_file"] = args.status_out
             print(json.dumps(output_dict, indent=2))
             return 0
         except Exception as err:
@@ -179,6 +264,28 @@ def main(argv: Optional[List[str]] = None) -> int:
         try:
             response = chain.retrieve_scene(args.scene_id)
             resp_dict = response.model_dump()
+            # Optional post-fetch calibration: only possible when the delivered
+            # product is an unpacked .SAFE (annotation XMLs beside the raster).
+            # Behind a flag because it adds minutes of runtime to a fetch.
+            if args.calibrate_after_fetch and response.success and response.geotiff_path:
+                from .calibrate import calibrate_safe, find_safe_files
+
+                safe_dir = os.path.dirname(os.path.abspath(response.geotiff_path))
+                try:
+                    find_safe_files(safe_dir, args.pol)  # raises if not calibratable
+                    out_path = args.out or os.path.join(safe_dir, "scene_sigma0_db.tif")
+                    resp_dict["calibration"] = calibrate_safe(
+                        safe_dir=safe_dir,
+                        out_path=out_path,
+                        polarisation=args.pol,
+                        land_mask=not args.no_land_mask,
+                        provider_used=response.source_provider or "unknown",
+                    )
+                except FileNotFoundError as cal_err:
+                    resp_dict["calibration"] = {
+                        "skipped": True,
+                        "reason": f"Product is not an unpacked SAFE with annotation XMLs: {cal_err}",
+                    }
             print(json.dumps(resp_dict, indent=2, default=str))
             return 0 if response.success else 1
         except Exception as err:

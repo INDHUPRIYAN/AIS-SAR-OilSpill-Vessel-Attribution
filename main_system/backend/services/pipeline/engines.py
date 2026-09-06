@@ -101,7 +101,7 @@ def run_component(cwd: Path, args: List[str], timeout: int = DEFAULT_TIMEOUT,
 
     if produced:
         return StageResult(
-            True, Path(expect), engine_used=_engine_from_output(combined),
+            True, Path(expect), engine_used=_engine_from_result(combined, Path(expect)),
             warnings=_warnings_from_output(combined), seconds=elapsed,
             detail=f"exit {proc.returncode}", stdout=combined[-4000:])
 
@@ -136,18 +136,66 @@ def _structured_error(text: str) -> Optional[str]:
     return None
 
 
-def _engine_from_output(text: str) -> str:
-    """Which backend a component reports having used, e.g. openoil vs euler."""
-    for key in ("openoil", "oceandrift", "euler", "threshold_fallback", "ml"):
-        if key in text.lower():
-            return key
-    return "primary"
+def _engine_from_result(text: str, produced: Optional[Path]) -> str:
+    """Which backend actually ran, from STRUCTURED fields only.
+
+    Never inferred from log text: Engine B's honest failure line
+    "drift engine 'openoil' unavailable: OpenDrift not installed" contains the
+    word openoil, and a substring scan badged 58 runs as OpenOil that ran the
+    Euler integrator. Two structured sources, in order of specificity:
+
+      1. the artefact itself -- Engine B stamps the backend name ("euler",
+         "openoil", "oceandrift") into feature properties / metadata;
+      2. the engine's status object on stdout -- {"engine_used": "primary"|
+         "fallback"} -- coarse, but still a declaration rather than a guess.
+    """
+    backend = _engine_from_artefact(produced)
+    if backend:
+        return backend
+    declared = None
+    for obj in _json_objects(text):
+        if isinstance(obj, dict) and isinstance(obj.get("engine_used"), str):
+            declared = obj["engine_used"]
+    return declared or "unknown"
+
+
+def _engine_from_artefact(path: Optional[Path]) -> Optional[str]:
+    if path is None or not path.exists() or path.suffix.lower() not in (".json", ".geojson"):
+        return None
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(doc, dict):
+        return None
+    meta = doc.get("metadata") or {}
+    if isinstance(meta, dict) and isinstance(meta.get("engine_used"), str):
+        return meta["engine_used"]
+    for feat in doc.get("features") or []:
+        props = (feat or {}).get("properties") or {}
+        if isinstance(props.get("engine_used"), str):
+            return props["engine_used"]
+    return None
+
+
+def _json_objects(text: str):
+    """Yield every top-level JSON object embedded in a text blob."""
+    start = text.find("{")
+    while start != -1:
+        try:
+            obj, consumed = json.JSONDecoder().raw_decode(text[start:])
+            yield obj
+            start = text.find("{", start + consumed)
+        except json.JSONDecodeError:
+            start = text.find("{", start + 1)
 
 
 def _warnings_from_output(text: str) -> List[str]:
     out = []
     for line in text.splitlines():
         low = line.lower()
+        if line.strip()[:1] in ('"', "{", "}", "[", "]"):
+            continue  # JSON status fragment, not a human-readable warning
         if any(w in low for w in ("warning:", "warn ", "falling back", "fallback",
                                   "degraded", "using euler")):
             cleaned = line.strip()

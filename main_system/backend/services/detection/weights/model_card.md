@@ -2,8 +2,9 @@
 
 **Artefact:** `segment.onnx`
 **Architecture:** U-Net, `resnet34` encoder (ImageNet init), 1 input channel, 1 output class
-**Trained:** epoch 29 selected · checkpoint saved 2026-08-24T16:37:20+00:00
-**Exported:** 2026-08-24T16:54:17+00:00
+**Version:** `unet-r34-fullcorpus-e48` · **Training data:** trujillo part 1+2+3carve: 2930 scenes, 93646 tiles (15115 oil)
+**Trained:** epoch 48 selected · checkpoint saved 2026-09-01T00:40:43+00:00
+**Exported:** 2026-09-01T01:10:08+00:00
 
 ## Input contract (frozen)
 
@@ -24,14 +25,14 @@ At inference, full scenes are tiled with 32px overlap and stitched.
 
 | Metric | Value |
 |---|---|
-| Binary IoU | **0.3128** |
-| Precision | 0.3227 |
-| Recall | 0.9111 |
-| F1 | 0.4766 |
+| Binary IoU | **0.4445** |
+| Precision | 0.6387 |
+| Recall | 0.5938 |
+| F1 | 0.6154 |
 
 Pixel accuracy is **not** reported: sea-class dominance makes it meaningless.
 
-On no-oil test tiles, 755/5248 produced a false detection (14.4%).
+On no-oil test tiles, 280/5248 produced a false detection (5.3%).
 
 ## Fallback
 
@@ -45,11 +46,11 @@ ONNX vs PyTorch via `CUDAExecutionProvider` on random inputs — **PASS**.
 
 | Quantity | Value |
 |---|---|
-| Max probability difference | `1.28e-04` |
+| Max probability difference | `3.18e-10` |
 | Mask disagreement, all pixels | `0.0000%` |
 | Mask disagreement, confident pixels (**gated**) | `0.0000%` |
 
-The gate is *confident* disagreement: pixels where PyTorch was at least 0.05 clear of the 0.5 threshold and ONNX disagreed anyway. Pixels sitting on the threshold are coin-flips that float noise legitimately tips either way. The CUDA provider uses TF32, so raw logits drift by up to `6.69e-03` with no effect on the mask that ships.
+The gate is *confident* disagreement: pixels where PyTorch was at least 0.05 clear of the 0.5 threshold and ONNX disagreed anyway. Pixels sitting on the threshold are coin-flips that float noise legitimately tips either way. The CUDA provider uses TF32, so raw logits drift by up to `9.69e-04` with no effect on the mask that ships.
 
 ## Known limitations
 

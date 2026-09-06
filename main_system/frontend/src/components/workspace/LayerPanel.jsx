@@ -13,6 +13,10 @@ const ROWS = [
   { key: "hindcast", label: "Hindcast cloud", swatch: css(WS.hindcast), layer: "origin_cloud", stage: "drift_hindcast" },
   { key: "origin", label: "Probable origin zone", swatch: css(WS.origin), layer: "origin_cloud", stage: "drift_hindcast" },
   { key: "vessels", label: "AIS tracks", swatch: css(WS.vessel), layer: "vessels", stage: "attribution" },
+  { key: "lookalikes", label: "Look-alikes (not oil)",
+    swatch: `repeating-linear-gradient(45deg, ${css(WS.lookalike, 0.75)} 0 2px, transparent 2px 4px)`,
+    layer: "detect", stage: "detect",
+    hint: "look-alike — reported, not counted as oil" },
 ];
 
 export default function LayerPanel({ show, onToggle, present, stages }) {
@@ -26,7 +30,7 @@ export default function LayerPanel({ show, onToggle, present, stages }) {
           <div key={r.key} className="ws-layer-row"
             data-testid={`layer-${r.key}`}
             data-disabled={String(!available)}
-            title={available ? undefined : "not yet produced"}>
+            title={available ? r.hint : "not yet produced"}>
             <label className="switch" style={{ flex: 1, opacity: available ? 1 : 0.42 }}
               onClick={() => available && onToggle(r.key, !show[r.key])}>
               <span className={`switch-track ${show[r.key] && available ? "on" : ""}`}>
@@ -35,10 +39,10 @@ export default function LayerPanel({ show, onToggle, present, stages }) {
               <span className="legend-swatch" style={{ background: r.swatch }} />
               <span className="switch-label">{r.label}</span>
             </label>
-            {st?.source && (
-              <span className={`badge badge-${sourceBadge(st.source).tone}`}
+            {(st?.data_source || st?.source) && (
+              <span className={`badge badge-${sourceBadge(st.data_source || st.source).tone}`}
                 data-testid={`source-${r.key}`}>
-                {sourceBadge(st.source).label}
+                {sourceBadge(st.data_source || st.source).label}
               </span>
             )}
           </div>
@@ -54,7 +58,9 @@ export default function LayerPanel({ show, onToggle, present, stages }) {
           ["AIS track", css(WS.vessel)],
           ["Candidate", css(WS.candidate)],
           ["Top suspect", css(WS.suspect)],
-          ["Excluded vessel", css(WS.filtered, 0.6)]].map(([label, c]) => (
+          ["Excluded vessel", css(WS.filtered, 0.6)],
+          ["Look-alike (reported, not oil)",
+           `repeating-linear-gradient(45deg, ${css(WS.lookalike, 0.75)} 0 2px, transparent 2px 4px)`]].map(([label, c]) => (
           <div key={label} className="legend-row">
             <span className="legend-swatch" style={{ background: c }} />{label}
           </div>

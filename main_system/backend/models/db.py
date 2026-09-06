@@ -75,6 +75,106 @@ class Run(Base):
     investigation = relationship("Investigation", back_populates="runs")
 
 
+class Decision(Base):
+    """STAGE 9 -- what a human concluded about a run, and about which vessel.
+
+    Design doc v2 §4 Stage 9 and §14:
+
+        "Analyst accepts / rejects / annotates. Stored with the run.
+         -> audit trail, and your future feedback corpus."
+
+        "No auto-accusation. Ranked candidates + evidence; a human decides."
+
+    This table is the second half of Standing Rule 8. Without it the system
+    ranks candidates and then simply stops -- the decision that actually matters
+    happens in someone's head and leaves no record, so an investigation cannot
+    be reconstructed and there is no feedback corpus to learn from later.
+
+    `verdict` deliberately does not include "guilty". §2: the interface says
+    *suspect*, *candidate*, *evidence*. What an analyst records here is whether
+    the SYSTEM'S RANKING was sound and worth pursuing, not whether a named
+    operator polluted:
+
+        accepted     the ranking is sound; this candidate is worth pursuing
+        rejected     the ranking is wrong; this candidate is not the source
+        inconclusive the evidence does not support a call either way
+        annotated    a note, no verdict
+
+    `mmsi` is null for a verdict on the run as a whole (e.g. "no slick here at
+    all"), and set when the analyst is judging one specific candidate.
+
+    Rows are append-only by convention: a changed mind is a new row, so the
+    sequence of decisions is itself part of the audit trail.
+    """
+
+    __tablename__ = "decisions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(String(64), ForeignKey("runs.id"), index=True, nullable=False)
+    investigation_id = Column(String(64), index=True)
+
+    # Null = a verdict on the run itself rather than on one candidate vessel.
+    mmsi = Column(Integer, index=True)
+    suspect_rank = Column(Integer)
+    # The score the analyst was looking at when they decided. Recorded rather
+    # than looked up later, because a re-run with different weights would
+    # otherwise silently rewrite the context of a past decision.
+    total_score_at_decision = Column(Float)
+
+    verdict = Column(String(16), nullable=False)   # accepted|rejected|inconclusive|annotated
+    note = Column(Text)
+    actor = Column(String(64), default="analyst")
+    decided_utc = Column(DateTime(timezone=True), default=utcnow, index=True)
+
+    # What the analyst was actually shown. §14 requires full parameter capture,
+    # and a decision is only reproducible if you know which artefacts produced
+    # the screen it was made from.
+    artefact_digest = Column(String(64))
+    weights_used = Column(Text)                    # JSON, as displayed in the UI
+
+
+VERDICTS = ("accepted", "rejected", "inconclusive", "annotated")
+
+
+class AoiWatch(Base):
+    """Persisted watch state for one registered AOI -- STAGE 0 (design v2 §4).
+
+    The scheduler is the one component that must survive a restart without
+    doing its work twice. Without this table, every process start would look
+    like a first poll and re-open an investigation for every scene inside the
+    lookback window -- a duplicate investigation per restart, each one a full
+    pipeline run.
+
+    `last_scene_time_utc` is the high-water mark: the acquisition time of the
+    newest scene already handled. A scene counts as new only if it was acquired
+    strictly after it. Acquisition time is used rather than "when we saw it"
+    because providers publish out of order and a slow ingest must not cause a
+    scene to be skipped.
+
+    The AOI definitions themselves live in config/aois.yaml (§21) and are NOT
+    duplicated here -- only the mutable state. `aoi_id` is the join key, which
+    is why renaming an id in the YAML resets that AOI's watch.
+    """
+
+    __tablename__ = "aoi_watch"
+
+    aoi_id = Column(String(64), primary_key=True)
+    last_polled_utc = Column(DateTime(timezone=True))
+    last_scene_id = Column(String(200))
+    last_scene_time_utc = Column(DateTime(timezone=True))
+
+    # WORKING | DEGRADED | FAILED | UNKNOWN -- mirrors the provider vocabulary
+    # so the monitoring page can render AOIs and providers with one component.
+    status = Column(String(16), default="UNKNOWN")
+    last_error_class = Column(String(32), default="NONE")
+    last_error = Column(Text)
+    consecutive_failures = Column(Integer, default=0)
+
+    polls = Column(Integer, default=0)
+    scenes_seen = Column(Integer, default=0)
+    investigations_opened = Column(Integer, default=0)
+
+
 class ApiProvider(Base):
     """Current health of one external dependency."""
 

@@ -27,6 +27,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+
+from .ml_residual import apply_correction
 from shapely import contains_xy
 from shapely.geometry.base import BaseGeometry
 
@@ -50,6 +52,9 @@ class DriftRun:
     lats: np.ndarray
     direction: int
     engine: str = "euler"
+    # Set when the learned residual correction ran, so the output file can say so.
+    ml_correction_mean_m: float = 0.0
+    ml_model_version: str | None = None
 
     @property
     def n_particles(self) -> int:
@@ -100,6 +105,7 @@ def run_euler(
     direction: int = BACKWARD,
     diffusion_m2_s: float = 5.0,
     rng: np.random.Generator | None = None,
+    residual_model=None,
 ) -> DriftRun:
     """Integrate particles for ``hours``, returning every intermediate position.
 
@@ -125,6 +131,7 @@ def run_euler(
     # One-sigma random-walk displacement per step, per component.
     sigma_m = float(np.sqrt(2.0 * diffusion_m2_s * dt_seconds)) if diffusion_m2_s else 0.0
     t_s = start_time_s
+    correction_m_total = 0.0
 
     for step in range(1, steps + 1):
         u, v = metocean.drift_velocity(t_s, lons, lats)
@@ -140,7 +147,22 @@ def run_euler(
         lats = lats + dy_m / np.array([m_per_deg_lat(la) for la in lats])
         lons = lons + dx_m / np.array([m_per_deg_lon(la) for la in lats])
 
+        # --- learned residual correction (the ML component of the hindcast) -------
+        # Corrects this integrator's own truncation error at the operational timestep.
+        # `residual_model` is None unless a trained artefact was loaded, so the pure
+        # physics path is completely unchanged when the model is absent.
+        if residual_model is not None:
+            dlon, dlat, mean_m = apply_correction(
+                residual_model, metocean, t_s, lons, lats, dt_seconds, direction)
+            lons = lons + dlon
+            lats = lats + dlat
+            correction_m_total += mean_m
+
         t_s = t_s + dt_seconds * direction
         out_lons[step], out_lats[step], out_times[step] = lons, lats, t_s
 
-    return DriftRun(out_times, out_lons, out_lats, direction)
+    return DriftRun(
+        out_times, out_lons, out_lats, direction,
+        ml_correction_mean_m=(correction_m_total / steps) if steps else 0.0,
+        ml_model_version=(residual_model.version if residual_model is not None else None),
+    )

@@ -64,11 +64,40 @@ def run(inputs) -> tuple[dict, dict]:
 
 
 # ------------------------------------------------------------------ contract -------
-def test_one_polygon_per_contract_horizon(run):
+def test_one_polygon_per_horizon_and_confidence_level(run):
+    """Each contract horizon appears at both design levels: 50% core, 90% containment."""
     _, document = run
-    horizons = [f["properties"]["horizon_h"] for f in document["features"]]
-    assert horizons == [6.0, 12.0, 24.0]
+    pairs = [
+        (f["properties"]["horizon_h"], f["properties"]["level"])
+        for f in document["features"]
+    ]
+    assert pairs == [
+        (h, level) for h in (6.0, 12.0, 24.0) for level in (0.5, 0.9)
+    ]
     assert all(f["geometry"]["type"] == "Polygon" for f in document["features"])
+
+
+def test_features_carry_the_frozen_contract_confidence_field(run):
+    """`confidence_level` (frozen name) mirrors `level` (this module's name)."""
+    _, document = run
+    for feature in document["features"]:
+        props = feature["properties"]
+        assert props["confidence_level"] == props["level"]
+        assert 0.0 < props["confidence_level"] < 1.0
+
+
+def test_fifty_percent_contour_is_tighter_than_ninety(run):
+    """The 50% core must sit inside the 90% containment budget at every horizon."""
+    _, document = run
+    by_horizon: dict[float, dict[float, dict]] = {}
+    for feature in document["features"]:
+        props = feature["properties"]
+        by_horizon.setdefault(props["horizon_h"], {})[props["level"]] = props
+    for horizon, levels in by_horizon.items():
+        core, wide = levels[0.5], levels[0.9]
+        assert core["ellipse_area_km2"] < wide["ellipse_area_km2"], horizon
+        assert core["particles_used"] <= wide["particles_used"], horizon
+        assert core["area_km2"] <= wide["area_km2"], horizon
 
 
 def test_output_validates_against_the_contract(run):
@@ -76,10 +105,29 @@ def test_output_validates_against_the_contract(run):
     validate_forecast(document)
 
 
-def test_forecast_file_stays_small(run, inputs):
-    """Three polygons, not thousands of particles - this one is cheap for the UI."""
+def test_schema_rejects_duplicate_horizon_level_pairs(run):
     _, document = run
-    assert len(document["features"]) == 3
+    broken = json.loads(json.dumps(document))
+    broken["features"].append(json.loads(json.dumps(broken["features"][-1])))
+    with pytest.raises(Exception):
+        validate_forecast(broken)
+
+
+def test_forecast_file_stays_small(run, inputs):
+    """Six polygons (3 horizons x 2 levels), not thousands of particles."""
+    _, document = run
+    assert len(document["features"]) == 6
+
+
+def test_metadata_records_forcing_provenance(run, inputs):
+    """Provider and fallback level live in the file, not just in transient warnings."""
+    _, document = run
+    forcing = document["metadata"]["forcing"]
+    assert forcing["currents"]["provider"] == Path(inputs["met"]["currents_strain"]).name
+    assert forcing["currents"]["fallback"] is None
+    assert forcing["wind"]["provider"] == Path(inputs["met"]["wind_uniform"]).name
+    assert forcing["windage"] == pytest.approx(0.03)
+    assert forcing["engine"] == "euler"
 
 
 def test_horizon_times_are_ahead_of_detection(run, inputs):
@@ -94,11 +142,16 @@ def test_horizon_times_are_ahead_of_detection(run, inputs):
 def test_extent_and_uncertainty_both_grow_with_the_horizon(run):
     """A forecast that does not widen with time is not showing uncertainty honestly."""
     _, document = run
-    areas = [f["properties"]["area_km2"] for f in document["features"]]
-    growth = [f["properties"]["uncertainty_growth"] for f in document["features"]]
-    assert areas == sorted(areas), f"extent must not shrink: {areas}"
-    assert growth == sorted(growth), f"uncertainty must not shrink: {growth}"
-    assert growth[-1] > growth[0] > 0
+    for level in (0.5, 0.9):
+        features = [
+            f["properties"] for f in document["features"]
+            if f["properties"]["level"] == level
+        ]
+        areas = [f["area_km2"] for f in features]
+        growth = [f["uncertainty_growth"] for f in features]
+        assert areas == sorted(areas), f"extent must not shrink at {level}: {areas}"
+        assert growth == sorted(growth), f"uncertainty must not shrink at {level}: {growth}"
+        assert growth[-1] > growth[0] > 0
 
 
 def test_polygons_contain_the_particles_they_were_built_from(run):
@@ -206,7 +259,8 @@ def test_build_forecast_skips_horizons_beyond_the_run():
     run = DriftRun(times, lons, lats, direction=1)
 
     results, warnings = build_forecast(run, horizons=(6.0, 24.0))
-    assert [r.horizon_h for r in results] == [6.0]
+    assert sorted({r.horizon_h for r in results}) == [6.0]
+    assert [r.level for r in results] == [0.5, 0.9]
     assert any("outside the run" in w for w in warnings)
 
 
@@ -222,7 +276,7 @@ def test_hours_flag_filters_the_horizons(inputs, tmp_path):
     assert status["ok"]
     assert any("+24 h" in w for w in status["warnings"])
     horizons = [f["properties"]["horizon_h"] for f in json.loads(out.read_text())["features"]]
-    assert horizons == [6.0, 12.0]
+    assert sorted(set(horizons)) == [6.0, 12.0]
 
 
 def test_run_shorter_than_every_horizon_returns_MISSING_INPUT(inputs, tmp_path):

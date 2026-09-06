@@ -111,29 +111,44 @@ def iter_tiles(arr: np.ndarray, tile: int, stride: int):
             yield r, c, arr[..., r:r + tile, c:c + tile]
 
 
-def prepare_part(part: int, split: str, discard: bool, dry_run: bool,
+def prepare_part(parts: "int | list[int]", split: str, discard: bool, dry_run: bool,
                  seed: int = 1337) -> dict:
+    """Tile one or more parts into ONE cache in a single run.
+
+    The writer truncates its output, so tiling parts in separate runs would
+    leave the cache holding only the LAST part -- with --discard, after the
+    earlier parts' rasters were already deleted. Combining parts here is what
+    makes 'trainval = Parts I+II' expressible at all.
+    """
+    if isinstance(parts, int):
+        parts = [parts]
     cfg = load_config()
     t, stride = cfg.tiling.tile_size, cfg.tiling.stride
-    src_root = DATA_ROOT / "raw" / "trujillo" / f"part{part}"
+    label = "+".join(str(p) for p in parts)
     out_dir = TILES_ROOT / split
 
-    print(f"\n=== Preparing Trujillo Part {part} as '{split}' ===")
-    print(f"  source: {src_root}")
+    print(f"\n=== Preparing Trujillo Part {label} as '{split}' ===")
     print(f"  tiles : {t}px stride {stride}   dB clip "
           f"[{cfg.sar.db_min}, {cfg.sar.db_max}]   fingerprint {cfg.fingerprint}")
-    if not src_root.exists():
-        print(f"  NOT DOWNLOADED. Run: python -m ml.download --dataset trujillo "
-              f"--part {part}")
-        return {"part": part, "ok": False}
 
-    files = sorted(p for p in src_root.rglob("*") if p.suffix in RASTER_EXT)
-    pairs, unpaired = pair_files(files)
-    pairs = [(i, m) for i, m in pairs if m is not None]
-    print(f"  {len(pairs)} image/mask pair(s), {len(unpaired)} unpaired image(s)")
+    pairs, src_roots = [], []
+    for part in parts:
+        src_root = DATA_ROOT / "raw" / "trujillo" / f"part{part}"
+        print(f"  source: {src_root}")
+        if not src_root.exists():
+            print(f"  NOT DOWNLOADED. Run: python -m ml.download --dataset trujillo "
+                  f"--part {part}")
+            return {"part": label, "ok": False}
+        files = sorted(p for p in src_root.rglob("*") if p.suffix in RASTER_EXT)
+        part_pairs, unpaired = pair_files(files)
+        part_pairs = [(i, m) for i, m in part_pairs if m is not None]
+        print(f"    {len(part_pairs)} image/mask pair(s), "
+              f"{len(unpaired)} unpaired image(s)")
+        pairs.extend(part_pairs)
+        src_roots.append(src_root)
     if not pairs:
         print("  nothing to tile (unpacked yet? run ml.audit to inspect)")
-        return {"part": part, "ok": False}
+        return {"part": label, "ok": False}
 
     if split != "test":
         rule = (f">={cfg.tiling.min_oil_fraction * 100:.1f}% oil "
@@ -143,15 +158,16 @@ def prepare_part(part: int, split: str, discard: bool, dry_run: bool,
     print(f"  filtering: {rule}")
     if dry_run:
         print("  --dry-run: stopping before writing")
-        return {"part": part, "ok": True, "pairs": len(pairs), "dry_run": True}
+        return {"part": label, "ok": True, "pairs": len(pairs), "dry_run": True}
 
-    result = _tile_pairs(pairs, split, cfg, seed, part, False, src_root)
+    result = _tile_pairs(pairs, split, cfg, seed, label, False, src_roots[0])
 
     if discard:
-        print(f"  --discard: removing source {src_root}")
-        shutil.rmtree(src_root)
-        print("  source deleted (tiles retained)")
-    return {"part": part, "ok": True, **result}
+        for src_root in src_roots:
+            print(f"  --discard: removing source {src_root}")
+            shutil.rmtree(src_root)
+        print("  source(s) deleted (tiles retained)")
+    return {"part": label, "ok": True, **result}
 
 
 def _tile_pairs(pairs, split: str, cfg, seed: int, part, poc_holdout: bool,
@@ -184,7 +200,10 @@ def _tile_pairs(pairs, split: str, cfg, seed: int, part, poc_holdout: bool,
         # Oil / Lookalike / No oil. A bare stem would make `00000` from three
         # different scenes look like one scene, and the by-scene train/val
         # split would then leak near-duplicate tiles across the boundary.
-        scene = f"{img_p.parent.name}/{img_p.stem}"
+        # Part-qualified too: part1 and part3 both ship an Oil/ tree with the
+        # same stems, so a multi-part cache needs the part to keep them apart.
+        part_tag = next((s for s in img_p.parts if s.lower().startswith("part")), "")
+        scene = f"{part_tag}/{img_p.parent.name}/{img_p.stem}".lstrip("/")
         img_u8 = db_to_uint8(band, cfg)
 
         oil_tiles, neg_tiles = [], []
@@ -296,7 +315,10 @@ def prepare_poc_holdout(part: int, test_fraction: float, seed: int, dry_run: boo
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--part", type=int, required=True, choices=[1, 2, 3])
+    ap.add_argument("--part", type=int, required=True, choices=[1, 2, 3],
+                    action="append",
+                    help="Repeatable: --part 1 --part 2 tiles both into ONE "
+                         "cache. Separate runs would truncate each other.")
     ap.add_argument("--split", choices=["trainval", "test"],
                     help="Default: test for part 3, trainval for parts 1-2.")
     ap.add_argument("--discard", action="store_true",
@@ -309,19 +331,28 @@ def main(argv=None) -> int:
     ap.add_argument("--seed", type=int, default=1337)
     args = ap.parse_args(argv)
 
+    parts = sorted(set(args.part))
+
     if args.poc_holdout is not None:
         if not 0.0 < args.poc_holdout < 1.0:
             print("--poc-holdout must be between 0 and 1")
             return 2
-        prepare_poc_holdout(args.part, args.poc_holdout, args.seed, args.dry_run)
+        if len(parts) != 1:
+            print("--poc-holdout takes exactly one --part")
+            return 2
+        prepare_poc_holdout(parts[0], args.poc_holdout, args.seed, args.dry_run)
         return 0
 
-    split = args.split or ("test" if args.part == 3 else "trainval")
-    if args.discard and args.part == 3:
+    if 3 in parts and len(parts) > 1:
+        print("Refusing to mix Part III with train parts: it is the untouched "
+              "test harness and must never share a cache with training data.")
+        return 2
+    split = args.split or ("test" if parts == [3] else "trainval")
+    if args.discard and 3 in parts:
         print("Refusing --discard on Part III: it is the untouched test harness.")
         return 2
 
-    prepare_part(args.part, split, args.discard, args.dry_run, args.seed)
+    prepare_part(parts, split, args.discard, args.dry_run, args.seed)
     return 0
 
 

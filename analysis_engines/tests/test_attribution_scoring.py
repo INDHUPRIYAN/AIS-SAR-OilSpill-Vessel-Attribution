@@ -233,6 +233,78 @@ def test_filtered_explanation_falls_back_cleanly():
     assert explain_filtered("outside time window", {}) == "Filtered out: outside time window."
 
 
+# ---------------------------------------------------------------- evidence ---------
+EVIDENCE_FIELDS = {
+    "closest_approach_km", "time_in_origin_window_min", "ais_gap_minutes",
+    "course_delta_deg", "min_sog_kn", "track_points_in_cloud",
+}
+
+
+def test_every_ranked_suspect_carries_an_evidence_block(run):
+    """The frozen contract's Evidence fields ride along with every scored vessel."""
+    _, document = run
+    for vessel in _ranked(document):
+        assert set(vessel["evidence"]) == EVIDENCE_FIELDS, vessel["mmsi"]
+
+
+def test_evidence_values_are_bounded_and_typed(run):
+    _, document = run
+    for vessel in _ranked(document):
+        e = vessel["evidence"]
+        if e["closest_approach_km"] is not None:
+            assert e["closest_approach_km"] >= 0.0
+        if e["time_in_origin_window_min"] is not None:
+            assert e["time_in_origin_window_min"] >= 0.0
+        if e["ais_gap_minutes"] is not None:
+            assert e["ais_gap_minutes"] >= 0.0
+        if e["course_delta_deg"] is not None:
+            assert 0.0 <= e["course_delta_deg"] <= 180.0
+        if e["min_sog_kn"] is not None:
+            assert e["min_sog_kn"] >= 0.0
+        if e["track_points_in_cloud"] is not None:
+            assert isinstance(e["track_points_in_cloud"], int)
+            assert e["track_points_in_cloud"] >= 0
+
+
+def test_culprit_evidence_matches_the_numbers_its_reason_quotes(run):
+    """The evidence block and the prose sentence come from the same raw numbers."""
+    import re
+
+    _, document = run
+    culprit = next(v for v in _ranked(document) if v["mmsi"] == CULPRIT_MMSI)
+    evidence, reason = culprit["evidence"], culprit["reason"]
+
+    gap = re.search(r"had a (\d+)-minute AIS gap", reason)
+    assert gap, reason
+    assert evidence["ais_gap_minutes"] == pytest.approx(int(gap.group(1)))
+
+    slowed = re.search(r"slowed from [\d.]+ to ([\d.]+) kn", reason)
+    assert slowed, reason
+    assert evidence["min_sog_kn"] == pytest.approx(float(slowed.group(1)))
+
+    # It passed the spatial gate, so its closest approach to the region is zero,
+    # and its track has fixes inside the origin cloud during the window.
+    assert evidence["closest_approach_km"] == pytest.approx(0.0)
+    assert evidence["track_points_in_cloud"] >= 1
+    assert evidence["time_in_origin_window_min"] > 0.0
+
+
+def test_filtered_vessels_carry_no_evidence_block(run):
+    _, document = run
+    for vessel in document["vessels"]:
+        if vessel.get("filtered"):
+            assert vessel.get("evidence") is None
+
+
+def test_schema_rejects_out_of_range_evidence(run):
+    _, document = run
+    broken = json.loads(json.dumps(document))
+    victim = next(v for v in broken["vessels"] if not v.get("filtered"))
+    victim["evidence"]["course_delta_deg"] = 270.0        # outside [0, 180]
+    with pytest.raises(Exception):
+        validate_suspects(broken)
+
+
 # ---------------------------------------------------------------- contract ---------
 def test_output_validates_against_the_contract(run):
     _, document = run

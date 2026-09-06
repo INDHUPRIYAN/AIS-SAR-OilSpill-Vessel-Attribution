@@ -41,7 +41,7 @@ pyarrow>=15.0
 
 # --- shared ---------------------------------------------------------------
 numpy>=1.26
-PyYAML>=6.0                          # config/normalisation.yaml
+PyYAML>=6.0                          # config/normalisation.yaml, config/aois.yaml
 tqdm>=4.66
 requests>=2.31
 matplotlib>=3.8                      # audit contact sheets, metric plots

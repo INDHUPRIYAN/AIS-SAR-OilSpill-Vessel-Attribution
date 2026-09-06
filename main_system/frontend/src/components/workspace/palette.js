@@ -15,6 +15,7 @@ export const WS = {
   candidate: [251, 146, 60],   // orange — scored candidate
   suspect: [239, 68, 68],      // red + highlight — top suspect
   filtered: [120, 133, 151],   // dimmed gray — excluded vessels
+  lookalike: [45, 212, 191],   // teal, hatched — look-alike: reported, NOT oil
 };
 
 export const css = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
@@ -23,6 +24,9 @@ export const css = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
  *  the value always comes from the contract file / stage status. */
 export function sourceBadge(source) {
   switch ((source || "").toLowerCase()) {
+    // data_source (where the bytes came from) -- rendered in preference
+    case "sensor": return { label: "SENSOR", tone: "ok" };
+    // execution provenance (which code path ran) -- legacy `source`
     case "real": return { label: "REAL", tone: "ok" };
     case "cached": return { label: "CACHED", tone: "warn" };
     case "synthetic":

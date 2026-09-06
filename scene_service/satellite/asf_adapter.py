@@ -17,6 +17,13 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Union
 
 from .models import GeoBoundingBox, SceneMetadata, SceneSearchResult
+from .errors import (
+    BadResponseError,
+    ProviderError,
+    ProviderTimeoutError,
+    UnavailableError,
+    classify_http_status,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -140,15 +147,21 @@ class ASFAdapter:
         try:
             with urllib.request.urlopen(req, timeout=30.0) as resp:
                 if resp.status != 200:
-                    raise RuntimeError(f"ASF search returned HTTP status {resp.status}")
+                    raise classify_http_status(resp.status, f"ASF search returned HTTP status {resp.status}", "ASF")
                 raw_data = resp.read().decode("utf-8")
                 data = json.loads(raw_data)
+        except ProviderError:
+            raise
         except urllib.error.HTTPError as err:
-            raise RuntimeError(f"ASF search failed: HTTP {err.code}") from None
+            raise classify_http_status(err.code, f"ASF search failed: HTTP {err.code}", "ASF") from None
         except urllib.error.URLError as err:
-            raise RuntimeError(f"ASF search network error: {err.reason}") from None
+            if "timed out" in str(err.reason).lower():
+                raise ProviderTimeoutError(f"ASF search timed out: {err.reason}", "ASF") from None
+            raise UnavailableError(f"ASF search network error: {err.reason}", "ASF") from None
+        except TimeoutError as err:
+            raise ProviderTimeoutError(f"ASF search timed out: {err}", "ASF") from None
         except Exception as err:
-            raise RuntimeError(f"ASF search error: {err}") from None
+            raise BadResponseError(f"ASF search error: {err}", "ASF") from None
 
         # ASF JSON output is typically a list of lists [[{result1}, {result2}]] or [{result1}, ...]
         results_list: List[Dict[str, Any]] = []
@@ -311,7 +324,7 @@ class ASFAdapter:
 
                 with urllib.request.urlopen(req, timeout=60.0) as resp:
                     if resp.status != 200:
-                        raise RuntimeError(f"Download returned HTTP status {resp.status}")
+                        raise classify_http_status(resp.status, f"Download returned HTTP status {resp.status}", "ASF")
 
                     with open(temp_path, "wb") as out_file:
                         while True:
@@ -325,15 +338,16 @@ class ASFAdapter:
                 if total_bytes == 0:
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
-                    raise RuntimeError(f"Downloaded scene {scene_id} is empty (0 bytes)")
+                    raise BadResponseError(f"Downloaded scene {scene_id} is empty (0 bytes)", "ASF")
 
                 calculated_checksum = sha256_hash.hexdigest()
 
                 if metadata.checksum and metadata.checksum.lower() != calculated_checksum.lower():
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
-                    raise RuntimeError(
-                        f"Checksum mismatch for {scene_id}: expected={metadata.checksum}, actual={calculated_checksum}"
+                    raise BadResponseError(
+                        f"Checksum mismatch for {scene_id}: expected={metadata.checksum}, actual={calculated_checksum}",
+                        "ASF",
                     )
 
                 os.replace(temp_path, final_path)
@@ -355,7 +369,10 @@ class ASFAdapter:
                 if attempt < retries:
                     time.sleep(1.0 * attempt)
 
-        raise RuntimeError(f"Failed to download ASF scene {scene_id} after {retries} attempts: {last_error}")
+        err_cls = type(last_error) if isinstance(last_error, ProviderError) else UnavailableError
+        raise err_cls(
+            f"Failed to download ASF scene {scene_id} after {retries} attempts: {last_error}", "ASF"
+        )
 
     @staticmethod
     def _normalize_datetime(dt_input: Optional[Union[datetime, str]]) -> Optional[datetime]:

@@ -35,14 +35,19 @@ from .cloud import _CHI2_2DF
 
 DEFAULT_HORIZONS = (6.0, 12.0, 24.0)
 
+# The design asks for every horizon at both a 50% and a 90% confidence contour, so the
+# UI can show a likely core inside the wider containment region.
+DEFAULT_LEVELS = (0.5, 0.9)
+
 
 @dataclass
 class ForecastHorizon:
-    """Predicted extent at one horizon."""
+    """Predicted extent at one horizon and one confidence level."""
 
     horizon_h: float
     time_s: float
     polygon: Any = field(repr=False)
+    level: float = 0.9
     area_km2: float = 0.0
     ellipse_area_km2: float = 0.0
     uncertainty_growth: float = 1.0
@@ -131,13 +136,20 @@ def build_forecast(
     run,
     *,
     horizons=DEFAULT_HORIZONS,
-    level: float = 0.9,
+    levels=DEFAULT_LEVELS,
     ratio: float = 0.3,
 ) -> tuple[list[ForecastHorizon], list[str]]:
-    """Predicted extents at each horizon of a forward run."""
+    """Predicted extents at each horizon of a forward run, one per confidence level.
+
+    Results come back ascending by ``(horizon_h, level)`` - the order the output
+    schema requires - with one ``ForecastHorizon`` per (horizon, level) pair.
+    """
     warnings: list[str] = []
     elapsed = run.elapsed_hours()
-    baseline_area = ellipse_area_m2(run.lons[0], run.lats[0], level)
+    level_list = sorted({round(float(level), 2) for level in levels})
+    baseline_areas = {
+        level: ellipse_area_m2(run.lons[0], run.lats[0], level) for level in level_list
+    }
 
     results: list[ForecastHorizon] = []
     for horizon in sorted(float(h) for h in horizons):
@@ -151,25 +163,28 @@ def build_forecast(
             continue
 
         lons, lats = run.lons[index], run.lats[index]
-        mask = confidence_mask(lons, lats, level)
-        polygon, method = extent_polygon(lons[mask], lats[mask], ratio=ratio)
-        ellipse_area = ellipse_area_m2(lons, lats, level)
+        for level in level_list:
+            mask = confidence_mask(lons, lats, level)
+            polygon, method = extent_polygon(lons[mask], lats[mask], ratio=ratio)
+            ellipse_area = ellipse_area_m2(lons, lats, level)
+            baseline_area = baseline_areas[level]
 
-        results.append(
-            ForecastHorizon(
-                horizon_h=horizon,
-                time_s=float(run.times_s[index]),
-                polygon=polygon,
-                area_km2=_polygon_area_km2(polygon, lons[mask], lats[mask]),
-                ellipse_area_km2=ellipse_area / 1e6,
-                uncertainty_growth=(
-                    ellipse_area / baseline_area if baseline_area > 0 else 1.0
-                ),
-                particles_used=int(mask.sum()),
-                particles_total=int(lons.size),
-                hull_method=method,
+            results.append(
+                ForecastHorizon(
+                    horizon_h=horizon,
+                    time_s=float(run.times_s[index]),
+                    polygon=polygon,
+                    level=level,
+                    area_km2=_polygon_area_km2(polygon, lons[mask], lats[mask]),
+                    ellipse_area_km2=ellipse_area / 1e6,
+                    uncertainty_growth=(
+                        ellipse_area / baseline_area if baseline_area > 0 else 1.0
+                    ),
+                    particles_used=int(mask.sum()),
+                    particles_total=int(lons.size),
+                    hull_method=method,
+                )
             )
-        )
 
     if not results:
         warnings.append("no forecast horizon fell inside the run length")

@@ -152,6 +152,17 @@ def pixel_bbox_to_wgs84(bbox_rc, profile) -> Optional[List[float]]:
 # --------------------------------------------------------------------------
 
 
+def _onnx_fingerprint(weights: Path) -> Optional[str]:
+    """config_fingerprint from ONNX metadata, or None if absent/unreadable."""
+    try:
+        import onnx
+        m = onnx.load(str(weights), load_external_data=False)
+        return next((p.value for p in m.metadata_props
+                     if p.key == "config_fingerprint"), None)
+    except Exception:
+        return None
+
+
 def load_onnx(weights: Path):
     """Return (session, metadata) or None if the ML path is unavailable.
 
@@ -255,6 +266,13 @@ def screen_scene(db: np.ndarray, valid: np.ndarray, cfg, weights: Path,
     its confidences meaningless.
     """
     if not Path(weights).exists():
+        return None
+    # Same guard the segmenter has: the screen sees tiles rendered with the
+    # shared dB constants, so a screen.onnx stamped under a different
+    # normalisation would return confidences that mean nothing. Unstamped
+    # (pre-2026-09-01) weights are tolerated; a stamped mismatch is not.
+    stamped = _onnx_fingerprint(Path(weights))
+    if stamped and stamped != cfg.fingerprint:
         return None
     try:
         from ultralytics import YOLO as UltralyticsYOLO

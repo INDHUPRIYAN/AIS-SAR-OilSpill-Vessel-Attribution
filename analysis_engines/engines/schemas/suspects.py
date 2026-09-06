@@ -30,6 +30,23 @@ class FactorScores(BaseModel):
     prior: float = Field(ge=0.0, le=1.0)
 
 
+class Evidence(BaseModel):
+    """Raw numbers behind the score, so the reason string can be checked by a human.
+
+    Mirror of the frozen contract's ``Evidence`` model (``contracts/schemas/tabular.py``);
+    field names and bounds must stay identical to it.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    closest_approach_km: float | None = Field(default=None, ge=0.0)
+    time_in_origin_window_min: float | None = Field(default=None, ge=0.0)
+    ais_gap_minutes: float | None = Field(default=None, ge=0.0)
+    course_delta_deg: float | None = Field(default=None, ge=0.0, le=180.0)
+    min_sog_kn: float | None = Field(default=None, ge=0.0)
+    track_points_in_cloud: int | None = Field(default=None, ge=0)
+
+
 class SuspectVessel(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -43,6 +60,7 @@ class SuspectVessel(BaseModel):
     score_total: float | None = Field(default=None, ge=0.0, le=1.0)
     scores: FactorScores | None = None
     reason: str | None = None
+    evidence: Evidence | None = None
 
     # Filtered entries only.
     filter_reason: str | None = None
@@ -55,9 +73,10 @@ class SuspectVessel(BaseModel):
                     f"vessel {self.mmsi} is filtered but records no filter_reason; the "
                     "UI must be able to say why it was excluded"
                 )
-            if self.rank is not None or self.scores is not None:
+            if self.rank is not None or self.scores is not None or self.evidence is not None:
                 raise ValueError(
-                    f"vessel {self.mmsi} is filtered and must not carry a rank or scores"
+                    f"vessel {self.mmsi} is filtered and must not carry a rank, scores "
+                    "or evidence"
                 )
         else:
             missing = [

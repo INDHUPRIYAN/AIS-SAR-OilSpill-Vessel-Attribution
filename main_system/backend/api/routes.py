@@ -2,6 +2,8 @@
 
     /api/investigations          create, list, run
     /api/runs/{id}               status, manifest, provenance
+    /api/runs/{id}/verify        re-hash artefacts against the manifest (§12)
+    /api/runs/{id}/decisions     Stage 9: what a human concluded (§14)
     /api/layers/{run}/{name}     serve a contract file to the UI
     /api/apis/...                monitoring page: status, history, test-now
     /api/keys/...                admin only: masked list, set, test
@@ -14,15 +16,17 @@ Two invariants worth stating because they are easy to break later:
 """
 from __future__ import annotations
 
+import io
 import json
 import threading
 import uuid
+import zipfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -30,8 +34,10 @@ from backend.core.config import PROVIDER_BY_NAME, PROVIDERS, get_settings
 from backend.core.security import (encryption_available, encrypt, is_encrypted,
                                    last_four, mask, resolve_credential,
                                    verify_admin)
-from backend.models.db import (ApiCall, ApiKey, ApiProvider, AuditLog,
-                               Investigation, Run, get_db, utcnow)
+from backend.models.db import (VERDICTS, ApiCall, ApiKey, ApiProvider,
+                               AuditLog, Decision, Investigation, Run, get_db,
+                               utcnow)
+from backend.services.pipeline import provenance
 from backend.services.providers import health
 
 router = APIRouter()
@@ -71,6 +77,20 @@ class RunRequest(BaseModel):
     engine: str = Field(default="auto", pattern="^(auto|ml|threshold_fallback)$")
     scene_path: Optional[str] = None
     scene_meta_path: Optional[str] = None
+
+
+class DecisionCreate(BaseModel):
+    """Stage 9. Note what the verdicts mean and what they deliberately do not.
+
+    §2: the system "does not accuse". A verdict here judges whether the ranking
+    was sound and worth pursuing -- never whether a named operator is guilty.
+    """
+
+    verdict: str = Field(pattern=f"^({'|'.join(VERDICTS)})$")
+    mmsi: Optional[int] = Field(default=None, ge=100_000_000, le=999_999_999,
+                                description="null = a verdict on the run itself")
+    note: Optional[str] = Field(default=None, max_length=4000)
+    actor: str = Field(default="analyst", max_length=64)
 
 
 class KeyUpdate(BaseModel):
@@ -230,6 +250,21 @@ def get_run(run_id: str, db: Session = Depends(get_db)):
     return payload
 
 
+def _resolve_run_dir(run_id: str) -> Path:
+    """Resolve a run directory from a user-supplied id.
+
+    `run_id` reaches this from a URL path, so `../` must not be able to climb
+    out of the runs directory -- resolve first, then check containment.
+    """
+    root = settings.runs_root.resolve()
+    run_dir = (root / run_id).resolve()
+    if not str(run_dir).startswith(str(root)):
+        raise HTTPException(400, "invalid run id")
+    if not run_dir.is_dir():
+        raise HTTPException(404, "run not found")
+    return run_dir
+
+
 def _run_dict(r: Run) -> dict:
     return {"run_id": r.id, "investigation_id": r.investigation_id,
             "scene_id": r.scene_id, "status": r.status,
@@ -288,6 +323,170 @@ def get_layer(run_id: str, layer: str, lite: bool = False):
                 422, f"malformed contract file {target.name}: "
                      f"{type(exc).__name__}: {str(exc)[:200]}")
     return FileResponse(target)
+
+
+# Contract artefacts included in an investigation export. Deliberately NOT
+# "everything in the run dir": raw rasters (sigma0 GeoTIFF, mask, PNGs) and
+# engine-native scratch files stay out — the bundle is the eight-contract
+# story of the run, small enough to email to an investigator.
+EXPORT_FILES = [
+    "manifest.json",
+    "status.json",
+    "scene_meta.json",
+    "detect_response.json",
+    "slick.geojson",
+    "origin_cloud.geojson",
+    "forecast.geojson",
+    "suspects.json",
+    "vessels.parquet",
+]
+
+
+@router.get("/runs/{run_id}/export")
+def export_run(run_id: str):
+    """Stream a zip of the run's contract artefacts (GeoJSON bundle).
+
+    Adds a derived vessels.geojson (same conversion the map uses) so the
+    bundle opens directly in QGIS/kepler without a parquet reader; the
+    contract-canonical vessels.parquet is still included untouched.
+    """
+    run_dir = _resolve_run_dir(run_id)
+
+    buf = io.BytesIO()
+    added = 0
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name in EXPORT_FILES:
+            f = run_dir / name
+            if f.exists():
+                zf.write(f, arcname=f"{run_id}/{name}")
+                added += 1
+        try:
+            from backend.api.analytics import vessels_geojson
+
+            payload = vessels_geojson(run_id, 2000)
+            zf.writestr(f"{run_id}/vessels.geojson",
+                        json.dumps(payload, default=str))
+        except Exception:
+            pass  # no vessels in this run; the bundle still ships without them
+
+    if not added:
+        raise HTTPException(404, "no contract artefacts in this run yet")
+
+    return Response(
+        buf.getvalue(), media_type="application/zip",
+        headers={"Content-Disposition":
+                 f'attachment; filename="oceantrace_{run_id}.zip"'})
+
+
+# --------------------------------------------------------------------------
+# provenance and the human decision (design doc v2 §12, §14, Stage 9)
+# --------------------------------------------------------------------------
+
+
+@router.get("/runs/{run_id}/verify")
+def verify_run_artefacts(run_id: str):
+    """Re-hash this run's artefacts and compare them against its manifest.
+
+    §12's immutability rule is only worth anything if somebody can check it.
+    This is that check, exposed so the UI can show a "verified" badge next to a
+    run and an operator can spot-check an old investigation from a browser.
+
+    Always 200: "three artefacts changed" is an answer, not a server error, and
+    the UI needs to render it rather than swallow an exception.
+    """
+    return provenance.verify_run(_resolve_run_dir(run_id))
+
+
+@router.post("/runs/{run_id}/decisions", status_code=201)
+def record_decision(run_id: str, body: DecisionCreate,
+                    db: Session = Depends(get_db)):
+    """STAGE 9 -- record what a human concluded. Standing Rule 8.
+
+    The pipeline ranks candidates and stops. Everything after that -- accept,
+    reject, annotate -- happens here, and is stored with the run so the
+    investigation can be reconstructed and so a feedback corpus accumulates.
+
+    Two things are captured beyond the verdict itself, both because §14 demands
+    reproducibility rather than just a timestamp:
+
+      * `artefact_digest` -- WHICH artefacts the analyst was looking at, so a
+        later re-run cannot silently change the evidence behind a past decision;
+      * the suspect's rank, score and the weights as displayed, for the same
+        reason. Weights live in a config file that will change again before the
+        finale; a decision made under the old ones must still read correctly.
+    """
+    row = db.get(Run, run_id)
+    if row is None:
+        raise HTTPException(404, "run not found")
+
+    run_dir = _resolve_run_dir(run_id)
+    digest, rank, score, weights = None, None, None, None
+
+    manifest_path = run_dir / "manifest.json"
+    if manifest_path.is_file():
+        digest = json.loads(manifest_path.read_text(encoding="utf-8")).get(
+            "artefact_digest")
+
+    suspects_path = run_dir / "suspects.json"
+    if suspects_path.is_file():
+        report = json.loads(suspects_path.read_text(encoding="utf-8"))
+        weights = json.dumps(report.get("weights")) if report.get("weights") else None
+        if body.mmsi is not None:
+            match = next((sp for sp in report.get("suspects", [])
+                          if sp.get("mmsi") == body.mmsi), None)
+            if match is None:
+                # Not a 404: an analyst rejecting a vessel the ranking MISSED is
+                # exactly the feedback worth keeping. Record it, unranked.
+                pass
+            else:
+                rank = match.get("rank")
+                score = match.get("total_score")
+
+    decision = Decision(
+        run_id=run_id, investigation_id=row.investigation_id, mmsi=body.mmsi,
+        suspect_rank=rank, total_score_at_decision=score,
+        verdict=body.verdict, note=body.note, actor=body.actor,
+        artefact_digest=digest, weights_used=weights)
+    db.add(decision)
+    # The credential audit log is also the investigation audit log: §14 wants
+    # one answer to "who ran what, when, and what they concluded".
+    db.add(AuditLog(action=f"decision.{body.verdict}", provider="pipeline",
+                    field=run_id, actor=body.actor,
+                    detail=json.dumps({"mmsi": body.mmsi, "rank": rank,
+                                       "note": (body.note or "")[:200]})))
+    db.commit()
+    return _decision_dict(decision)
+
+
+@router.get("/runs/{run_id}/decisions")
+def list_decisions(run_id: str, db: Session = Depends(get_db)):
+    """Every decision recorded against this run, oldest first.
+
+    Append-only by convention: a changed mind is a new row, so this list is the
+    sequence of what the analysts concluded and when, not just the latest view.
+    """
+    rows = (db.query(Decision).filter(Decision.run_id == run_id)
+            .order_by(Decision.decided_utc.asc()).all())
+    return [_decision_dict(d) for d in rows]
+
+
+@router.get("/decisions")
+def all_decisions(db: Session = Depends(get_db), limit: int = Query(100, le=500)):
+    """The feedback corpus, newest first (§4 Stage 9)."""
+    rows = (db.query(Decision).order_by(Decision.decided_utc.desc())
+            .limit(limit).all())
+    return [_decision_dict(d) for d in rows]
+
+
+def _decision_dict(d: Decision) -> dict:
+    return {"id": d.id, "run_id": d.run_id,
+            "investigation_id": d.investigation_id, "mmsi": d.mmsi,
+            "suspect_rank": d.suspect_rank,
+            "total_score_at_decision": d.total_score_at_decision,
+            "verdict": d.verdict, "note": d.note, "actor": d.actor,
+            "decided_utc": d.decided_utc,
+            "artefact_digest": d.artefact_digest,
+            "weights_used": json.loads(d.weights_used) if d.weights_used else None}
 
 
 # --------------------------------------------------------------------------

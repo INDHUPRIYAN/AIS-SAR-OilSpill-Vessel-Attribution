@@ -76,13 +76,22 @@ export function Empty({ icon, title, hint }) {
 }
 
 /** Horizontal bar for one attribution factor. Colour tracks magnitude so a
- *  strong signal reads at a glance without consulting the number. */
-export function FactorBar({ name, value }) {
+ *  strong signal reads at a glance without consulting the number. When the
+ *  factor's weight is known it is printed under the name (×0.25), so the
+ *  weighted scoring is auditable right where the factor is drawn. */
+export function FactorBar({ name, value, weight }) {
   const v = Math.max(0, Math.min(1, Number(value) || 0));
   const colour = v > 0.7 ? "var(--danger)" : v > 0.4 ? "var(--oil)" : "var(--accent-dim)";
   return (
     <div className="factor">
-      <span className="factor-name">{name.replace(/_/g, " ")}</span>
+      <span className="factor-name">
+        {name.replace(/_/g, " ")}
+        {weight != null && (
+          <em className="factor-w mono" data-testid={`weight-${name}`}>
+            ×{Number(weight).toFixed(2)}
+          </em>
+        )}
+      </span>
       <span className="factor-track">
         <span className="factor-fill" style={{ width: `${v * 100}%`, background: colour }} />
       </span>

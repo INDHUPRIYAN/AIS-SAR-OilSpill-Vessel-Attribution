@@ -1,6 +1,6 @@
 # Detection model pipeline
 
-**Two models, two stages.** Detection is a screen-then-delineate cascade:
+**Two models, one pass.** Detection is *segmentation with a screening-based classification overlay*:
 
 | Stage | Model | Dataset | Asks | Module |
 |---|---|---|---|---|
@@ -8,10 +8,13 @@
 | 2 · Delineate | U-Net / ResNet-34 | Trujillo (Zenodo) | *Exactly which pixels?* | `ml.download` → `ml.train_unet` |
 
 They are trained **separately and never merged** — different radiometry, format
-and label geometry. Stage 1 gates stage 2 at inference: a patch the screen calls
-a look-alike is never handed to the segmenter. Both are optional at runtime; the
-`threshold_fallback` path in `backend/services/detection/threshold.py` works with
-neither.
+and label geometry. At inference the segmenter runs on the whole scene and the
+screen then **labels** each segmented region (`class: oil` / `class: lookalike`);
+it does not gate what the segmenter sees. That trades compute for recall — a
+region the screen would have skipped is still delineated and reported, just
+labelled look-alike — which is the defensible choice when the output may support
+an accusation. Both models are optional at runtime; the `threshold_fallback` path
+in `backend/services/detection/threshold.py` works with neither.
 
 Steps 1–11 of the handbook's training workflow, as runnable stages. Run every
 stage from **`main_system/`** (that is where the `ml` package lives),

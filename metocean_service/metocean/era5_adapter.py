@@ -230,6 +230,23 @@ def validate_wind_dataset(ds: Any) -> None:
                     logger.warning("ERA5 variable %s unit '%s' expected to be 'm/s'", v, unit)
 
 
+def _load_repo_dotenv() -> None:
+    """Populate os.environ from the repository .env (setdefault only)."""
+    here = Path(__file__).resolve()
+    for parent in (here.parent, *here.parents):
+        env = parent / ".env"
+        if env.is_file():
+            for line in env.read_text(encoding="utf-8", errors="replace").splitlines():
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, _, v = line.partition("=")
+                k, v = k.strip(), v.strip().strip('"').strip("'")
+                if k and v:
+                    os.environ.setdefault(k, v)
+            return
+
+
 class ERA5Adapter:
     """
     Adapter for ECMWF ERA5 Atmospheric Reanalysis Winds.
@@ -243,6 +260,12 @@ class ERA5Adapter:
         key: Optional[str] = None,
         client: Optional[Any] = None,
     ):
+        # The main system loads the repo .env through its settings; the
+        # standalone CLI does not, so a valid CDSAPI_KEY sat unused and every
+        # fetch "failed auth" into Open-Meteo. Fall back to the repo .env
+        # before falling back to ~/.cdsapirc.
+        if not (url and key) and not (os.getenv("CDSAPI_URL") and os.getenv("CDSAPI_KEY")):
+            _load_repo_dotenv()
         self.url = url or os.getenv("CDSAPI_URL")
         self.key = key or os.getenv("CDSAPI_KEY")
         self.client = client  # Injected client for unit testing/mocking

@@ -54,6 +54,20 @@ class DriftRequest:
     currents_path: str | Path | None = None
     wind_path: str | Path | None = None
     leeway: float = 0.03
+    # Learned residual correction (Phase 8).
+    #
+    # DEFAULT OFF, on evidence. The model reduces per-step truncation error by 12.4% on
+    # held-out geographic blocks, but the trajectory-level evaluation
+    # (docs/qa/evidence/ml_hindcast/evaluation.json) shows it makes the 24 h cloud WORSE
+    # in 10 of 12 cases and in 0 of 6 held-out forcing fields: small per-step biases
+    # accumulate over ~144 steps faster than the truncation error they remove, and the
+    # correction is applied at positions that are themselves out of distribution.
+    #
+    # Shipping it enabled would degrade the product to satisfy a checkbox. It stays in
+    # the codebase, trained and executable, so the negative result is reproducible and
+    # so a better model can replace it -- but a run must opt in.
+    use_ml_residual: bool = False
+    residual_model_path: str | Path | None = None
 
 
 class DriftBackend:
@@ -87,6 +101,15 @@ class EulerBackend(DriftBackend):
     def run(cls, request: DriftRequest) -> DriftRun:
         if request.metocean is None:
             raise missing_input("the Euler backend needs loaded met-ocean grids")
+        # The learned residual correction (Phase 8). load_model() returns None when no
+        # trained artefact is present, and run_euler then takes the pure-physics path
+        # unchanged -- so this is an enhancement, never a new hard dependency.
+        residual_model = None
+        if getattr(request, "use_ml_residual", True):
+            from .ml_residual import load_model
+
+            residual_model = load_model(getattr(request, "residual_model_path", None))
+
         return run_euler(
             request.seed_lons, request.seed_lats, request.metocean, request.start_time_s,
             hours=request.hours,
@@ -94,6 +117,7 @@ class EulerBackend(DriftBackend):
             direction=request.direction,
             diffusion_m2_s=request.diffusion_m2_s,
             rng=request.rng,
+            residual_model=residual_model,
         )
 
 

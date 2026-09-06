@@ -218,8 +218,37 @@ def export(weights: Path, imgsz: int) -> Path:
                                  dynamic=True, simplify=False))
     target = WEIGHTS_OUT / "screen.onnx"
     target.write_bytes(produced.read_bytes())
+    _stamp_metadata(target, weights)
     print(f"screening model -> {target} ({target.stat().st_size/1024**2:.1f} MB)")
     return target
+
+
+def _stamp_metadata(onnx_path: Path, weights: Path) -> None:
+    """Ultralytics' export omits our provenance. The service renders screen
+    tiles with the shared dB constants, so the fingerprint travels with the
+    weights (the segmenter has the same guard), plus a model_version so two
+    exports can never share a label in DetectResponse."""
+    import onnx
+    from datetime import datetime, timezone
+    from ml.config import load_config
+
+    cfg = load_config()
+    m = onnx.load(str(onnx_path))
+    have = {p.key for p in m.metadata_props}
+    stamp = {
+        "config_fingerprint": cfg.fingerprint,
+        "db_min": str(cfg.sar.db_min), "db_max": str(cfg.sar.db_max),
+        "model_version": f"{weights.resolve().parent.parent.name}-screen-"
+                         f"{datetime.now(timezone.utc):%Y-%m-%d}",
+        "input_convention": ("SAR scene tiled 640x640; tile = db_to_uint8(clip(dB, "
+                             "db_min, db_max)) replicated to 3 channels"),
+    }
+    for k, v in stamp.items():
+        if k in have:
+            continue
+        e = m.metadata_props.add()
+        e.key, e.value = k, v
+    onnx.save(m, str(onnx_path))
 
 
 def main(argv=None) -> int:

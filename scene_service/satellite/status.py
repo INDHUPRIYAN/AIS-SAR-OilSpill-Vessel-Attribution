@@ -5,13 +5,16 @@ Monitors real-time API health, connectivity, and response latency for:
 - ASF (Alaska Satellite Facility)
 """
 
+import json
 import logging
 import os
+import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from .models import ProviderHealth
@@ -287,4 +290,124 @@ def get_api_status(
         "cdse": cdse_health,
         "asf": asf_health,
     }
+
+
+# ---------------------------------------------------------------------------
+# provider_status.json — frozen contract 8 (contracts/schemas/tabular.py)
+# ---------------------------------------------------------------------------
+
+_HEALTH_TO_CONTRACT_STATUS = {
+    "UP": "WORKING",
+    "DEGRADED": "DEGRADED",
+    "DOWN": "FAILED",
+    "UNCONFIGURED": "UNKNOWN",
+}
+
+_PROVIDER_PURPOSE = {
+    "CDSE": "Sentinel-1 IW GRDH scenes (primary provider)",
+    "ASF": "Sentinel-1 IW GRDH scenes (fallback provider)",
+}
+
+SCENE_PROVIDER_CHAIN = ["CDSE", "ASF", "LocalCache"]
+
+
+def _error_class_for(health: ProviderHealth) -> str:
+    """Map a probe result onto the frozen ErrorClass taxonomy."""
+    if health.is_available:
+        return "NONE"
+    detail = str((health.details or {}).get("error", "")).lower()
+    reason = str((health.details or {}).get("reason", "")).lower()
+    text = detail + " " + reason
+    if "401" in text or "403" in text or "credential" in text or "auth" in text:
+        return "AUTH_FAILED"
+    if "timeout" in text or "timed out" in text:
+        return "TIMEOUT"
+    if "429" in text or "rate" in text:
+        return "RATE_LIMITED"
+    if "http 4" in text:
+        return "BAD_RESPONSE"
+    return "UNAVAILABLE"
+
+
+def build_provider_status_payload(
+    status_map: Optional[Dict[str, ProviderHealth]] = None,
+    owner: str = "scene_service (Pavitra)",
+    mock_mode: bool = False,
+) -> Dict:
+    """Assemble the provider_status.json payload per the ProviderStatusFile contract."""
+    if status_map is None:
+        status_map = get_api_status(mock_mode=mock_mode)
+
+    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    providers = []
+    active = "LocalCache"
+    for name in ("CDSE", "ASF"):
+        health = status_map.get(name.lower())
+        if health is None:
+            continue
+        code = None
+        if health.details:
+            code = health.details.get("status_code")
+            if code is None:
+                err = str(health.details.get("error", ""))
+                if err.startswith("HTTP "):
+                    try:
+                        code = int(err.split()[1])
+                    except (IndexError, ValueError):
+                        code = None
+        providers.append(
+            {
+                "provider": name,
+                "purpose": _PROVIDER_PURPOSE.get(name, "Sentinel-1 scene provider"),
+                "status": _HEALTH_TO_CONTRACT_STATUS.get(health.status, "UNKNOWN"),
+                "last_code": code,
+                "last_latency_ms": int(health.latency_ms) if health.latency_ms is not None else None,
+                "last_success_utc": now_utc if health.is_available else None,
+                "last_failure_utc": None if health.is_available else now_utc,
+                "last_error_class": _error_class_for(health),
+                "chain": list(SCENE_PROVIDER_CHAIN),
+                "active_provider": name,  # provisional; fixed up below
+            }
+        )
+    # active_provider: the first WORKING/DEGRADED chain member, else LocalCache.
+    for p in providers:
+        if p["status"] in ("WORKING", "DEGRADED"):
+            active = p["provider"]
+            break
+    for p in providers:
+        p["active_provider"] = active
+
+    return {
+        "generated_utc": now_utc,
+        "owner": owner,
+        "providers": providers,
+    }
+
+
+def write_provider_status_file(
+    path,
+    status_map: Optional[Dict[str, ProviderHealth]] = None,
+    owner: str = "scene_service (Pavitra)",
+    mock_mode: bool = False,
+) -> Path:
+    """Write provider_status.json, validated against the frozen contract when
+    the ``contracts`` package is importable (it always is under pytest; a
+    standalone ``python -m satellite.cli`` from scene_service/ may not see it,
+    in which case the payload is still written in the exact contract shape)."""
+    payload = build_provider_status_payload(status_map, owner=owner, mock_mode=mock_mode)
+
+    try:
+        repo_root = str(Path(__file__).resolve().parents[2])
+        if repo_root not in sys.path:
+            sys.path.insert(0, repo_root)
+        from contracts.schemas.tabular import ProviderStatusFile
+
+        ProviderStatusFile.model_validate(payload)  # raises on contract breach
+    except ImportError:
+        logger.warning("contracts package not importable; writing unvalidated provider_status.json")
+
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return p
 

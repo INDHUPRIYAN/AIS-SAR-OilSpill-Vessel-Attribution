@@ -29,7 +29,8 @@ from ..schemas.origin_cloud import validate_origin_cloud
 from .backends import AUTO, DriftRequest, select_backend
 from .cloud import build_clouds, origin_window
 from .euler_fallback import BACKWARD, FORWARD, DriftRun, seed_particles
-from .forecast import DEFAULT_HORIZONS, build_forecast
+from .forecast import DEFAULT_HORIZONS, DEFAULT_LEVELS, build_forecast
+from .weathering import DEFAULT_OIL_TYPE, weathering_series
 from .grids import load_metocean
 
 # Anchored to this file, not the process CWD. These engines are launched as
@@ -51,6 +52,7 @@ DEFAULTS: dict[str, Any] = {
     "grid_margin_deg": 0.05,
     "seed": 26143,
     "forecast_horizons_h": list(DEFAULT_HORIZONS),
+    "forecast_confidence_levels": list(DEFAULT_LEVELS),
     "concave_ratio": 0.3,
     "engine": AUTO,
 }
@@ -189,6 +191,62 @@ def _prepare(
     )
 
 
+def _mean_wind_speed(prep: _Prepared, default: float = 5.0) -> float:
+    """Mean 10 m wind speed over the seeded particles, for the weathering model.
+
+    Emulsification is wind-driven, so it must use the wind the drift actually saw
+    rather than a constant. Falls back to ``default`` when the run has no wind field
+    (documented degraded mode) so weathering still reports something honest.
+    """
+    wind = getattr(prep.metocean, "wind", None)
+    if wind is None:
+        return float(default)
+    try:
+        u, v = wind.sample(prep.start_s, prep.seed_lons, prep.seed_lats)
+        speed = float(np.nanmean(np.hypot(np.asarray(u), np.asarray(v))))
+    except Exception:                              # noqa: BLE001 - degrade, never fail
+        return float(default)
+    return speed if np.isfinite(speed) else float(default)
+
+
+def _forcing_metadata(prep: _Prepared, run: DriftRun) -> dict[str, Any]:
+    """Provenance of the physics behind a run, for the output file itself.
+
+    The frozen contract (contracts/schemas/geo.py: OriginMetadata / ForecastMetadata)
+    homes this under top-level ``metadata.forcing``. Until now it existed only as
+    transient status warnings; recording it in the file means a saved output still
+    says what drove it. ``provider`` is the source file's name - the truthful
+    provenance at this layer, which receives NetCDFs, not named services.
+    """
+
+    def _describe(vector_field, path, fallback: str) -> dict[str, Any]:
+        if vector_field is None:
+            return {"provider": None, "variables": None, "fallback": fallback}
+        return {
+            "provider": Path(path).name,
+            "variables": list(vector_field.var_names),
+            "fallback": None,
+        }
+
+    return {
+        "currents": _describe(
+            prep.metocean.current, prep.currents_path, "zero-current mode"
+        ),
+        "wind": _describe(prep.metocean.wind, prep.wind_path, "no wind leeway"),
+        "windage": float(prep.config["leeway"]),
+        "engine": run.engine,
+        # The learned component, named explicitly. `model` is null on a pure-physics
+        # run, so nobody can read an ML claim into a run that did not use one.
+        "ml_residual": {
+            "model": getattr(run, "ml_model_version", None),
+            "applied": bool(getattr(run, "ml_model_version", None)),
+            "mean_correction_m_per_step": round(
+                float(getattr(run, "ml_correction_mean_m", 0.0)), 4),
+            "corrects": "forward-Euler truncation error at the operational timestep",
+        },
+    }
+
+
 def _integrate(prep: _Prepared, direction: int, status: Status) -> DriftRun:
     request = DriftRequest(
         seed_lons=prep.seed_lons,
@@ -265,6 +323,36 @@ def _ellipse_features(clouds, level: float) -> list[dict[str, Any]]:
     return features
 
 
+# Empirical calibration of how far the hindcast origin sits from the true release point,
+# fitted on 1,665 closed-loop scenarios across 24 real forcing fields
+# (docs/qa/evidence/ml_hindcast/origin_uncertainty_calibration.json):
+#
+#     |true origin - hindcast origin|  ~  k * cloud_sigma        k = 0.0907
+#     radius containing 90.8% of cases =  m * k * cloud_sigma    m = 1.75
+#
+# This is an empirically calibrated PHYSICS heuristic, not machine learning. Ridge and MLP
+# regressors were tested on the same scenarios under leave-one-field-out cross-validation
+# and did not beat this one-parameter rule (uncertainty_study.json), so no learned model is
+# used here.
+ORIGIN_UNCERTAINTY_K = 0.0907
+ORIGIN_UNCERTAINTY_M = 1.75
+ORIGIN_UNCERTAINTY_COVERAGE = 0.908
+
+
+def _origin_uncertainty_km(cloud) -> float:
+    """Calibrated radius around the origin estimate that should contain the true release."""
+    import numpy as _np
+
+    lons = _np.asarray(cloud.lons, dtype=float)
+    lats = _np.asarray(cloud.lats, dtype=float)
+    if lons.size == 0:
+        return 0.0
+    lat0 = float(_np.mean(lats))
+    sx = float(_np.std((lons - float(_np.mean(lons))) * 111.320 * _np.cos(_np.radians(lat0))))
+    sy = float(_np.std((lats - lat0) * 110.574))
+    return float(ORIGIN_UNCERTAINTY_M * ORIGIN_UNCERTAINTY_K * _np.hypot(sx, sy))
+
+
 def _window_feature(window, clouds, engine: str) -> dict[str, Any]:
     peak = min(clouds, key=lambda c: abs(c.time_s - window.peak_s))
     return {
@@ -280,6 +368,12 @@ def _window_feature(window, clouds, engine: str) -> dict[str, Any]:
             "peak_utc": _utc(window.peak_s),
             "engine_used": engine,
             "method": window.method,
+            # How far from this point an investigator should actually search.
+            "origin_uncertainty_km": round(_origin_uncertainty_km(peak), 4),
+            "origin_uncertainty_coverage": ORIGIN_UNCERTAINTY_COVERAGE,
+            "origin_uncertainty_method": "calibrated physics heuristic (not ML): "
+                                         "m*k*cloud_sigma, k=0.0907 m=1.75, fitted on "
+                                         "1665 closed-loop scenarios over 24 real fields",
         },
     }
 
@@ -320,6 +414,7 @@ def hindcast(
 
         document = {
             "type": "FeatureCollection",
+            "metadata": {"forcing": _forcing_metadata(prep, run)},
             "features": [
                 *_particle_features(clouds),
                 *_ellipse_features(clouds, level),
@@ -387,9 +482,14 @@ def forecast(
 
         run = _integrate(prep, FORWARD, status)
 
-        level = float(prep.config["confidence_level"])
+        levels = sorted({
+            round(float(value), 2)
+            for value in (
+                prep.config.get("forecast_confidence_levels") or DEFAULT_LEVELS
+            )
+        })
         results, forecast_warnings = build_forecast(
-            run, horizons=reachable, level=level,
+            run, horizons=reachable, levels=levels,
             ratio=float(prep.config["concave_ratio"]),
         )
         for warning in forecast_warnings:
@@ -402,6 +502,21 @@ def forecast(
 
         document = {
             "type": "FeatureCollection",
+            "metadata": {
+                "forcing": _forcing_metadata(prep, run),
+                # Where the oil goes is only half the forecast; how much is still
+                # there when it arrives is the other half. Driven by the same wind
+                # field the drift used, so the two cannot disagree about the weather.
+                "weathering": weathering_series(
+                    # One state per horizon: `results` carries one entry per
+                    # (horizon, confidence level), and weathering does not depend
+                    # on the confidence level.
+                    sorted({float(r.horizon_h) for r in results}),
+                    wind_speed_m_s=_mean_wind_speed(prep),
+                    oil_type=str(prep.config.get("oil_type", DEFAULT_OIL_TYPE)),
+                    temperature_c=float(prep.config.get("sea_temperature_c", 15.0)),
+                ),
+            },
             "features": [
                 {
                     "type": "Feature",
@@ -417,7 +532,10 @@ def forecast(
                     "properties": {
                         "horizon_h": result.horizon_h,
                         "uncertainty_growth": round(result.uncertainty_growth, 3),
-                        "level": level,
+                        # `level` is this schema's historical name; `confidence_level`
+                        # is the frozen contract's - both carry the same value.
+                        "level": result.level,
+                        "confidence_level": result.level,
                         "time_utc": _utc(result.time_s),
                         "area_km2": round(result.area_km2, 3),
                         "ellipse_area_km2": round(result.ellipse_area_km2, 3),

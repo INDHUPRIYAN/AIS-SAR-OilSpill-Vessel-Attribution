@@ -23,9 +23,14 @@ class ForecastProperties(BaseModel):
 
     horizon_h: float = Field(gt=0.0, description="hours ahead of detection")
     uncertainty_growth: float = Field(
-        ge=0.0, description="90% ellipse area at the horizon / at seeding"
+        ge=0.0, description="ellipse area at the horizon / at seeding, same level"
     )
     level: float | None = Field(default=None, gt=0.0, lt=1.0)
+    confidence_level: float | None = Field(
+        default=None, gt=0.0, lt=1.0,
+        description="same value as `level`, under the frozen contract's field name "
+        "(contracts/schemas/tabular-adjacent geo.py: ForecastProperties)",
+    )
     time_utc: str | None = None
     area_km2: float | None = Field(default=None, ge=0.0)
     engine_used: str | None = None
@@ -54,14 +59,31 @@ class ForecastCollection(BaseModel):
 
     @field_validator("features")
     @classmethod
-    def _one_per_horizon(cls, features: list[ForecastFeature]) -> list[ForecastFeature]:
+    def _one_per_horizon_and_level(
+        cls, features: list[ForecastFeature]
+    ) -> list[ForecastFeature]:
+        """One polygon per (horizon, confidence level), ascending.
+
+        The frozen contract carries a per-feature confidence level, so a horizon may
+        legitimately appear once per level (e.g. 0.5 and 0.9); duplicates of the same
+        pair are still an error. Legacy single-level files (no ``level``) keep their
+        old one-per-horizon rule, because every pair then collapses to the horizon.
+        """
         if not features:
             raise ValueError("forecast.geojson must carry at least one horizon")
-        horizons = [f.properties.horizon_h for f in features]
-        if len(set(horizons)) != len(horizons):
-            raise ValueError(f"duplicate forecast horizons: {horizons}")
-        if horizons != sorted(horizons):
-            raise ValueError("forecast horizons must be written in ascending order")
+        keys = [
+            (
+                f.properties.horizon_h,
+                -1.0 if f.properties.level is None else f.properties.level,
+            )
+            for f in features
+        ]
+        if len(set(keys)) != len(keys):
+            raise ValueError(f"duplicate forecast (horizon_h, level) pairs: {keys}")
+        if keys != sorted(keys):
+            raise ValueError(
+                "forecast features must be written in ascending (horizon_h, level) order"
+            )
         return features
 
 

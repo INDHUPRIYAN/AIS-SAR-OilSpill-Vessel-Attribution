@@ -1,3 +1,7 @@
 requests>=2.31.0
 numpy>=1.24.0
 scipy>=1.10.0
+pandas>=2.0.0
+pyarrow>=14.0.0
+global-land-mask>=1.0.0
+shapely>=2.0            # STRtree fine pass in the AIS spatial index

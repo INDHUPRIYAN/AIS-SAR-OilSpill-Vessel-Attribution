@@ -5,8 +5,6 @@ for local testing, demonstrations, and offline verification without remote depen
 """
 
 import hashlib
-import json
-import os
 import struct
 from pathlib import Path
 from typing import Tuple
@@ -67,7 +65,21 @@ def generate_deterministic_tiff(width: int = 64, height: int = 64) -> Tuple[byte
 
 
 def ensure_demo_fixture() -> None:
-    """Ensures demo fixture directory, metadata JSON, and TIFF raster exist on disk."""
+    """Ensures demo fixture directory, metadata JSON, and TIFF raster exist on disk.
+
+    scene_meta.json is written through ``SceneMetadata.to_contract()`` so the
+    committed fixture is exactly the frozen contract 1 shape that downstream
+    stages (detection, engines, UI) read — a fixture that fails SceneMeta
+    validation would demo a file nobody is allowed to produce.
+    """
+    import sys
+    from datetime import datetime, timezone
+
+    module_root = str(FIXTURES_DIR.parent)
+    if module_root not in sys.path:
+        sys.path.insert(0, module_root)
+    from satellite.models import SceneMetadata
+
     DEMO_SCENE_DIR.mkdir(parents=True, exist_ok=True)
 
     tiff_bytes, sha256 = generate_deterministic_tiff(64, 64)
@@ -75,23 +87,31 @@ def ensure_demo_fixture() -> None:
     with open(DEMO_RASTER_PATH, "wb") as f:
         f.write(tiff_bytes)
 
-    metadata = {
-        "scene_id": SCENE_ID,
-        "platform": "Sentinel-1A",
-        "acquisition_time": "2023-10-12T17:25:30Z",
-        "bbox": [2.5, 51.5, 3.2, 52.1],
-        "product_type": "GRD",
-        "polarisation": "VV+VH",
-        "orbit_direction": "DESCENDING",
-        "file_path": str(DEMO_RASTER_PATH.as_posix()),
-        "checksum": sha256,
-        "file_size_bytes": len(tiff_bytes),
-        "download_url": f"mock://cdse.dataspace.copernicus.eu/demo/{SCENE_ID}.tif",
-        "_fixture_note": "OFFLINE_DEMO_FIXTURE — Synthetic Sentinel-1 SAR backscatter fixture for testing and demonstration",
-    }
+    try:
+        from satellite.calibrate import load_db_range
 
-    with open(DEMO_META_PATH, "w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2)
+        db_range = list(load_db_range())
+    except Exception:
+        db_range = [-35.0, 0.0]
+
+    metadata = SceneMetadata(
+        scene_id=SCENE_ID,
+        platform="Sentinel-1A",
+        acquisition_time=datetime(2023, 10, 12, 17, 25, 30, tzinfo=timezone.utc),
+        bbox=[2.5, 51.5, 3.2, 52.1],
+        product_type="GRD",
+        polarisation="VV+VH",
+        orbit_direction="DESCENDING",
+        file_path=str(DEMO_RASTER_PATH.as_posix()),
+        checksum=sha256,
+        file_size_bytes=len(tiff_bytes),
+        download_url=f"mock://cdse.dataspace.copernicus.eu/demo/{SCENE_ID}.tif",
+        crs="EPSG:4326",
+        db_range=db_range,
+        provider_used="DEMO",
+        source="synthetic",  # the contract's honesty badge: this is not real SAR
+    )
+    metadata.write_contract(DEMO_META_PATH)
 
 
 # Automatically create the fixture on module import if not present

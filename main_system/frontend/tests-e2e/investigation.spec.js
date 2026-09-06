@@ -51,7 +51,8 @@ test("1+10: replay renders all stages and layers in under 5 s", async ({ page, r
   const ms = await replayAndAwaitRender(page);
   expect(ms).toBeLessThan(5000);
   // every layer toggle enabled (all files present in a complete run)
-  for (const k of ["sar", "slick", "forecast", "hindcast", "origin", "vessels"]) {
+  for (const k of ["sar", "slick", "forecast", "hindcast", "origin", "vessels",
+                   "lookalikes"]) {
     await expect(page.getByTestId(`layer-${k}`)).toHaveAttribute("data-disabled", "false");
   }
   await expect(page.getByTestId("map-legend")).toBeVisible();
@@ -90,6 +91,72 @@ test("3: suspects order matches suspects.json; click rank 1 opens breakdown", as
   await expect(page.getByTestId("suspect-detail")).toBeVisible();
   await expect(page.getByTestId("suspect-reason"))
     .toContainText(sus.suspects[0].reason.slice(0, 40));
+
+  // weights are auditable on screen: legend shows the run's actual weights,
+  // and each factor bar repeats its own ×w
+  await expect(page.getByTestId("weights-legend")).toBeVisible();
+  for (const [k, w] of Object.entries(sus.weights)) {
+    await expect(page.getByTestId(`weight-${k}`).first())
+      .toHaveText(`×${w.toFixed(2)}`);
+  }
+
+  // raw evidence numbers (tolerant: the block may be absent on old runs,
+  // and any field may be null — absent fields must NOT render)
+  const ev = sus.suspects[0].evidence || {};
+  if (ev.closest_approach_km != null) {
+    await expect(page.getByTestId("evidence-closest_approach_km"))
+      .toContainText("km");
+  }
+  if (ev.ais_gap_minutes != null) {
+    await expect(page.getByTestId("evidence-ais_gap_minutes"))
+      .toContainText("min");
+  }
+
+  // filtered-out vessels: collapsible list, one row per excluded MMSI
+  if ((sus.filtered_out || []).length) {
+    await expect(page.getByTestId("filtered-toggle"))
+      .toContainText(`Filtered out (${sus.filtered_out.length}`);
+    await page.getByTestId("filtered-toggle").click();
+    const f0 = sus.filtered_out[0];
+    await expect(page.getByTestId(`filtered-${f0.mmsi}`))
+      .toContainText(String(f0.mmsi));
+    await expect(page.getByTestId(`filtered-${f0.mmsi}`))
+      .toContainText(f0.reason.slice(0, 20));
+  }
+});
+
+test("3b: export bundle downloads a zip of the run's contract artefacts", async ({ page, request }) => {
+  const inv = await makeInvestigation(request);
+  await page.goto(`/investigation?inv=${inv}`);
+  await replayAndAwaitRender(page);
+  const rid = await replayRunId(request, inv);
+  const r = await request.get(`${API}/api/runs/${rid}/export`);
+  expect(r.ok()).toBeTruthy();
+  expect(r.headers()["content-type"]).toContain("application/zip");
+  expect((await r.body()).length).toBeGreaterThan(1000);
+  await expect(page.getByTestId("export-bundle")).toBeVisible();
+  await expect(page.getByTestId("export-report")).toBeVisible();
+});
+
+test("3c: printable report renders run metadata, weights and suspects", async ({ page, request }) => {
+  const inv = await makeInvestigation(request);
+  const rid = await replayRunId(request, inv);
+  const sus = await (await request.get(`${API}/api/layers/${rid}/suspects`)).json();
+
+  await page.goto(`/report?run=${rid}`);
+  await expect(page.locator("h1")).toContainText("Investigation report");
+  await expect(page.locator(".rp-sub")).toContainText(rid);
+  // weights table shows the run's actual weights
+  for (const w of Object.values(sus.weights)) {
+    await expect(page.locator(".rp-weights")).toContainText(w.toFixed(2));
+  }
+  // top suspect present with its score and reason
+  const top = sus.suspects[0];
+  await expect(page.locator(".rp-suspect").first())
+    .toContainText(top.total_score.toFixed(3));
+  await expect(page.locator(".rp-suspect").first())
+    .toContainText(top.reason.slice(0, 30));
+  await expect(page.getByTestId("report-print")).toBeVisible();
 });
 
 test("4: time slider scrub changes the clock and keeps the page alive", async ({ page, request }) => {

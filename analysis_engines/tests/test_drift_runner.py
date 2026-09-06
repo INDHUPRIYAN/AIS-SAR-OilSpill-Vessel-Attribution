@@ -156,6 +156,18 @@ def test_particles_move_away_from_the_slick(run, inputs):
     assert moved_m > 500.0
 
 
+def test_metadata_records_forcing_provenance(run, inputs):
+    """Provider and fallback level are written into the file, not just warned about."""
+    _, document = run
+    forcing = document["metadata"]["forcing"]
+    assert forcing["currents"]["provider"] == Path(inputs["met"]["currents_eddy"]).name
+    assert forcing["currents"]["fallback"] is None
+    assert forcing["currents"]["variables"]
+    assert forcing["wind"]["provider"] == Path(inputs["met"]["wind_uniform"]).name
+    assert forcing["windage"] == pytest.approx(0.03)
+    assert forcing["engine"] == "euler"
+
+
 def test_run_is_reproducible(inputs, tmp_path):
     kwargs = dict(
         currents_path=inputs["met"]["currents_eddy"],
@@ -284,7 +296,14 @@ def test_wind_only_mode_still_runs(inputs, tmp_path):
     )
     assert status["ok"] is True
     assert any("zero-current" in w for w in status["warnings"])
-    validate_origin_cloud(json.loads(out.read_text(encoding="utf-8")))
+    document = json.loads(out.read_text(encoding="utf-8"))
+    validate_origin_cloud(document)
+
+    # The degradation is recorded in the file's forcing provenance as well.
+    forcing = document["metadata"]["forcing"]
+    assert forcing["currents"]["provider"] is None
+    assert forcing["currents"]["fallback"] == "zero-current mode"
+    assert forcing["wind"]["fallback"] is None
 
 
 def test_unknown_slick_id_returns_MISSING_INPUT(inputs, tmp_path):

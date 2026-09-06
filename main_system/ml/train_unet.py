@@ -222,7 +222,20 @@ def main(argv=None) -> int:
             scaler.load_state_dict(ckpt["scaler_state"])
         start_epoch = ckpt["epoch"] + 1
         best_iou = ckpt.get("metrics", {}).get("val_iou", -1.0)
-        print(f"resumed from {args.resume} at epoch {start_epoch} (best IoU {best_iou:.4f})")
+        # last.pt carries its OWN epoch's IoU, not the run's best. Resuming
+        # after a bad epoch would otherwise let a worse model overwrite best.pt.
+        best_path = args.out / "best.pt"
+        if best_path.exists():
+            best_ck = torch.load(best_path, map_location="cpu", weights_only=False)
+            best_iou = max(best_iou, best_ck.get("metrics", {}).get("val_iou", -1.0))
+        # Fast-forward the LR schedule. A fresh CosineAnnealingLR sits at epoch 0,
+        # so a resume at epoch 30 would snap the LR back to its peak and undo the
+        # annealing. The restored optimizer already holds the right LR for this
+        # point; the scheduler only needs to know where on the curve it is.
+        scheduler.last_epoch = start_epoch
+        scheduler._last_lr = [g["lr"] for g in optimizer.param_groups]
+        print(f"resumed from {args.resume} at epoch {start_epoch} "
+              f"(best IoU {best_iou:.4f}, lr {optimizer.param_groups[0]['lr']:.2e})")
 
     args.out.mkdir(parents=True, exist_ok=True)
     history_path = args.out / "history.jsonl"
@@ -263,6 +276,16 @@ def main(argv=None) -> int:
             save_checkpoint(args.out / "best.pt", model, optimizer, scaler, epoch,
                             metrics, args, cfg)
             print(f"           new best val IoU {best_iou:.4f} -> best.pt")
+
+        # Graceful pause: `touch <out>/STOP` ends the run at this epoch boundary
+        # with everything checkpointed, so a multi-day schedule loses nothing.
+        stop_flag = args.out / "STOP"
+        if stop_flag.exists():
+            stop_flag.unlink()
+            print(f"\nPAUSED by STOP file after epoch {epoch + 1}/{args.epochs}. "
+                  f"Resume: python -m ml.train_unet --out {args.out} "
+                  f"--resume {args.out / 'last.pt'}")
+            return 10
 
     print(f"\ndone. best val IoU {best_iou:.4f}")
     print(f"next: python -m ml.evaluate --checkpoint {args.out / 'best.pt'}")

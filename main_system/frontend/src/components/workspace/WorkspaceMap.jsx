@@ -63,11 +63,24 @@ function slickEllipse(p, n = 72) {
   return ring;
 }
 
+/** Diagonal hatch lines clipped to a bbox — the look-alike fill pattern.
+ *  Hatching (not a solid fill) is the visual statement that this region is
+ *  reported but NOT counted as oil. */
+function hatchLines(w, s, e, n, count = 7) {
+  const lines = [];
+  for (let i = 1; i < count; i++) {
+    const t = i / count;
+    lines.push([[w, s + (n - s) * t], [w + (e - w) * t, s]]);
+    lines.push([[w + (e - w) * t, n], [e, s + (n - s) * t]]);
+  }
+  return lines;
+}
+
 export default function WorkspaceMap({
   view, onViewChange, show, layers, timeMs, sceneT0, runId,
   selectedMmsi, onSelect, onHover, maxStep,
 }) {
-  const { sceneMeta, slick, origin, forecast, vessels, suspects } = layers;
+  const { sceneMeta, slick, origin, forecast, vessels, suspects, detect } = layers;
   const [pinned, setPinned] = useState(null);
   const hover = (info) => onHover?.(info ?? pinned);
 
@@ -373,6 +386,55 @@ export default function WorkspaceMap({
         lineWidthUnits: "pixels",
       }));
     }
+  }
+
+  /* ------------------------------------ look-alikes (teal, hatched) ----- */
+  /* Detector candidates classed "lookalike" (biogenic film, low wind, rain
+   * cell…). The standing rule: look-alikes are REPORTED, never deleted and
+   * never counted as oil — hence a hatched teal box, deliberately nothing
+   * like the solid red slick. */
+  const lookalikes = (detect?.candidates ?? [])
+    .filter((c) => c.class === "lookalike" && Array.isArray(c.bbox));
+  if (show.lookalikes && lookalikes.length) {
+    const hoverBox = (c) => ({
+      kind: "lookalike", title: "Look-alike — reported, not counted as oil",
+      rows: [["phenomenon", c.phenomenon || "unclassified"],
+             ["score", c.score != null ? Number(c.score).toFixed(2) : "—"],
+             ["status", "excluded from slick + attribution"]],
+    });
+    deck.push(new PolygonLayer({
+      id: "ws-lookalike-box", data: lookalikes,
+      getPolygon: (c) => {
+        const [w, s, e, n] = c.bbox;
+        return [[w, s], [e, s], [e, n], [w, n]];
+      },
+      stroked: true, filled: true,
+      getFillColor: [...WS.lookalike, 14],
+      getLineColor: [...WS.lookalike, 230],
+      getLineWidth: 1.8, lineWidthUnits: "pixels",
+      getDashArray: [5, 4], extensions: dashExt,
+      pickable: true,
+      onHover: (i) => hover(i.object ? hoverBox(i.object) : null),
+    }));
+    deck.push(new PathLayer({
+      id: "ws-lookalike-hatch",
+      data: lookalikes.flatMap((c) => {
+        const [w, s, e, n] = c.bbox;
+        return hatchLines(w, s, e, n).map((path) => ({ path }));
+      }),
+      getPath: (d) => d.path,
+      getColor: [...WS.lookalike, 110],
+      getWidth: 1, widthUnits: "pixels",
+    }));
+    deck.push(new TextLayer({
+      id: "ws-lookalike-label", data: lookalikes,
+      getPosition: (c) => [(c.bbox[0] + c.bbox[2]) / 2, c.bbox[3]],
+      getText: (c) => `LOOK-ALIKE${c.phenomenon ? ` · ${c.phenomenon.replace(/_/g, " ")}` : ""} — not oil`,
+      getSize: 10, getColor: [...WS.lookalike, 240],
+      fontFamily: "JetBrains Mono, monospace",
+      getTextAnchor: "middle", getAlignmentBaseline: "bottom",
+      characterSet: CHARSET,
+    }));
   }
 
   /* scene footprint always */

@@ -19,18 +19,21 @@ for p in (REPO_ROOT, REPO_ROOT / "main_system"):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
-from fastapi import FastAPI  # noqa: E402
+from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from sqlalchemy import text as sa_text  # noqa: E402
 
 from backend.api.analytics import router as analytics_router  # noqa: E402
 from backend.api.replay import router as replay_router  # noqa: E402
 from backend.api.investigation_page import router as invpage_router  # noqa: E402
 from backend.api.routes import router  # noqa: E402
+from backend.api.scheduler_routes import router as scheduler_router  # noqa: E402
 from backend.core.config import get_settings  # noqa: E402
 from backend.models.db import SessionLocal, init_db, utcnow  # noqa: E402
 
 settings = get_settings()
 _health_stop = threading.Event()
+_watcher = None
 
 
 def _health_loop() -> None:
@@ -69,10 +72,29 @@ async def lifespan(app: FastAPI):
     if settings.health_enabled:
         thread = threading.Thread(target=_health_loop, daemon=True)
         thread.start()
+
+    # STAGE 0: watch registered AOIs for new Sentinel-1 passes (§4, §27·8).
+    # Opt-in via SCHEDULER_ENABLED, because this makes outbound provider calls
+    # and can start pipeline runs unattended.
+    global _watcher
+    if settings.scheduler_enabled:
+        from backend.api.scheduler_routes import build_watcher
+
+        try:
+            _watcher = build_watcher()
+            _watcher.start(settings.scheduler_interval_seconds)
+            print(f"[scheduler] AOI watcher started "
+                  f"(wakes every {settings.scheduler_interval_seconds}s)")
+        except Exception as exc:
+            # A broken AOI registry must not stop the API from serving.
+            print(f"[scheduler] not started: {type(exc).__name__}: {exc}")
+
     try:
         yield
     finally:
         _health_stop.set()
+        if _watcher is not None:
+            _watcher.stop()
 
 
 app = FastAPI(
@@ -97,12 +119,25 @@ app.include_router(router, prefix="/api")
 app.include_router(analytics_router, prefix="/api")
 app.include_router(replay_router, prefix="/api")
 app.include_router(invpage_router, prefix="/api")
+app.include_router(scheduler_router, prefix="/api")
 
 
 @app.get("/health")
+@app.get("/healthz")
 def health_check():
     """Liveness probe for the process itself, not for the providers."""
     return {"status": "ok", "app": settings.app_name, "utc": utcnow()}
+
+
+@app.get("/readyz")
+def readiness_check():
+    """Readiness probe: the DB must answer before traffic is routed here."""
+    try:
+        with SessionLocal() as db:
+            db.execute(sa_text("SELECT 1"))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"db not ready: {type(exc).__name__}")
+    return {"status": "ready", "app": settings.app_name, "utc": utcnow()}
 
 
 @app.get("/")

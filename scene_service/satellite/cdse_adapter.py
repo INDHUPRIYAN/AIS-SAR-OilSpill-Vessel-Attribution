@@ -16,6 +16,13 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Union
 
 from .models import GeoBoundingBox, SceneMetadata, SceneSearchResult
+from .errors import (
+    BadResponseError,
+    ProviderError,
+    ProviderTimeoutError,
+    UnavailableError,
+    classify_http_status,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -91,21 +98,27 @@ class CDSEAdapter:
         try:
             with urllib.request.urlopen(req, timeout=30.0) as resp:
                 if resp.status != 200:
-                    raise RuntimeError(f"CDSE authentication returned HTTP status {resp.status}")
+                    raise classify_http_status(resp.status, f"CDSE authentication returned HTTP status {resp.status}", "CDSE")
                 body = json.loads(resp.read().decode("utf-8"))
 
             self.token = body.get("access_token")
             expires_in = float(body.get("expires_in", 300))
             self.token_expiry = time.time() + expires_in
             if not self.token:
-                raise RuntimeError("CDSE authentication response missing 'access_token'")
+                raise BadResponseError("CDSE authentication response missing 'access_token'", "CDSE")
             return self.token
+        except ProviderError:
+            raise
         except urllib.error.HTTPError as err:
-            raise RuntimeError(f"CDSE authentication failed: HTTP {err.code}") from None
+            raise classify_http_status(err.code, f"CDSE authentication failed: HTTP {err.code}", "CDSE") from None
         except urllib.error.URLError as err:
-            raise RuntimeError(f"CDSE authentication network error: {err.reason}") from None
+            if "timed out" in str(err.reason).lower():
+                raise ProviderTimeoutError(f"CDSE authentication timed out: {err.reason}", "CDSE") from None
+            raise UnavailableError(f"CDSE authentication network error: {err.reason}", "CDSE") from None
+        except TimeoutError as err:
+            raise ProviderTimeoutError(f"CDSE authentication timed out: {err}", "CDSE") from None
         except Exception as err:
-            raise RuntimeError(f"CDSE authentication error: {err}") from None
+            raise BadResponseError(f"CDSE authentication error: {err}", "CDSE") from None
 
     def get_valid_token(self) -> str:
         """Returns a valid, non-expired Bearer token, refreshing if necessary."""
@@ -209,14 +222,20 @@ class CDSEAdapter:
         try:
             with urllib.request.urlopen(req, timeout=30.0) as resp:
                 if resp.status != 200:
-                    raise RuntimeError(f"CDSE search returned HTTP status {resp.status}")
+                    raise classify_http_status(resp.status, f"CDSE search returned HTTP status {resp.status}", "CDSE")
                 data = json.loads(resp.read().decode("utf-8"))
+        except ProviderError:
+            raise
         except urllib.error.HTTPError as err:
-            raise RuntimeError(f"CDSE catalog search failed: HTTP {err.code}") from None
+            raise classify_http_status(err.code, f"CDSE catalog search failed: HTTP {err.code}", "CDSE") from None
         except urllib.error.URLError as err:
-            raise RuntimeError(f"CDSE catalog search network error: {err.reason}") from None
+            if "timed out" in str(err.reason).lower():
+                raise ProviderTimeoutError(f"CDSE catalog search timed out: {err.reason}", "CDSE") from None
+            raise UnavailableError(f"CDSE catalog search network error: {err.reason}", "CDSE") from None
+        except TimeoutError as err:
+            raise ProviderTimeoutError(f"CDSE catalog search timed out: {err}", "CDSE") from None
         except Exception as err:
-            raise RuntimeError(f"CDSE search error: {err}") from None
+            raise BadResponseError(f"CDSE search error: {err}", "CDSE") from None
 
         products = data.get("value", [])
         scenes: List[SceneMetadata] = []
@@ -360,7 +379,7 @@ class CDSEAdapter:
 
                 with urllib.request.urlopen(req, timeout=60.0) as resp:
                     if resp.status != 200:
-                        raise RuntimeError(f"Download returned HTTP status {resp.status}")
+                        raise classify_http_status(resp.status, f"Download returned HTTP status {resp.status}", "CDSE")
 
                     with open(temp_path, "wb") as out_file:
                         while True:
@@ -374,7 +393,7 @@ class CDSEAdapter:
                 if total_bytes == 0:
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
-                    raise RuntimeError(f"Downloaded scene {scene_id} is empty (0 bytes)")
+                    raise BadResponseError(f"Downloaded scene {scene_id} is empty (0 bytes)", "CDSE")
 
                 calculated_checksum = sha256_hash.hexdigest()
 
@@ -382,8 +401,9 @@ class CDSEAdapter:
                 if metadata.checksum and metadata.checksum.lower() != calculated_checksum.lower():
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
-                    raise RuntimeError(
-                        f"Checksum mismatch for {scene_id}: expected={metadata.checksum}, actual={calculated_checksum}"
+                    raise BadResponseError(
+                        f"Checksum mismatch for {scene_id}: expected={metadata.checksum}, actual={calculated_checksum}",
+                        "CDSE",
                     )
 
                 os.replace(temp_path, final_path)
@@ -405,7 +425,10 @@ class CDSEAdapter:
                 if attempt < retries:
                     time.sleep(1.0 * attempt)
 
-        raise RuntimeError(f"Failed to download CDSE scene {scene_id} after {retries} attempts: {last_error}")
+        err_cls = type(last_error) if isinstance(last_error, ProviderError) else UnavailableError
+        raise err_cls(
+            f"Failed to download CDSE scene {scene_id} after {retries} attempts: {last_error}", "CDSE"
+        )
 
     @staticmethod
     def _normalize_datetime(dt_input: Optional[Union[datetime, str]]) -> Optional[datetime]:

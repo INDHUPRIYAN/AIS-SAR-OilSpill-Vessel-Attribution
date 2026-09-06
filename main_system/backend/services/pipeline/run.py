@@ -41,7 +41,7 @@ for p in (REPO_ROOT, REPO_ROOT / "main_system"):
         sys.path.insert(0, str(p))
 
 from contracts.schemas import CONTRACTS  # noqa: E402
-from backend.services.pipeline import engines, normalise  # noqa: E402
+from backend.services.pipeline import ais_index, engines, footprint_crop, normalise, provenance  # noqa: E402
 
 MOCKS = REPO_ROOT / "contracts" / "mocks"
 RUNS = REPO_ROOT / "data" / "runs"
@@ -59,15 +59,33 @@ class Stage:
         self.status = "pending"
         self.detail = ""
         self.source = "unknown"
+        self.engine_used: Optional[str] = None   # set from structured output
+        # Where the BYTES came from (sensor | synthetic | cached), distinct from
+        # `source`, which records which code path ran (real | fallback | mock).
+        self.data_source = "unknown"
         self.seconds = 0.0
         self.warnings: List[str] = []
+        # sha256(stage + inputs + params) -- design doc §10 invariant 1. Set by
+        # `key()` as each stage learns what it is actually running against, so
+        # the manifest records not just what a stage produced but what it was
+        # asked to produce. A retry with the same key is safe to skip.
+        self.idempotency_key: Optional[str] = None
+
+    def key(self, inputs: Optional[dict] = None, params: Optional[dict] = None) -> str:
+        self.idempotency_key = provenance.idempotency_key(self.name, inputs, params)
+        return self.idempotency_key
 
     def to_dict(self) -> dict:
         return {
             "stage": self.name, "owner": self.owner, "status": self.status,
+            # The backend that actually produced this layer (e.g. "euler", "ml"),
+            # read from structured output -- never inferred from log text.
+            "engine_used": self.engine_used,
+            "data_source": self.data_source,
             "output": self.output, "contract": self.contract,
             "source": self.source, "detail": self.detail,
             "seconds": round(self.seconds, 2), "warnings": self.warnings,
+            "idempotency_key": self.idempotency_key,
         }
 
 
@@ -106,6 +124,7 @@ def stage_detect(stage: Stage, scene: Path, scene_id: str, meta: Optional[dict],
 
     resp = detect(scene, scene_id, out_dir, weights, meta, force_engine)
     stage.source = "real"
+    stage.engine_used = resp.engine.value
     stage.status = "ok" if resp.engine.value == "ml" else "fallback"
     oil = [c for c in resp.candidates if c.class_.value == "oil"]
     look = [c for c in resp.candidates if c.class_.value == "lookalike"]
@@ -134,11 +153,18 @@ def stage_characterise(stage: Stage, scene: Path, out_dir: Path,
 
     if scene_meta_path.exists():
         native = engine_dir(out_dir) / stage.output
+        # Full scenes are cropped to the detection footprint (+ sea margin)
+        # before Engine A, which otherwise loads the whole raster.
+        mask_in, scene_in, crop_note = footprint_crop.crop_for_engine_a(
+            Path(detect_result["mask_path"]).resolve(), Path(scene).resolve(),
+            engine_dir(out_dir))
+        if crop_note:
+            stage.warnings.append(crop_note)
         res = engines.characterise(
-            mask=Path(detect_result["mask_path"]).resolve(),
+            mask=Path(mask_in).resolve(),
             scene_meta=scene_meta_path.resolve(),
             out=native.resolve(),
-            scene_db=Path(scene).resolve(),
+            scene_db=Path(scene_in).resolve() if scene_in else None,
             confidence=detect_result.get("confidence"))
         stage.seconds = res.seconds
         if res.ok:
@@ -146,7 +172,8 @@ def stage_characterise(stage: Stage, scene: Path, out_dir: Path,
             normalise.normalise_file("slick", out_dir / stage.output,
                                      scene_meta=meta or {}, detect=detect_result)
             stage.status, stage.source = "ok", "real"
-            stage.warnings = res.warnings
+            stage.engine_used = res.engine_used
+            stage.warnings = [*stage.warnings, *res.warnings]
             n = len(json.loads((out_dir / stage.output).read_text())["features"])
             stage.detail = f"Engine A: {n} slick(s)"
             return True
@@ -254,6 +281,95 @@ def grid_covers_bbox(path: Path, bbox: Optional[list]) -> Optional[bool]:
         lon_min, lon_max = lon_min - 360.0, lon_max - 360.0
     return (lon_min <= lo0 and lon_max >= lo1
             and lat_min <= la0 and lat_max >= la1)
+
+
+def data_source_for_scene(scene: Path, meta: Optional[dict]) -> str:
+    """sensor | synthetic | cached for the SAR raster itself.
+
+    `source: "real"` on a stage means real code ran; it says nothing about the
+    pixels. A run on contracts/mocks/scene_sigma0_db.tif ran real code on a
+    fabricated scene and must never badge as sensor data.
+    """
+    parts = {p.lower() for p in Path(scene).resolve().parts}
+    if "mocks" in parts or "synthetic" in parts:
+        return "synthetic"
+    flag = str((meta or {}).get("source", "")).lower()
+    if flag in ("synthetic", "mock"):
+        return "synthetic"
+    # `cached` on the scene meta describes the PROVIDER path (served from the
+    # local cache instead of CDSE/ASF); the pixels are still sensor data, and
+    # that path is already visible as the stage's execution `source`.
+    # Trujillo training chips are genuine Sentinel-1 backscatter (real sensor
+    # data), though not a full scene; the scene_id tells the two apart.
+    return "sensor"
+
+
+def data_source_for_forcing(paths) -> str:
+    """sensor (reanalysis/model products from a real provider) | synthetic | cached."""
+    verdicts = []
+    for path in paths:
+        if not path:
+            continue
+        path = Path(path)
+        try:
+            import xarray as xr
+            with xr.open_dataset(path) as ds:
+                blob = " ".join(str(v) for v in ds.attrs.values()).lower()
+            # Only the dataset's own `source` attribute may declare it synthetic;
+            # titles and notes are prose.
+            src_attr = ""
+            try:
+                with xr.open_dataset(path) as ds2:
+                    src_attr = str(ds2.attrs.get("source", "")).lower()
+            except Exception:
+                pass
+            if src_attr in ("synthetic", "mock", "fabricated"):
+                verdicts.append("synthetic")
+                continue
+        except Exception:
+            pass
+        status = path.parent / "provider_status.json"
+        try:
+            st = json.loads(status.read_text(encoding="utf-8"))
+            # Structured fields first -- free text (notes, titles) must never
+            # decide provenance: a note SAYING "replaces the synthetic field"
+            # once flipped a real CMEMS pull to SYNTHETIC.
+            kind = "currents" if "current" in path.name.lower() else "wind"
+            explicit = str(st.get("data_source") or (st.get(kind) or {}).get("source") or "").lower()
+            providers = st.get("providers_used") or {}
+            prov = str(providers.get(kind) or (st.get(kind) or {}).get("provider") or "").lower()
+            real_providers = ("cmems", "era5", "hycom", "openmeteo", "open-meteo", "copernicus", "ecmwf")
+            if explicit in ("synthetic", "mock"):
+                verdicts.append("synthetic")
+            elif explicit == "sensor" or any(k in prov for k in real_providers):
+                verdicts.append("sensor")
+            elif explicit == "cached" or prov in ("cache", "localcache", "staticcache"):
+                verdicts.append("cached")
+            else:
+                verdicts.append("cached")
+        except Exception:
+            verdicts.append("cached")
+    if not verdicts:
+        return "synthetic"
+    if "synthetic" in verdicts:
+        return "synthetic"
+    return "sensor" if all(v == "sensor" for v in verdicts) else "cached"
+
+
+def data_source_for_vessels(path) -> str:
+    """The vessels file's own `source` column decides: any synthetic row makes
+    the layer synthetic -- a planted culprit poisons the whole ranking."""
+    if not path:
+        return "synthetic"
+    try:
+        import pandas as pd
+        df = pd.read_parquet(path, columns=["source"])
+        vals = set(str(v).lower() for v in df["source"].dropna().unique())
+        if not vals or "synthetic" in vals or "mock" in vals:
+            return "synthetic"
+        return "sensor" if vals <= {"real", "sensor"} else "cached"
+    except Exception:
+        return "synthetic"
 
 
 def resolve_metocean(meta: Optional[dict], out_dir: Path):
@@ -513,6 +629,16 @@ def ensure_vessels(out_dir: Path, origin_native: Path, meta: Optional[dict],
     return existing
 
 
+def vessel_sources_of(vessels: Path) -> Dict[int, str]:
+    """mmsi -> source ("real"/"synthetic") from the vessels file attribution ranked."""
+    try:
+        import pandas as pd
+        df = pd.read_parquet(vessels, columns=["mmsi", "source"])
+        return {int(m): str(v) for m, v in zip(df["mmsi"], df["source"])}
+    except Exception:
+        return {}
+
+
 def engine_native_vessels(vessels: Path, out_dir: Path) -> Path:
     """Rewrite vessels.parquet into the column names the engine expects.
 
@@ -525,8 +651,16 @@ def engine_native_vessels(vessels: Path, out_dir: Path) -> Path:
         import pandas as pd
 
         df = pd.read_parquet(vessels)
+        # Tolerant of BOTH generations of vessels.parquet: contract-compliant
+        # files (timestamp_utc / draught_m / interpolated — what ais_service
+        # now emits) and old run artefacts still on disk (timestamp / draft_m
+        # / gap_flag). Each name is mirrored to its twin when absent, so the
+        # engine (old names) and the frontend (contract names) both read the
+        # same file whichever generation produced it.
         renames = {"timestamp_utc": "timestamp", "draught_m": "draft_m",
-                   "interpolated": "gap_flag"}
+                   "interpolated": "gap_flag",
+                   "timestamp": "timestamp_utc", "draft_m": "draught_m",
+                   "gap_flag": "interpolated"}
         for src, dst in renames.items():
             if src in df.columns and dst not in df.columns:
                 df[dst] = df[src]
@@ -586,6 +720,7 @@ def flush_status(out_dir: Path, run_id: str, scene_id: str, stages,
             "engine_used": "fallback" if status == "fallback" else
                            ("primary" if status == "ok" else None),
             "source": s.source,
+            "data_source": getattr(s, "data_source", "unknown"),
             "detail": s.detail,
             "warnings": list(s.warnings or []),
             "error_class": err,
@@ -609,6 +744,11 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
                  force_engine: Optional[str] = None) -> dict:
     t_start = time.time()
     out_dir = RUNS / run_id
+    # §12: a completed run's artefacts are never overwritten. Re-running an
+    # existing run_id would silently replace the files an investigation was
+    # concluded from AND rewrite the hashes to match, leaving no trace. A
+    # re-run gets a new run_id against the same scene.
+    provenance.assert_writable(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     meta = json.loads(Path(scene_meta).read_text()) if scene_meta else None
@@ -631,6 +771,9 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
 
     # --- detect -----------------------------------------------------------
     s = by_name["detect"]
+    s.key(inputs={"scene": scene, "scene_meta": scene_meta},
+          params={"weights": Path(weights).name,
+                  "engine": force_engine or "auto"})
     t0 = time.time()
     detect_result = None
     try:
@@ -643,6 +786,8 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
 
     # --- characterise -----------------------------------------------------
     s = by_name["characterise"]
+    s.key(inputs={"mask": "raw_mask.tif", "scene": scene},
+          params={"scene_id": scene_id})
     t0 = time.time()
     if detect_result is None:
         stage_mocked(s, out_dir, "detection failed upstream")
@@ -704,6 +849,10 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
             continue
 
         mode_currents, mode_wind, available, notes = forcing_for(mode)
+        s.key(inputs={"slick": "slick.geojson",
+                      "currents": mode_currents.name if mode_currents else None,
+                      "wind": mode_wind.name if mode_wind else None},
+              params={"mode": mode, "hours": hours})
         s.warnings.extend(notes)
         if mode_currents is None and mode_wind is None:
             stage_mocked(s, out_dir, f"no forcing grid covers the {mode} window")
@@ -737,9 +886,14 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
                 out_dir / s.output, scene_meta=meta or {}, forcing=forcing)
             s.source = "real"
             s.engine_used = res.engine_used
-            # The Euler integrator is the guaranteed path, not the primary one;
-            # say so rather than presenting it as a full OpenDrift run.
-            s.status = "ok" if res.engine_used in ("openoil", "oceandrift") else "fallback"
+            # The in-house Lagrangian (Euler) integrator IS the declared primary:
+            # dependency-free by design, verified on timestep negation,
+            # per-particle perturbation, 4-D trilinear interpolation and
+            # covariance ellipses. OpenDrift is future work, not the baseline
+            # this path is measured against. Anything the artefact does not
+            # name as a real backend stays badged FALLBACK.
+            s.status = ("ok" if res.engine_used in ("euler", "openoil", "oceandrift")
+                        else "fallback")
             s.warnings = res.warnings
             kind = ("currents+wind" if mode_currents and mode_wind
                     else "wind-only" if mode_wind else "currents-only")
@@ -754,11 +908,28 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
     s = by_name["attribution"]
     origin_native = engine_dir(out_dir) / "origin_cloud.geojson"
     vessels_path = ensure_vessels(out_dir, origin_native, meta, s)
+    s.key(inputs={"origin_cloud": "origin_cloud.geojson",
+                  "vessels": Path(vessels_path).name if vessels_path else None,
+                  "slick": "slick.geojson" if slick_native.exists() else None},
+          params={"investigation_id": run_id})
     if origin_native.exists() and vessels_path is not None:
         native = engine_dir(out_dir) / s.output
         vessels_native = engine_native_vessels(Path(vessels_path), out_dir)
+        # Spatial index: prune the vessel set through the partitioned AIS
+        # store instead of handing Engine C a flat file to full-scan.
+        vessels_native, ais_notes = ais_index.prune_via_store(
+            Path(vessels_native), origin_native, run_id,
+            origin_summary(origin_native), out_dir)
+        if ais_notes.get("indexed"):
+            s.warnings.append(
+                f"AIS index: {ais_notes['vessels_in']} vessels/{ais_notes['rows_in']} rows "
+                f"-> {ais_notes['vessels_out']} vessels/{ais_notes['rows_out']} rows "
+                f"(query {ais_notes['t_query_ms']} ms vs full scan "
+                f"{ais_notes['t_fullscan_ms']} ms; ingest {ais_notes['t_ingest_ms']} ms)")
+        else:
+            s.warnings.append(f"AIS index not used: {ais_notes.get('reason')}")
         res = engines.attribution(origin=origin_native.resolve(),
-                                  vessels=vessels_native.resolve(),
+                                  vessels=Path(vessels_native).resolve(),
                                   out=native.resolve(),
                                   slick=slick_native.resolve() if slick_native.exists() else None,
                                   investigation_id=run_id)
@@ -766,10 +937,12 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
         if res.ok:
             shutil.copy(native, out_dir / s.output)
             normalise.normalise_file("suspects", out_dir / s.output,
-                                     scene_meta=meta or {}, run_id=run_id)
+                                     scene_meta=meta or {}, run_id=run_id,
+                                     vessel_sources=vessel_sources_of(vessels_native))
             s.source = "real"
             s.status = "ok"
-            s.warnings = res.warnings
+            s.engine_used = res.engine_used
+            s.warnings = [*s.warnings, *res.warnings]
             payload = json.loads((out_dir / s.output).read_text(encoding="utf-8"))
             n = len(payload.get("suspects", []))
             top = payload["suspects"][0] if n else None
@@ -784,6 +957,19 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
                else "no vessels.parquet available")
         stage_mocked(s, out_dir, why)
     flush_status(out_dir, run_id, scene_id, stages)
+
+    # --- data provenance (TRANSFORMATION.md 3.1) ---------------------------
+    # Orthogonal to `source`/status: what the bytes were, per layer.
+    scene_ds = data_source_for_scene(Path(scene), meta)
+    for name in ("detect", "characterise"):
+        by_name[name].data_source = scene_ds if by_name[name].status != "mock" else "synthetic"
+    forcing_ds = data_source_for_forcing([currents, wind])
+    for name in ("drift_hindcast", "drift_forecast"):
+        by_name[name].data_source = (forcing_ds if by_name[name].status in ("ok", "fallback")
+                                     else "synthetic")
+    by_name["attribution"].data_source = (
+        data_source_for_vessels(vessels_path)
+        if by_name["attribution"].status in ("ok", "fallback") else "synthetic")
 
     # --- validate everything ---------------------------------------------
     for s in stages:
@@ -821,6 +1007,11 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
         "total_seconds": round(time.time() - t_start, 2),
         "stages": [s.to_dict() for s in stages],
     }
+    # §12/§14: hash every artefact into the run record. This is what lets a
+    # two-year-old investigation prove the GeoJSON in the report is the one the
+    # pipeline produced. Writing the manifest is also what SEALS the run --
+    # `assert_writable` above keys off its existence -- so it goes last.
+    provenance.seal(out_dir, manifest)
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     icon = {"ok": "OK  ", "fallback": "WARN", "mock": "MOCK", "failed": "FAIL"}
@@ -834,6 +1025,8 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
           f"{sum(s.status == 'mock' for s in stages)} from mocks, "
           f"{sum(s.status == 'failed' for s in stages)} failed "
           f"({manifest['total_seconds']}s)")
+    print(f"  {len(manifest['artefacts'])} artefact(s) hashed, "
+          f"digest {manifest['artefact_digest'][:12]}...")
     print(f"  -> {out_dir}")
     return manifest
 
@@ -846,11 +1039,31 @@ def main(argv=None) -> int:
     ap.add_argument("--run-id", default=None)
     ap.add_argument("--weights", type=Path, default=None)
     ap.add_argument("--engine", choices=["auto", "ml", "threshold_fallback"], default="auto")
+    ap.add_argument("--verify", metavar="RUN_ID",
+                    help="re-hash a completed run's artefacts against its "
+                         "manifest and report any that changed (design doc section 12)")
     args = ap.parse_args(argv)
 
+    if args.verify:
+        report = provenance.verify_run(RUNS / args.verify)
+        if report["ok"]:
+            print(f"verify {report['run_id']}: OK -- {report['checked']} artefact(s) "
+                  f"unchanged since {report.get('generated_utc')}")
+            return 0
+        print(f"verify {report['run_id']}: {len(report['problems'])} problem(s)")
+        for problem in report["problems"]:
+            print(f"  - {problem}")
+        # An unverifiable run (produced before hashing existed) is not a
+        # tampered run; say so with a different exit code so a script can tell.
+        return 2 if report.get("unverifiable") else 1
+
     run_id = args.run_id or f"inv-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
-    run_pipeline(args.scene, args.scene_meta, run_id, args.weights,
-                 None if args.engine == "auto" else args.engine)
+    try:
+        run_pipeline(args.scene, args.scene_meta, run_id, args.weights,
+                     None if args.engine == "auto" else args.engine)
+    except provenance.RunImmutable as exc:
+        print(f"ERROR: {exc}")
+        return 1
     return 0
 
 

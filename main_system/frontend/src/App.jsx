@@ -14,6 +14,7 @@ import Keys from "./pages/Keys";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import About from "./pages/About";
+import Report from "./pages/Report";
 import { Dot } from "./components/ui";
 import { api, useApi } from "./lib/api";
 import "./incident.css";
@@ -82,6 +83,7 @@ export default function App() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/about" element={<About />} />
           <Route path="/investigation" element={<Investigation />} />
+          <Route path="/report" element={<Report />} />
           <Route path="/monitoring" element={<Monitoring />} />
           <Route path="/keys" element={<Keys />} />
         </Routes>

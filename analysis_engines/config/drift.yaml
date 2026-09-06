@@ -18,4 +18,11 @@ drift:
 
   # --- forecast mode (Phase 4) ---
   forecast_horizons_h: [6, 12, 24]   # contract horizons; filtered to those --hours reaches
+  forecast_confidence_levels: [0.5, 0.9]  # one extent polygon per horizon per level
   concave_ratio: 0.3                 # shapely.concave_hull ratio; 1.0 == convex hull
+
+  # --- weathering (evaporation + emulsification) ---
+  # The oil type is ASSUMED: no scene tells us what was actually spilled, and the
+  # assumption dominates the answer, so it is echoed into forecast.geojson metadata.
+  oil_type: medium_crude          # light_crude | medium_crude | heavy_crude | diesel | fuel_oil_no6
+  sea_temperature_c: 15.0         # used by the Fingas evaporation equations

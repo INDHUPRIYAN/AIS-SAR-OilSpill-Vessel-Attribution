@@ -15,6 +15,7 @@ from typing import List, Optional, Union
 from .asf_adapter import ASFAdapter
 from .cache import LocalSceneCache
 from .cdse_adapter import CDSEAdapter
+from .errors import error_class_of
 from .models import GeoBoundingBox, RetrievalResponse, SceneMetadata, SceneSearchResult
 
 logger = logging.getLogger(__name__)
@@ -82,6 +83,8 @@ class SceneRetrievalChain:
 
         cdse_error_msg: Optional[str] = None
         asf_error_msg: Optional[str] = None
+        cdse_error_class: str = "NONE"
+        asf_error_class: str = "NONE"
 
         # ----------------------------------------------------
         # 2. CDSE PRIMARY PROVIDER
@@ -106,8 +109,10 @@ class SceneRetrievalChain:
                 )
         except Exception as err:
             cdse_error_msg = str(err)
+            cdse_error_class = error_class_of(err)
             logger.warning(
-                f"CDSE retrieval failed for scene {scene_id}: {err}. Falling back to ASF (Secondary Provider)..."
+                f"CDSE retrieval failed for scene {scene_id} [{cdse_error_class}]: {err}. "
+                f"Falling back to ASF (Secondary Provider)..."
             )
 
         # ----------------------------------------------------
@@ -133,15 +138,18 @@ class SceneRetrievalChain:
                 )
         except Exception as err:
             asf_error_msg = str(err)
-            logger.warning(f"ASF fallback retrieval failed for scene {scene_id}: {err}")
+            asf_error_class = error_class_of(err)
+            logger.warning(
+                f"ASF fallback retrieval failed for scene {scene_id} [{asf_error_class}]: {err}"
+            )
 
         # ----------------------------------------------------
         # 4. STRUCTURED FAILURE
         # ----------------------------------------------------
         error_details = (
             f"All providers failed to retrieve scene {scene_id}. "
-            f"CDSE error: {cdse_error_msg or 'N/A'}; "
-            f"ASF error: {asf_error_msg or 'N/A'}"
+            f"CDSE [{cdse_error_class}]: {cdse_error_msg or 'N/A'}; "
+            f"ASF [{asf_error_class}]: {asf_error_msg or 'N/A'}"
         )
         logger.error(error_details)
         return RetrievalResponse(

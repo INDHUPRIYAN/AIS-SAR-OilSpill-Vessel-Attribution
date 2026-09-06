@@ -64,6 +64,14 @@ class Settings:
         self.health_interval_seconds = int(os.getenv("HEALTH_INTERVAL", "60"))
         self.health_enabled = os.getenv("HEALTH_ENABLED", "true").lower() == "true"
 
+        # STAGE 0, the AOI watcher (design doc v2 §4, §27·8). Off by default:
+        # it issues outbound provider searches and can start pipeline runs on
+        # its own, so a fresh checkout or a demo laptop must opt in rather than
+        # discover it. `SCHEDULER_INTERVAL` is how often the loop WAKES; each
+        # AOI's own poll_minutes decides whether it is actually due.
+        self.scheduler_enabled = os.getenv("SCHEDULER_ENABLED", "false").lower() == "true"
+        self.scheduler_interval_seconds = int(os.getenv("SCHEDULER_INTERVAL", "300"))
+
     @staticmethod
     def _ephemeral_token() -> str:
         import secrets

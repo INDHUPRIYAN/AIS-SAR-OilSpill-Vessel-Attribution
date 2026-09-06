@@ -43,6 +43,37 @@ def _anything_in_range(tracks, origin, gate_config: GateConfig) -> bool:
     return any(track.end_s >= lo and track.start_s <= hi for track in tracks)
 
 
+def _evidence_block(track, gates, scores, origin) -> dict[str, Any]:
+    """The frozen contract's ``Evidence`` fields (``contracts/schemas/tabular.py``).
+
+    Every value is lifted from numbers the gates and scoring factors already computed -
+    the same numbers the ``reason`` sentence quotes - so an investigator can check the
+    prose against this block. A field a run genuinely did not compute stays ``None``.
+    """
+    factor_evidence = scores.evidence
+    metrics = gates.metrics
+
+    # Minutes the track overlaps the estimated discharge window (0.0 when it only
+    # passed within the temporal buffer around it).
+    overlap_s = min(track.end_s, origin.end_s) - max(track.start_s, origin.start_s)
+    time_in_window_min = round(max(overlap_s, 0.0) / 60.0, 1)
+
+    course_delta = factor_evidence.get("course_change_deg")
+    if course_delta is not None:
+        # The pairwise fold already lands in [0, 180]; clamp defensively because the
+        # contract field is bounded and rounding must never push it out.
+        course_delta = min(max(float(course_delta), 0.0), 180.0)
+
+    return {
+        "closest_approach_km": metrics.get("distance_to_region_km"),
+        "time_in_origin_window_min": time_in_window_min,
+        "ais_gap_minutes": factor_evidence.get("gap_minutes"),
+        "course_delta_deg": course_delta,
+        "min_sog_kn": factor_evidence.get("slowest_kn"),
+        "track_points_in_cloud": metrics.get("fixes_in_region"),
+    }
+
+
 def attribute(
     origin_path: str | Path,
     vessels_path: str | Path,
@@ -144,6 +175,7 @@ def attribute(
                     "scores": scores.as_dict(),
                     "filtered": False,
                     "reason": explain(track, scores, origin),
+                    "evidence": _evidence_block(track, gates, scores, origin),
                     "source": track.source,
                 }
             )

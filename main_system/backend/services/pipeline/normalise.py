@@ -67,7 +67,12 @@ def _already_contract(payload: dict) -> bool:
     Checked rather than assumed, so this module becomes a no-op the day the
     engines are aligned, instead of corrupting output that is already correct.
     """
-    return isinstance(payload.get("metadata"), dict)
+    # Presence of a metadata dict proves nothing: Engine B emits
+    # metadata={"forcing": {...}}, which passed this check and let the file
+    # skip normalisation without scene_id / origin_window_*_utc. Test for a
+    # key every contract requires instead.
+    meta = payload.get("metadata")
+    return isinstance(meta, dict) and "scene_id" in meta
 
 
 def normalise_slick(payload: dict, scene_meta: dict, detect: dict) -> dict:
@@ -235,8 +240,25 @@ def normalise_forecast(payload: dict, scene_meta: dict,
     }
 
 
-def normalise_suspects(payload: dict, scene_meta: dict, run_id: str) -> dict:
-    """Map the handbook's suspects shape onto the contract's."""
+def normalise_suspects(payload: dict, scene_meta: dict, run_id: str,
+                       vessel_sources: Optional[Dict[int, str]] = None) -> dict:
+    """Map the handbook's suspects shape onto the contract's.
+
+    `vessel_sources` (mmsi -> "real"|"synthetic") comes from the vessels file
+    attribution actually ranked. A suspect's provenance is the VESSEL's, never
+    the scene's: stamping the scene flag here published synthetic vessels as
+    `source: real` in suspects.json.
+    """
+    vessel_sources = {int(k): str(v).lower() for k, v in (vessel_sources or {}).items()}
+    def _src(mmsi: int) -> str:
+        v = vessel_sources.get(int(mmsi))
+        if v in ("synthetic", "mock"):
+            return "synthetic"
+        if v in ("real", "sensor"):
+            return "real"
+        # Unknown vessel provenance is never promoted to real.
+        return "synthetic" if vessel_sources else scene_meta.get("source", "real")
+
     if "suspects" in payload and "run_id" in payload:
         return payload
 
@@ -256,7 +278,7 @@ def normalise_suspects(payload: dict, scene_meta: dict, run_id: str) -> dict:
     for v in payload.get("vessels", payload.get("suspects", [])):
         if v.get("filtered"):
             filtered.append({"mmsi": int(v["mmsi"]),
-                             "reason": v.get("filter_reason", "filtered")})
+                             "reason": v.get("reason") or v.get("filter_reason") or "filtered"})
             continue
         scores = {weight_alias.get(k, k): float(x)
                   for k, x in (v.get("scores") or v.get("sub_scores") or {}).items()}
@@ -272,7 +294,7 @@ def normalise_suspects(payload: dict, scene_meta: dict, run_id: str) -> dict:
             "sub_scores": scores,
             "reason": v.get("reason") or "No explanation supplied by the engine.",
             "evidence": v.get("evidence", {}) or {},
-            "source": scene_meta.get("source", "real"),
+            "source": _src(v["mmsi"]),
         })
 
     suspects.sort(key=lambda s: s["total_score"], reverse=True)
@@ -288,7 +310,12 @@ def normalise_suspects(payload: dict, scene_meta: dict, run_id: str) -> dict:
         "filtered_out": filtered,
         "total_vessels_considered": int(
             payload.get("total_vessels_considered", len(suspects) + len(filtered))),
-        "source": scene_meta.get("source", "real"),
+        # The ranking is synthetic if ANY vessel in it is: a planted culprit
+        # poisons the whole list's evidentiary value.
+        "source": ("synthetic" if (vessel_sources and any(v in ("synthetic", "mock")
+                                                             for v in vessel_sources.values()))
+                   or any(x["source"] == "synthetic" for x in suspects)
+                   else scene_meta.get("source", "real")),
     }
 
 

@@ -138,6 +138,22 @@ def _forward_fill(values: np.ndarray) -> np.ndarray:
     return filled
 
 
+def _set_first_available(simulation, keys, value) -> bool:
+    """Set the first config key this OpenDrift build actually knows.
+
+    OpenDrift renames settings between releases and raises on an unknown key, so a
+    single hard-coded name makes the adapter version-brittle. Returns True if one of
+    ``keys`` was accepted.
+    """
+    for key in keys:
+        try:
+            simulation.set_config(key, value)
+            return True
+        except Exception:                          # noqa: BLE001 - key absent in this build
+            continue
+    return False
+
+
 def run_opendrift(request, model: str) -> DriftRun:
     """Run one OpenDrift model over the same request the Euler backend would take."""
     Model = _import_model(model)
@@ -154,7 +170,39 @@ def run_opendrift(request, model: str) -> DriftRun:
     simulation.add_reader(readers)
 
     simulation.set_config("general:use_auto_landmask", _LANDMASK)
-    simulation.set_config("drift:horizontal_diffusivity", float(request.diffusion_m2_s))
+    if not _LANDMASK:
+        # With the auto landmask off, OpenDrift still demands a reader (or a constant)
+        # for land_binary_mask and aborts without one. 0 = "all sea", which is the
+        # honest setting for these open-ocean demo scenes AND matches the Euler
+        # backend, which has no coastline interaction either. Stranding is therefore
+        # NOT modelled by either engine -- see docs/qa/evidence/opendrift/.
+        _set_first_available(
+            simulation,
+            (
+                "environment:constant:land_binary_mask",
+                "environment:fallback:land_binary_mask",
+            ),
+            0,
+        )
+    # OpenDrift moved horizontal diffusivity between releases: it was
+    # `drift:horizontal_diffusivity` in the 1.9-1.11 line and is
+    # `environment:constant:horizontal_diffusivity` from 1.12 on. Try the known
+    # spellings in order rather than pinning one version, and fail loudly if the
+    # installed build knows none of them -- silently running with a different
+    # diffusivity than the Euler backend would make the two incomparable.
+    if not _set_first_available(
+        simulation,
+        (
+            "environment:constant:horizontal_diffusivity",
+            "drift:horizontal_diffusivity",
+            "environment:fallback:horizontal_diffusivity",
+        ),
+        float(request.diffusion_m2_s),
+    ):
+        raise missing_input(
+            "this OpenDrift build exposes no known horizontal-diffusivity setting; "
+            "the run would not match the Euler backend's diffusion"
+        )
     if model == "OpenOil":
         # Keep the comparison with Euler about advection, not weathering.
         for option, value in (

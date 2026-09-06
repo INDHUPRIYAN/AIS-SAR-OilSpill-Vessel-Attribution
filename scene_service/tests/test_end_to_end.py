@@ -262,15 +262,20 @@ class TestEndToEndSatelliteWorkflow(unittest.TestCase):
         ifd_offset = struct.unpack("<I", header[4:8])[0]
         self.assertEqual(ifd_offset, 8, "First IFD offset must be at byte 8")
 
-        # Read checksum from metadata and verify exact match
+        # scene_meta.json is contract-shaped (no checksum bookkeeping any more);
+        # verify the raster instead against the deterministic generator, and the
+        # contract file_path against the raster on disk.
+        from fixtures import generate_deterministic_tiff
+
         with open(DEMO_META_PATH, "r", encoding="utf-8") as f:
             meta = json.load(f)
 
         with open(DEMO_RASTER_PATH, "rb") as f:
             actual_sha = hashlib.sha256(f.read()).hexdigest()
 
-        self.assertEqual(meta["checksum"], actual_sha)
-        self.assertEqual(meta["file_size_bytes"], size)
+        _expected_bytes, expected_sha = generate_deterministic_tiff(64, 64)
+        self.assertEqual(expected_sha, actual_sha)
+        self.assertEqual(Path(meta["file_path"]).resolve(), DEMO_RASTER_PATH.resolve())
 
 
 if __name__ == "__main__":

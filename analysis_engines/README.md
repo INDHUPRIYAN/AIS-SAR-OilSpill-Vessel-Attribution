@@ -7,7 +7,7 @@ demonstrate any of them.
 | Engine | Status | In → Out |
 |---|---|---|
 | **A — Characterisation** | ✅ complete | mask GeoTIFF + `scene_meta.json` → `slick.geojson` |
-| **B — Drift** (hindcast + forecast) | ✅ complete on the Euler fallback; ⚠️ OpenDrift written but [unverified](engines/drift/README.md) | `slick.geojson` + `currents.nc` + `wind.nc` → `origin_cloud.geojson`, `forecast.geojson` |
+| **B — Drift** (hindcast + forecast) | ✅ complete — in-house Lagrangian particle integrator (Euler), dependency-free by design; OpenDrift/OpenOil adapter [written, unverified, future work](engines/drift/README.md) | `slick.geojson` + `currents.nc` + `wind.nc` → `origin_cloud.geojson`, `forecast.geojson` |
 | **C — Attribution** | ✅ complete | `origin_cloud.geojson` + `vessels.parquet` → `suspects.json` |
 
 **192 tests passing** (3 skipped until OpenDrift is installed). Benchmark: **86% top-1**, **100% top-3** over 50 seeded scenarios.
@@ -20,10 +20,10 @@ python -m venv .venv
 # .venv/bin/pip install -r requirements.txt       # Linux/macOS
 ```
 
-Engine B's *primary* path (OpenDrift) needs the separate conda environment described in
-`environment.yml`; Engines A, C and the Euler drift fallback need only the venv above.
-See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) §1 — OpenDrift is not installed yet, and that
-`environment.yml` is untested.
+Engine B's shipped path is the in-house Lagrangian (Euler) integrator and needs only the
+venv above, as do Engines A and C. The OpenDrift/OpenOil adapter is future work: it needs
+the separate conda environment in `environment.yml`, which is untested, and no run has
+used it. See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) §1.
 
 ## Run
 

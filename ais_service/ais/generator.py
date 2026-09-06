@@ -22,6 +22,8 @@ can measure from the geometry instead of from noise.
 import numpy as np
 import pandas as pd
 
+from .contract import to_contract
+
 KN_TO_DEG_LAT_PER_HR = 1.852 / 111.32   # knots -> degrees latitude per hour
 
 VESSEL_TYPES = ["Tanker", "Cargo", "Fishing", "Passenger"]
@@ -338,15 +340,112 @@ def _culprit_track(rng, times, culprit_config):
     return lat, lon, np.clip(sog, 0.5, 22), gap, keep
 
 
-def generate_synthetic_ais(bbox, start_time, end_time, n_vessels,
-                           culprit_config=None, seed=42, fleet_seed=None):
-    """Synthetic lane traffic matching the vessels.parquet schema, with a
-    planted culprit whose track passes exactly through the supplied origin.
+# --------------------------------------------------------------------------
+# Hard negatives: innocent vessels that NEARLY qualify as the culprit.
+# They keep the benchmark honest -- an attribution engine that only ever sees
+# one plausible vessel near the origin is being handed the answer.
+# --------------------------------------------------------------------------
 
-    `fleet_seed` varies the fleet identity AND geometry per incident: names
-    drawn from a realistic pool, MMSIs under plausible flag-state prefixes,
-    different lanes. Without it (legacy callers, the committed benchmark) the
-    original SynthVessel_9000000xx fleet is reproduced bit-for-bit.
+HARD_NEGATIVE_KINDS = (
+    "crosses_origin_outside_window",   # right place, wrong time
+    "in_window_never_enters",          # right time, wrong place
+    "gap_far_from_slick",              # suspicious silence, unrelated location
+)
+
+
+def _pinned_lane(rng, times, sog_kn, course_deg, pin_latlon, pin_time):
+    """Straight-ish lane integrated from a speed profile, pinned so the vessel
+    is exactly at `pin_latlon` at `pin_time`."""
+    n = len(times)
+    i_pin = int(np.argmin(np.abs((times - pin_time).total_seconds())))
+    dt_hr = np.diff(times.view("int64")).astype(float) / 3.6e12
+    dt_hr = np.append(dt_hr, dt_hr[-1] if len(dt_hr) else 1 / 12)
+    step = sog_kn * dt_hr * KN_TO_DEG_LAT_PER_HR
+    s = np.concatenate([[0.0], np.cumsum(step[:-1])])
+    s -= s[i_pin]
+    b = np.radians(course_deg)
+    lat = pin_latlon[0] + s * np.cos(b)
+    lon_scale = 1.0 / max(np.cos(np.radians(pin_latlon[0])), 0.2)
+    lon = pin_latlon[1] + s * np.sin(b) * lon_scale
+    lat += _smooth_noise(rng, n, 0.003, kernel=15)
+    lon += _smooth_noise(rng, n, 0.003, kernel=15)
+    keep, _ = _ocean_run(lat, lon, i_pin)
+    return lat, lon, keep, i_pin
+
+
+def _hard_negative_track(rng, times, culprit_config, kind):
+    """One near-miss innocent. Returns (lat, lon, sog, keep) arrays."""
+    n = len(times)
+    origin = culprit_config["origin"]
+    o_lat, o_lon = float(origin["lat"]), float(origin["lon"])
+    w_start = pd.to_datetime(origin["window_start_utc"], utc=True)
+    w_end = pd.to_datetime(origin["window_end_utc"], utc=True)
+    mid_window = w_start + (w_end - w_start) / 2
+    sog = np.clip(np.full(n, rng.uniform(10, 16)) + _smooth_noise(rng, n, 0.3),
+                  4, 22)
+    course = float(rng.uniform(0, 360))
+
+    if kind == "crosses_origin_outside_window":
+        # Sails straight through the origin cloud -- but before the window
+        # opened or after it closed, whichever fits the scene better.
+        margin = pd.Timedelta(minutes=90)
+        after, before = w_end + margin, w_start - margin
+        pin_time = after if after <= times[-1] else before
+        pin_time = max(min(pin_time, times[-1]), times[0])
+        lat, lon, keep, _ = _pinned_lane(rng, times, sog, course,
+                                         (o_lat, o_lon), pin_time)
+        return lat, lon, sog, keep
+
+    if kind == "in_window_never_enters":
+        # Present and moving during the origin window, but its whole track
+        # stays well clear of the origin cloud.
+        for _ in range(20):
+            bear = rng.uniform(0, 2 * np.pi)
+            dist = rng.uniform(0.30, 0.45)          # deg, ~33-50 km off
+            anchor = (o_lat + dist * np.cos(bear), o_lon + dist * np.sin(bear))
+            # course roughly perpendicular to the origin bearing, so the
+            # closest approach stays near `dist`
+            course = (np.degrees(bear) + 90 + rng.uniform(-15, 15)) % 360
+            lat, lon, keep, _ = _pinned_lane(rng, times, sog, course,
+                                             anchor, mid_window)
+            d = np.hypot(lat - o_lat, (lon - o_lon) *
+                         np.cos(np.radians(o_lat)))
+            if keep.any() and d[keep].min() > 0.15:
+                return lat, lon, sog, keep
+        return lat, lon, sog, keep
+
+    # kind == "gap_far_from_slick": goes dark for ~an hour, but far away.
+    bear = rng.uniform(0, 2 * np.pi)
+    dist = rng.uniform(0.6, 0.9)
+    anchor = (o_lat + dist * np.cos(bear), o_lon + dist * np.sin(bear))
+    lat, lon, keep, _ = _pinned_lane(rng, times, sog, course, anchor, mid_window)
+    half = pd.Timedelta(minutes=float(rng.uniform(25, 35)))
+    dark = np.asarray((times >= mid_window - half) & (times <= mid_window + half))
+    keep = keep & ~dark
+    return lat, lon, sog, keep
+
+
+def generate_synthetic_ais(bbox, start_time, end_time, n_vessels,
+                           culprit_config=None, seed=42, fleet_seed=None,
+                           n_hard_negatives=0):
+    """Synthetic lane traffic matching the FROZEN vessels.parquet contract,
+    with a planted culprit whose track passes exactly through the supplied
+    origin.
+
+    Output has exactly the 14 contract columns (timestamp_utc, draught_m,
+    interpolated, lowercase vessel_type, ...) sorted by (mmsi, timestamp_utc)
+    and passes contracts.schemas.validate_vessels_df.
+
+    `fleet_seed` varies the fleet identity AND geometry per incident: MMSIs
+    under plausible flag-state prefixes, different lanes. Without it (legacy
+    callers, the committed benchmark) the original 9000000xx fleet is
+    reproduced bit-for-bit.
+
+    `n_hard_negatives` appends that many innocent vessels that NEARLY qualify
+    as the culprit (see HARD_NEGATIVE_KINDS, cycled in order). They use a
+    dedicated RNG stream, so the main fleet is unchanged for a given seed
+    whatever this count is. Requires `culprit_config` for the origin geometry;
+    without one the parameter is ignored.
     """
     rng = np.random.default_rng(seed if fleet_seed is None else (seed, fleet_seed))
 
@@ -397,40 +496,70 @@ def generate_synthetic_ais(bbox, start_time, end_time, n_vessels,
 
         frames.append(pd.DataFrame({
             "mmsi": mmsi,
-            "timestamp": times.to_numpy(),
+            "timestamp_utc": times.to_numpy(),
             "lat": lat,
             "lon": lon,
             "sog_kn": sog,
             "cog_deg": cog,
             "heading_deg": heading,
-            "vessel_name": vname,
-            "imo": mmsi + 1000,
             "vessel_type": vtype,
             "length_m": rng.uniform(50, 300),
             "width_m": rng.uniform(10, 50),
-            "draft_m": rng.uniform(5, 15),
-            "status": "Under way using engine",
-            "gap_flag": gap,
+            "draught_m": rng.uniform(5, 15),
+            "interpolated": False,      # every fix here is a transmission
             "source": "synthetic",
             "culprit": is_culprit,
         }).loc[keep].reset_index(drop=True))
         if len(frames[-1]) < 4 and not is_culprit:
             frames.pop()          # never meaningfully inside coverage
 
+    # Hard negatives ride a dedicated RNG stream so their presence (or count)
+    # never perturbs the main fleet for a given seed.
+    if n_hard_negatives and culprit_config is not None:
+        hn_key = (seed, 990_017) if fleet_seed is None \
+            else (seed, fleet_seed, 990_017)
+        hn_rng = np.random.default_rng(hn_key)
+        for j in range(int(n_hard_negatives)):
+            kind = HARD_NEGATIVE_KINDS[j % len(HARD_NEGATIVE_KINDS)]
+            keep = np.zeros(n, dtype=bool)
+            for _attempt in range(12):   # coastlines eat some candidate lanes
+                lat, lon, sog, keep = _hard_negative_track(hn_rng, times,
+                                                           culprit_config, kind)
+                inside = (np.abs(lon - ccx) < cover) & (np.abs(lat - ccy) < cover)
+                keep = keep & inside
+                if keep.sum() >= 4:
+                    break
+            if keep.sum() < 4:
+                continue
+            if fleet_seed is None:
+                mmsi = 990_000_000 + j
+            else:
+                mid = MID_PREFIXES[int(hn_rng.integers(0, len(MID_PREFIXES)))]
+                mmsi = mid * 1_000_000 + int(hn_rng.integers(100_000, 999_999))
+            cog = _course_from_positions(lat, lon)
+            heading = (cog + hn_rng.normal(0, 2.0, n)) % 360
+            vtype = ["Tanker", "Cargo", "Fishing"][j % 3]
+            frames.append(pd.DataFrame({
+                "mmsi": mmsi,
+                "timestamp_utc": times.to_numpy(),
+                "lat": lat,
+                "lon": lon,
+                "sog_kn": sog,
+                "cog_deg": cog,
+                "heading_deg": heading,
+                "vessel_type": vtype,
+                "length_m": hn_rng.uniform(60, 250),
+                "width_m": hn_rng.uniform(10, 40),
+                "draught_m": hn_rng.uniform(5, 14),
+                "interpolated": False,
+                "source": "synthetic",
+                "culprit": False,       # innocent by construction
+            }).loc[keep].reset_index(drop=True))
+
     if not frames:
         return pd.DataFrame()
 
     final_df = pd.concat(frames, ignore_index=True)
-    final_df["mmsi"] = final_df["mmsi"].astype("int64")
-    final_df["lat"] = final_df["lat"].astype("float64")
-    final_df["lon"] = final_df["lon"].astype("float64")
-    final_df["sog_kn"] = final_df["sog_kn"].astype("float32")
-    final_df["cog_deg"] = final_df["cog_deg"].astype("float32")
-    final_df["heading_deg"] = final_df["heading_deg"].astype("float32")
-    final_df["imo"] = final_df["imo"].astype("Int64")
-    final_df["length_m"] = final_df["length_m"].astype("float32")
-    final_df["width_m"] = final_df["width_m"].astype("float32")
-    final_df["draft_m"] = final_df["draft_m"].astype("float32")
-    final_df["gap_flag"] = final_df["gap_flag"].astype(bool)
-    final_df["culprit"] = final_df["culprit"].astype(bool)
-    return final_df
+    # Project onto the frozen 14-column contract: exact names, exact dtypes,
+    # lowercase vessel types, sorted by (mmsi, timestamp_utc).
+    return to_contract(final_df, source="synthetic")

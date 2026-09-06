@@ -30,7 +30,8 @@ from ml.evaluate import load_checkpoint
 MODELS_ROOT = REPO_ROOT / "main_system" / "backend" / "services" / "detection" / "weights"
 
 
-def export_onnx(model, out_path: Path, tile: int, cfg, opset: int = 17) -> Path:
+def export_onnx(model, out_path: Path, tile: int, cfg, opset: int = 17,
+                extra_meta: dict | None = None) -> Path:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     model.eval()
     dummy = torch.randn(1, 1, tile, tile)
@@ -54,6 +55,9 @@ def export_onnx(model, out_path: Path, tile: int, cfg, opset: int = 17) -> Path:
         "input_range": "float32 [0,1] = (clip(dB, db_min, db_max) - db_min) / (db_max - db_min)",
         "output": "raw logits; apply sigmoid then threshold (default 0.5)",
     }
+    # model_version + training provenance: the service copies model_version
+    # into every DetectResponse, so two exports must never share a label.
+    meta.update(extra_meta or {})
     for k, v in meta.items():
         entry = m.metadata_props.add()
         entry.key, entry.value = k, v
@@ -148,7 +152,7 @@ def parity_section(parity: dict | None) -> str:
 
 
 def write_model_card(path: Path, ckpt: dict, cfg, onnx_path: Path,
-                     parity: dict | None, metrics_path: Path) -> None:
+                     parity: dict | None, metrics_path: Path, extra_meta: dict | None = None) -> None:
     metrics = {}
     if metrics_path.exists():
         try:
@@ -177,6 +181,7 @@ def write_model_card(path: Path, ckpt: dict, cfg, onnx_path: Path,
 
 **Artefact:** `{onnx_path.name}`
 **Architecture:** U-Net, `{ckpt.get('encoder', 'resnet34')}` encoder (ImageNet init), 1 input channel, 1 output class
+**Version:** `{(extra_meta or {}).get('model_version', 'unversioned')}` · **Training data:** {(extra_meta or {}).get('trained_on', 'unknown')}
 **Trained:** epoch {ckpt.get('epoch', '?')} selected · checkpoint saved {ckpt.get('saved_utc', '?')}
 **Exported:** {datetime.now(timezone.utc).isoformat(timespec='seconds')}
 
@@ -243,7 +248,21 @@ def main(argv=None) -> int:
 
     print(f"checkpoint : {args.checkpoint} (epoch {ckpt.get('epoch')})")
     print(f"fingerprint: {cfg.fingerprint}")
-    onnx_path = export_onnx(model, args.out, tile, cfg, args.opset)
+    # Version label = run directory + selected epoch, e.g. unet-r34-fullcorpus-e48.
+    version = f"{args.checkpoint.resolve().parent.name}-e{ckpt.get('epoch', '?')}"
+    trained_on = "unknown"
+    idx = REPO_ROOT / "data" / "processed" / "trujillo" / "trainval" / "index.json"
+    if idx.exists():
+        try:
+            tm = json.loads(idx.read_text(encoding="utf-8"))["meta"]
+            trained_on = (f"trujillo part {tm.get('part')}: {tm.get('scenes')} scenes, "
+                          f"{tm.get('n_tiles')} tiles ({tm.get('oil_tiles')} oil)")
+        except Exception:
+            pass
+    extra_meta = {"model_version": version, "trained_on": trained_on,
+                  "checkpoint_epoch": str(ckpt.get("epoch", "?"))}
+    print(f"version    : {version}  [{trained_on}]")
+    onnx_path = export_onnx(model, args.out, tile, cfg, args.opset, extra_meta)
     print(f"onnx       -> {onnx_path} "
           f"({onnx_path.stat().st_size / 1024 ** 2:.1f} MB, opset {args.opset})")
 
@@ -268,7 +287,7 @@ def main(argv=None) -> int:
             return 3
 
     write_model_card(args.out.parent / "model_card.md", ckpt, cfg, onnx_path,
-                     parity, args.metrics)
+                     parity, args.metrics, extra_meta)
     return 0
 
 

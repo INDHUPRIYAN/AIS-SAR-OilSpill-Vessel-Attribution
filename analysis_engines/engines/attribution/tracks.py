@@ -138,6 +138,36 @@ def _normalise_timestamps(
     return frame[frame["timestamp"].notna()]
 
 
+# The frozen vessels.parquet contract (contracts/schemas/tabular.py) names two columns
+# differently from this engine's internal vocabulary. A contract-VALID file was therefore
+# rejected with MISSING_INPUT, and only worked because the pipeline injected renamed
+# copies on the way in. Accepting the contract spelling as an alias here means a file that
+# satisfies the frozen contract is loadable directly -- which is what a teammate handing
+# over vessels.parquet reasonably expects. The internal names still win when both exist,
+# so nothing that already worked changes.
+_CONTRACT_ALIASES = {
+    "timestamp_utc": "timestamp",     # contract name -> engine name
+    "draught_m": "draft_m",
+}
+
+
+def _apply_contract_aliases(frame):
+    """Map frozen-contract column names onto this engine's internal names."""
+    notes: list[str] = []
+    renames = {
+        contract: internal
+        for contract, internal in _CONTRACT_ALIASES.items()
+        if contract in frame.columns and internal not in frame.columns
+    }
+    if renames:
+        frame = frame.rename(columns=renames)
+        notes.append(
+            "vessels.parquet uses the frozen-contract column name(s) "
+            f"{sorted(renames)}; read as {sorted(renames.values())}"
+        )
+    return frame, notes
+
+
 def load_vessels(path: str | Path) -> tuple[list[VesselTrack], list[str]]:
     """Load and assemble every vessel track in a parquet file.
 
@@ -146,6 +176,8 @@ def load_vessels(path: str | Path) -> tuple[list[VesselTrack], list[str]]:
     """
     warnings: list[str] = []
     frame = _read_frame(path)
+    frame, alias_warnings = _apply_contract_aliases(frame)
+    warnings.extend(alias_warnings)
 
     absent = [c for c in REQUIRED_COLUMNS if c not in frame.columns]
     if absent:

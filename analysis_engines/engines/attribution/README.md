@@ -20,6 +20,13 @@ Handbook pitfall #8: no ground truth for attribution exists, and the use case re
 explainability. Every factor is a transparent, hand-checkable quantity, and every score
 records the evidence behind it so the generated sentence can quote real numbers.
 
+Every ranked suspect also carries the frozen contract's `evidence` block
+(`contracts/schemas/tabular.py`: `closest_approach_km`, `time_in_origin_window_min`,
+`ais_gap_minutes`, `course_delta_deg` in [0, 180], `min_sog_kn`,
+`track_points_in_cloud`) — the same raw numbers the `reason` sentence quotes, so an
+investigator can check the prose against them. A field a run genuinely did not compute
+stays `null`.
+
 ## Gates, then scoring
 
 Three gates run first; a vessel failing any is excluded **with the reason recorded**, and

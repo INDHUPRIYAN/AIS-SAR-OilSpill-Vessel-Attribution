@@ -9,7 +9,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Activity, Crosshair, Droplets, Info, Layers as LayersIcon, Play, Zap,
+  Activity, Crosshair, Download, Droplets, FileText, Info,
+  Layers as LayersIcon, Play, Zap,
 } from "lucide-react";
 
 import WorkspaceMap from "../components/workspace/WorkspaceMap";
@@ -53,7 +54,7 @@ export default function Investigation() {
   const [speed, setSpeed] = useState(4);
   const [show, setShow] = useState({
     sar: true, slick: true, geometry: true, forecast: true,
-    hindcast: true, origin: true, vessels: true,
+    hindcast: true, origin: true, vessels: true, lookalikes: true,
   });
   const [view, setView] = useState({
     longitude: 80.32, latitude: 13.05, zoom: 9.6, pitch: 0, bearing: 0,
@@ -243,6 +244,7 @@ export default function Investigation() {
           sceneMeta: layers.scene_meta, slick: layers.slick,
           origin: layers.origin_cloud, forecast: layers.forecast,
           vessels: layers.vessels, suspects: layers.suspects,
+          detect: layers.detect,
         }}
         timeMs={timeMs} sceneT0={sceneT0} runId={runId}
         selectedMmsi={selectedMmsi} onSelect={flyToVessel}
@@ -308,6 +310,35 @@ export default function Investigation() {
               Replay mode — pre-computed files, no execution
             </span>
           </label>
+
+          {/* Export: the GeoJSON bundle streams straight from the run dir
+            * (contract artefacts only); the report is a printable page. */}
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            {runId ? (
+              <a className="btn btn-sm" style={{ flex: 1, justifyContent: "center",
+                  textDecoration: "none" }}
+                href={`/api/runs/${runId}/export`} download
+                data-testid="export-bundle"
+                title="Download slick, origin cloud, forecast, vessels and suspects as a GeoJSON/contract bundle">
+                <Download size={12} /> Export bundle
+              </a>
+            ) : (
+              <button className="btn btn-sm" disabled
+                style={{ flex: 1, justifyContent: "center" }}
+                data-testid="export-bundle">
+                <Download size={12} /> Export bundle
+              </button>
+            )}
+            <Link className="btn btn-sm" style={{ flex: 1, justifyContent: "center",
+                textDecoration: "none",
+                pointerEvents: runId ? "auto" : "none",
+                opacity: runId ? 1 : 0.45 }}
+              to={runId ? `/report?run=${runId}` : "#"} target="_blank"
+              data-testid="export-report"
+              title="Printable investigation report — run metadata, slick geometry, origin window, suspects with evidence and weights">
+              <FileText size={12} /> Report
+            </Link>
+          </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }}

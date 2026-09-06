@@ -117,9 +117,33 @@ rotation — the backtracked particles never converge, so no release time can be
 from drift alone. The engine widens the window to the whole run and says so. See
 [KNOWN_ISSUES.md](../../KNOWN_ISSUES.md) §4.
 
-Forecast mode emits one predicted-extent polygon per horizon (+6/+12/+24 h), hulled with
-`shapely.concave_hull` over the particles inside the 90% confidence region, plus an
-`uncertainty_growth` ratio against the spread at seeding.
+Forecast mode emits one predicted-extent polygon per horizon (+6/+12/+24 h) **per
+confidence level** — 50% (the likely core) and 90% (the containment region), from
+`forecast_confidence_levels` in `config/drift.yaml`. Each is hulled with
+`shapely.concave_hull` over the particles inside that level's confidence region, plus an
+`uncertainty_growth` ratio against the spread at seeding at the same level. Every feature
+carries the level as `level` (this module's historical property name) and
+`confidence_level` (the frozen contract's name, `contracts/schemas/geo.py`) — same value.
+
+## Forcing provenance in the files themselves
+
+Both `origin_cloud.geojson` and `forecast.geojson` carry a top-level
+`metadata.forcing` object (foreign members are legal GeoJSON, and the frozen contract
+homes forcing exactly there):
+
+```json
+"metadata": {"forcing": {
+  "currents": {"provider": "currents.nc", "variables": ["u", "v"], "fallback": null},
+  "wind":     {"provider": null, "variables": null, "fallback": "no wind leeway"},
+  "windage": 0.03,
+  "engine": "euler"
+}}
+```
+
+`provider` is the source file's name — the truthful provenance at this layer, which
+receives NetCDFs, not named services; a missing field records which fallback mode ran
+instead. Previously this existed only as transient status warnings, so a saved output
+could not say what drove it.
 
 ## Verified against
 
