@@ -29,13 +29,30 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
-from backend.models.db import AoiWatch, Investigation, SessionLocal, utcnow
-from backend.services.scheduler.aoi import AOI, AOIConfigError, load_aois
+# The sibling services are separate import roots, not installed packages
+# (pyproject is dependencies-only by design, so `pip install -e .` adds
+# nothing to sys.path). `pytest.ini` declares those roots, which is why the
+# scheduler's tests passed while the deployed path raised
+# `ModuleNotFoundError: No module named 'satellite'` on every poll -- the
+# suite never exercised the environment uvicorn actually runs in (audit P2/C7).
+#
+# Same bootstrap as backend/services/pipeline/ais_index.py, which is why the
+# AIS store keeps working under uvicorn while this did not.
+REPO_ROOT = Path(__file__).resolve().parents[4]
+for _root in ("scene_service", "ais_service", "metocean_service"):
+    _path = str(REPO_ROOT / _root)
+    if _path not in sys.path:
+        sys.path.insert(0, _path)
+
+from backend.models.db import AoiWatch, Investigation, SessionLocal, utcnow  # noqa: E402
+from backend.services.scheduler.aoi import AOI, AOIConfigError, load_aois  # noqa: E402
 
 log = logging.getLogger(__name__)
 
