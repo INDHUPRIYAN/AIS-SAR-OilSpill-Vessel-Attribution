@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tempfile
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -121,9 +122,20 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    work = Path(args.work) if args.work else out_dir / "_ais_work"
+
     combined = csvs[0]
+    scratch = None
     if len(csvs) > 1:
+        if args.work:
+            work = Path(args.work)
+            work.mkdir(parents=True, exist_ok=True)
+        else:
+            # NOT inside out_dir. Two days of MarineCadastre concatenate to
+            # ~1.8 GB, and out_dir is a run directory that gets sealed and
+            # hashed -- a scratch file that size has no business living in the
+            # artefact record of an investigation.
+            scratch = tempfile.TemporaryDirectory(prefix="ot_ais_")
+            work = Path(scratch.name)
         combined = concat_csvs(csvs, work / "combined.csv")
         print(f"concatenated {len(csvs)} archive(s) -> {combined} "
               f"({combined.stat().st_size:,} B)")
@@ -178,6 +190,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"\n{summary['rows']:,} rows, {summary['unique_mmsi']} MMSI, "
           f"{interpolated:,} interpolated, {len(identities)} identities  ({elapsed}s)")
     print(f"  {vessels}")
+    if scratch is not None:
+        scratch.cleanup()
     return 0
 
 
