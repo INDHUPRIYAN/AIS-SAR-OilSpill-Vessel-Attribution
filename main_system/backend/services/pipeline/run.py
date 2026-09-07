@@ -467,6 +467,126 @@ def forcing_provenance(path) -> Optional[dict]:
     return block
 
 
+@lru_cache(maxsize=1)
+def _git_sha() -> str:
+    """Commit that produced this run, honestly flagged when the tree is dirty.
+
+    "unknown" and "<sha>+dirty" are both more useful than a clean-looking sha
+    that does not describe the code that actually ran.
+    """
+    import subprocess
+
+    try:
+        sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(REPO_ROOT),
+                             capture_output=True, text=True, timeout=10)
+        if sha.returncode != 0:
+            return "unknown"
+        head = sha.stdout.strip()
+        dirty = subprocess.run(["git", "status", "--porcelain"], cwd=str(REPO_ROOT),
+                               capture_output=True, text=True, timeout=20)
+        return f"{head}+dirty" if dirty.stdout.strip() else head
+    except Exception:                              # noqa: BLE001 - never fail a run for this
+        return "unknown"
+
+
+@lru_cache(maxsize=1)
+def _model_records() -> tuple:
+    """Identity and hash of every model file the pipeline can load.
+
+    Read from the ONNX metadata the exporter embedded, so the manifest names
+    the checkpoint that actually ran rather than whatever a side-file claims.
+    """
+    weights_dir = REPO_ROOT / "main_system" / "backend" / "services" / "detection" / "weights"
+    records = []
+    for kind, filename in (("screen", "screen.onnx"), ("segment", "segment.onnx")):
+        path = weights_dir / filename
+        if not path.exists():
+            continue
+        raw = path.read_bytes()
+        entry = {"kind": kind, "file": filename,
+                 "sha256": provenance.sha256_bytes(raw), "bytes": len(raw)}
+        try:
+            import onnx
+
+            props = {kv.key: kv.value for kv in
+                     onnx.load(str(path), load_external_data=False).metadata_props}
+            entry["name"] = props.get("model_version")
+            entry["config_fingerprint"] = props.get("config_fingerprint")
+        except Exception:                          # noqa: BLE001 - hash alone still helps
+            pass
+        records.append(entry)
+    return tuple(records)
+
+
+@lru_cache(maxsize=1)
+def _weights_profile_stamp() -> Optional[dict]:
+    """Which attribution weight profile scored this run.
+
+    A hash of the `weights:` block only, so the stamp is stable when an
+    unrelated gate threshold in the same file is tuned.
+    """
+    import hashlib
+
+    path = REPO_ROOT / "analysis_engines" / "config" / "attribution_weights.yaml"
+    if not path.exists():
+        return None
+    try:
+        import yaml
+
+        block = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get("weights") or {}
+        canonical = json.dumps({k: block[k] for k in sorted(block)}, sort_keys=True)
+        total = round(sum(float(v) for v in block.values()), 12)
+        return {
+            "profile": "default-v1",
+            "profile_hash": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+            "sum": total,
+            "validated": abs(total - 1.0) <= 1e-6,
+        }
+    except Exception:                              # noqa: BLE001
+        return None
+
+
+def _run_provider_snapshot(meta, currents, wind, vessels_path, by_name) -> dict:
+    """Per-layer record of what actually served this run.
+
+    Deliberately NOT a provider probe. A probe answers "is CDSE reachable
+    now?", which says nothing about the run it would be filed beside -- and
+    the file it replaces was worse still, a static mock with no relationship
+    to anything. Every entry here is derived from an input the run really
+    consumed, and a layer with no source says so rather than guessing.
+    """
+    def stage_status(name: str) -> Optional[str]:
+        stage = by_name.get(name)
+        return stage.status if stage else None
+
+    scene_provider = (meta or {}).get("provider_used")
+    snapshot = {
+        "owner": "measured",
+        "note": "What this run consumed, recorded at seal time. Not a "
+                "reachability probe, and not a statement about provider "
+                "health now -- see /api/apis/status for that.",
+        "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "scene": {
+            "provider": scene_provider,
+            "source": (meta or {}).get("source"),
+            "scene_id": (meta or {}).get("scene_id"),
+            "data_source": (by_name["detect"].data_source
+                            if "detect" in by_name else None),
+        },
+        "currents": forcing_provenance(currents),
+        "wind": forcing_provenance(wind),
+        "ais": {
+            "file": Path(vessels_path).name if vessels_path else None,
+            "data_source": (by_name["attribution"].data_source
+                            if "attribution" in by_name else None),
+        },
+        "stages": {name: stage_status(name) for name in
+                   ("detect", "characterise", "drift_hindcast",
+                    "drift_forecast", "attribution")},
+    }
+    return {k: v for k, v in snapshot.items() if v is not None}
+
+
 def forcing_coverage_hours(paths, acquired_utc: Optional[str]):
     """(hours_before, hours_after) that the forcing grids cover around the scene.
 
@@ -1029,9 +1149,16 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
         if Path(vessels_path).resolve() != dest.resolve():
             shutil.copy(vessels_path, dest)
 
-    src = MOCKS / "provider_status.json"
-    if src.exists() and not (out_dir / "provider_status.json").exists():
-        shutil.copy(src, out_dir / "provider_status.json")
+    # What actually served THIS run, written from the run's own inputs. A
+    # static mock was previously copied in from contracts/mocks/, so 19 sealed
+    # run directories carried an identical fictional provider board that had
+    # nothing to do with the run it sat next to (audit PC-11). This is a
+    # measurement, not a probe: it records what the bytes came from, not what
+    # some provider answered at seal time.
+    (out_dir / "provider_status.json").write_text(
+        json.dumps(_run_provider_snapshot(meta, currents, wind, vessels_path, by_name),
+                   indent=2),
+        encoding="utf-8")
 
     manifest = {
         "run_id": run_id,
@@ -1039,6 +1166,12 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
         "scene_path": str(scene).replace("\\", "/"),
         "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "total_seconds": round(time.time() - t_start, 2),
+        # Which code and which weights produced this. Without them a sealed run
+        # proves only that its artefacts are unmodified -- not what generated
+        # them, so a bug fixed later cannot be traced to the runs it affected.
+        "code_git_sha": _git_sha(),
+        "models": _model_records(),
+        "attribution_profile": _weights_profile_stamp(),
         "stages": [s.to_dict() for s in stages],
     }
     # §12/§14: hash every artefact into the run record. This is what lets a

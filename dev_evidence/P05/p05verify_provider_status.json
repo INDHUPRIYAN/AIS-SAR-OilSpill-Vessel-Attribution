@@ -1,0 +1,34 @@
+{
+  "owner": "measured",
+  "note": "What this run consumed, recorded at seal time. Not a reachability probe, and not a statement about provider health now -- see /api/apis/status for that.",
+  "generated_utc": "2026-09-07T01:10:39Z",
+  "scene": {
+    "provider": "LOCAL",
+    "source": "cached",
+    "scene_id": "S1A_IW_GRDH_EMED",
+    "data_source": "sensor"
+  },
+  "currents": {
+    "file": "currents.nc",
+    "provider": "Copernicus Marine Service (CMEMS)",
+    "dataset": "OceanTrace Normalized Surface Currents",
+    "normalised": "Normalized at 2026-08-24T22:11:07.820997+00:00"
+  },
+  "wind": {
+    "file": "wind.nc",
+    "provider": "Open-Meteo API",
+    "dataset": "OceanTrace Normalized 10m Atmospheric Winds (Open-Meteo Fallback)",
+    "normalised": "Normalized at 2026-08-24T22:12:37.788384+00:00"
+  },
+  "ais": {
+    "file": "vessels_generated.parquet",
+    "data_source": "synthetic"
+  },
+  "stages": {
+    "detect": "ok",
+    "characterise": "ok",
+    "drift_hindcast": "ok",
+    "drift_forecast": "ok",
+    "attribution": "ok"
+  }
+}

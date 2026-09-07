@@ -1,0 +1,156 @@
+{
+  "run_id": "p05-verify",
+  "scene_id": "S1A_IW_GRDH_EMED",
+  "scene_path": "../data/raw/trujillo/part3/Images/Oil/00000.tif",
+  "generated_utc": "2026-09-07T01:10:39Z",
+  "total_seconds": 38.79,
+  "code_git_sha": "2a0555e42f703eeb999e92bda1fd4d07c1deea2d+dirty",
+  "models": [
+    {
+      "kind": "screen",
+      "file": "screen.onnx",
+      "sha256": "9a6ff8df0d2b4a8f8a287895c6780030c336c5c7f61f1d16d11cc89ceb9ac9fd",
+      "bytes": 10423456,
+      "name": "yolo11n-screen-dartis-2026-08-24",
+      "config_fingerprint": "01e24b0fb0e8"
+    },
+    {
+      "kind": "segment",
+      "file": "segment.onnx",
+      "sha256": "a4aac81f3ddd54ce05859c0fc4faada7b196288ed64a54293ab96488c5804a44",
+      "bytes": 97719644,
+      "name": "unet-r34-fullcorpus-e48",
+      "config_fingerprint": "01e24b0fb0e8"
+    }
+  ],
+  "attribution_profile": {
+    "profile": "default-v1",
+    "profile_hash": "f7e12dd4a5154d05b8a1b1c945fa62093aa05b4cae1bf9cdc8bf12abff5255ba",
+    "sum": 1.0,
+    "validated": true
+  },
+  "stages": [
+    {
+      "stage": "detect",
+      "owner": "Indhu",
+      "status": "ok",
+      "engine_used": "ml",
+      "data_source": "sensor",
+      "output": "detect_response.json",
+      "contract": "detect",
+      "source": "real",
+      "detail": "engine=ml, 1 oil + 215 look-alike candidate(s), confidence 0.7643",
+      "seconds": 8.93,
+      "warnings": [
+        "screen: 1 oil candidate(s) over 9 tile(s), best 0.37",
+        "ml inference 0.6s",
+        "screen rejected 215/216 segmented region(s) as look-alike"
+      ],
+      "idempotency_key": "0798e9ef1282291249aea90ef212528ed612547f2ea2256823760ef5d5b63942"
+    },
+    {
+      "stage": "characterise",
+      "owner": "Nandha",
+      "status": "ok",
+      "engine_used": "primary",
+      "data_source": "sensor",
+      "output": "slick.geojson",
+      "contract": "slick",
+      "source": "real",
+      "detail": "Engine A: 24 slick(s)",
+      "seconds": 5.96,
+      "warnings": [],
+      "idempotency_key": "15326946fea78ccda20439cebf6f79bf662dddffaf9ae93fd37e0953df7c392e"
+    },
+    {
+      "stage": "drift_hindcast",
+      "owner": "Nandha",
+      "status": "ok",
+      "engine_used": "euler",
+      "data_source": "cached",
+      "output": "origin_cloud.geojson",
+      "contract": "origin_cloud",
+      "source": "real",
+      "detail": "Engine B [euler] hindcast 24h, currents+wind",
+      "seconds": 4.01,
+      "warnings": [],
+      "idempotency_key": "ebd57066be74d5a3fd1714c5f52ae937bc52645aead1502713d409435860c646"
+    },
+    {
+      "stage": "drift_forecast",
+      "owner": "Nandha",
+      "status": "ok",
+      "engine_used": "euler",
+      "data_source": "cached",
+      "output": "forecast.geojson",
+      "contract": "forecast",
+      "source": "real",
+      "detail": "Engine B [euler] forecast 19h, currents+wind",
+      "seconds": 2.69,
+      "warnings": [],
+      "idempotency_key": "9735ad403b0e9d06eb7f6d1276f4bea7f91c033c50fcb101833f3c0b131ae236"
+    },
+    {
+      "stage": "attribution",
+      "owner": "Nandha",
+      "status": "ok",
+      "engine_used": "primary",
+      "data_source": "synthetic",
+      "output": "suspects.json",
+      "contract": "suspects",
+      "source": "real",
+      "detail": "Engine C: 13 suspect(s), top MMSI 477412322 score 0.80",
+      "seconds": 4.49,
+      "warnings": [
+        "vessels.parquet does not cover the computed origin window; generating AIS for this origin instead",
+        "synthesised AIS around the computed origin (35.498, 34.799) -- flagged SYNTHETIC",
+        "AIS index: 43 vessels/5499 rows -> 29 vessels/3854 rows (query 92.9 ms vs full scan 6.8 ms; ingest 162.1 ms)"
+      ],
+      "idempotency_key": "f62c49f4ea062365f3bf0727b442a2305442c0c2cd5b40ae96adecd5ed142db7"
+    }
+  ],
+  "artefacts": [
+    {
+      "file": "scene_meta.json",
+      "bytes": 424,
+      "sha256": "a51a1b48a383d06d599c7c45a4c4e582f327f219675b376938bb8ee521be68b7"
+    },
+    {
+      "file": "detect_response.json",
+      "bytes": 43423,
+      "sha256": "a381a9aabcbc732982fe813b7cf77a9b5a40188236c93c956da6e9452db82a40"
+    },
+    {
+      "file": "raw_mask.tif",
+      "bytes": 106299,
+      "sha256": "c34b2314b54c216ac87b85b7fc4783270e8d9e4d9af1bbb5f1ee431824d8e85a"
+    },
+    {
+      "file": "slick.geojson",
+      "bytes": 279419,
+      "sha256": "8bbd1cb1f13774449894e0ea8c1e3b6236d132e39d041b8c20a4daec5849c60f"
+    },
+    {
+      "file": "origin_cloud.geojson",
+      "bytes": 2931188,
+      "sha256": "d5b3f5b8270ef0251b468d2e18038c3a15e3a7842c5224128515837573a3e3b1"
+    },
+    {
+      "file": "forecast.geojson",
+      "bytes": 19325,
+      "sha256": "16c5127dfacfe0be6e36624406221ca1d1ed2a12a0128553be1ec25c627b87ef"
+    },
+    {
+      "file": "vessels.parquet",
+      "bytes": 277071,
+      "sha256": "fb99fa7c67c0cec080a187ff7505bccaddb350942d266e393b25df7dd8a40860"
+    },
+    {
+      "file": "suspects.json",
+      "bytes": 13110,
+      "sha256": "5f84b1b08e94723d41290e05727650a394b3c550688df3757a0697af797cd3c1"
+    }
+  ],
+  "artefact_digest": "ad48855e9467c591329034972bbd9b5c452431610924bdc5059ee14711887809",
+  "immutable": true
+}

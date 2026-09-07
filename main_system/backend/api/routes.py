@@ -284,11 +284,17 @@ def _lite_origin(payload: dict, max_particles: int = 1800) -> dict:
     uniform. The contract file on disk is untouched -- this trims the wire
     format for a browser, nothing else.
     """
-    feats = payload.get("features", [])
-    parts = [f for f in feats
-             if (f.get("properties", {}).get("feature_type")
-                 or f.get("properties", {}).get("kind")) != "ellipse"]
-    others = [f for f in feats if f not in parts]
+    # One pass, two buckets. This used to build `parts` and then derive
+    # `others` with `f not in parts`, an O(n*m) scan comparing whole feature
+    # dicts -- ~56M comparisons on a 7,500-particle cloud, which made
+    # `?lite=true` roughly 20x SLOWER than serving the full file it was meant
+    # to shrink (audit X-05).
+    parts, others = [], []
+    for f in payload.get("features", []):
+        props = f.get("properties", {})
+        kind = props.get("feature_type") or props.get("kind")
+        (others if kind == "ellipse" else parts).append(f)
+
     if len(parts) <= max_particles:
         return payload
     stride = max(1, len(parts) // max_particles)
@@ -296,6 +302,74 @@ def _lite_origin(payload: dict, max_particles: int = 1800) -> dict:
             "metadata": {**payload.get("metadata", {}),
                          "lite_subsampled": True,
                          "particles_full": len(parts)}}
+
+
+ATTRIBUTION_WEIGHTS = (REPO_ROOT / "analysis_engines" / "config"
+                       / "attribution_weights.yaml")
+
+# The six scoring factors, in the engine's own vocabulary. `suspects.json`
+# publishes two of them under different names, so the mapping is stated here
+# rather than left for the UI to guess.
+WEIGHT_FACTORS = ("proximity", "temporal", "trajectory", "anomaly", "ais_gap", "prior")
+WEIGHT_PUBLISHED_AS = {"anomaly": "behaviour", "prior": "vessel_prior"}
+
+
+def weights_profile() -> dict:
+    """The attribution weights as written on disk, with an integrity verdict.
+
+    Only the `weights:` block is summed. The same file also carries `gates:`,
+    `priors:` and `scoring:` thresholds -- summing the document would always
+    fail. `profile_hash` covers just the weights block, so a run can record
+    which profile scored it without the hash moving when an unrelated
+    threshold is tuned.
+    """
+    import hashlib
+
+    import yaml
+
+    if not ATTRIBUTION_WEIGHTS.exists():
+        raise HTTPException(503, f"attribution weights not found at "
+                                 f"{ATTRIBUTION_WEIGHTS.name}")
+    doc = yaml.safe_load(ATTRIBUTION_WEIGHTS.read_text(encoding="utf-8")) or {}
+    block = doc.get("weights") or {}
+
+    values = {f: float(block[f]) for f in WEIGHT_FACTORS if f in block}
+    unknown = sorted(set(block) - set(WEIGHT_FACTORS))
+    missing = [f for f in WEIGHT_FACTORS if f not in block]
+    total = round(sum(values.values()), 12)
+    valid = not missing and not unknown and abs(total - 1.0) <= 1e-6
+
+    canonical = json.dumps({k: block[k] for k in sorted(values)}, sort_keys=True)
+    return {
+        "profile": "default-v1",
+        "profile_hash": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "source": ATTRIBUTION_WEIGHTS.relative_to(REPO_ROOT).as_posix(),
+        "weights": values,
+        "published_as": WEIGHT_PUBLISHED_AS,
+        "sum": total,
+        "validated": valid,
+        "problems": (
+            ([f"missing factor(s): {missing}"] if missing else [])
+            + ([f"unknown weight(s): {unknown}"] if unknown else [])
+            + ([f"weights sum to {total}, not 1.0"] if abs(total - 1.0) > 1e-6 else [])
+        ),
+        # Stated rather than silently relied upon: if the file ever stops
+        # summing to 1.0, Engine C renormalises and warns instead of refusing,
+        # so scores stay comparable but no longer match the file as written.
+        "on_invalid": "Engine C renormalises and records a warning in the run; "
+                      "this endpoint reports the file as written.",
+    }
+
+
+@router.get("/attribution/weights")
+def attribution_weights():
+    """The weight profile scoring uses, read-only.
+
+    Editing weights is deliberately not offered: the same file is a frozen CLI
+    input, and a mid-flight change would silently alter what previously sealed
+    runs mean. Versioned profiles are post-SIH work.
+    """
+    return weights_profile()
 
 
 @router.get("/layers/{run_id}/{layer}")
