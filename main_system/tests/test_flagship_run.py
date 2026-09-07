@@ -67,7 +67,7 @@ def test_the_manifest_says_which_ais_path_ran(manifest):
 
 
 def test_attribution_did_not_run_on_synthetic_data(manifest):
-    stages = {s["name"]: s for s in manifest["stages"]}
+    stages = {s["stage"]: s for s in manifest["stages"]}
     attribution = stages["attribution"]
     assert attribution["data_source"] != "synthetic", \
         "the flagship's attribution stage ran on synthetic vessels"
@@ -118,8 +118,12 @@ def test_the_manifest_names_the_code_and_models_that_ran(manifest):
 
 
 def test_the_scene_is_real_sentinel1_not_a_mock(manifest):
-    stages = {s["name"]: s for s in manifest["stages"]}
-    assert stages["detect"]["data_source"] == "real"
+    stages = {s["stage"]: s for s in manifest["stages"]}
+    # `data_source` names what the bytes were, not the stage outcome: a real
+    # Sentinel-1 acquisition is "sensor". "synthetic" is the value that would
+    # mean the scene was fabricated.
+    assert stages["detect"]["data_source"] == "sensor"
+    assert stages["detect"]["source"] == "real"
     assert manifest["scene_id"].startswith("S1")
 
 
@@ -136,7 +140,7 @@ def origin_cloud() -> dict:
 
 
 def test_the_hindcast_actually_ran(manifest):
-    stages = {s["name"]: s for s in manifest["stages"]}
+    stages = {s["stage"]: s for s in manifest["stages"]}
     hindcast = stages["drift_hindcast"]
     assert hindcast["status"] in ("ok", "fallback"), \
         f"drift_hindcast is {hindcast['status']}: {hindcast.get('detail')}"
@@ -189,7 +193,7 @@ def test_the_forcing_is_named_and_real(origin_cloud):
 
 
 def test_the_forecast_artefact_exists(manifest):
-    stages = {s["name"]: s for s in manifest["stages"]}
+    stages = {s["stage"]: s for s in manifest["stages"]}
     assert stages["drift_forecast"]["status"] in ("ok", "fallback"), \
         f"drift_forecast is {stages['drift_forecast']['status']}"
     assert (_run_dir() / "forecast.geojson").exists()

@@ -404,3 +404,50 @@ def test_the_derivation_method_reaches_the_published_cloud(method, tmp_path):
     assert md["origin_peak_utc"] == "2023-01-08T00:10:08Z"
     assert md["origin_window_start_utc"] == "2023-01-07T10:10:08Z"
     assert md["origin_window_end_utc"] == "2023-01-08T00:10:08Z"
+
+
+def test_every_field_normalise_publishes_is_declared_by_a_contract():
+    """The failure mode this closes, twice over.
+
+    Both `filter_reason`/`failed_gates` on suspects and
+    `origin_window_method`/`origin_peak_utc` on the origin cloud were added to
+    the published artefacts without being added to the schemas those artefacts
+    are validated against. In both cases the pipeline ran the stage
+    successfully, wrote a correct file, and then marked the stage FAILED on its
+    own contract check -- so a completed attribution holding four ranked
+    suspects was reported as a failure. Neither showed up in the suite because
+    no test compared what normalisation writes with what the contract permits.
+    """
+    from contracts.schemas.geo import OriginMetadata
+    from contracts.schemas.tabular import FilteredVessel
+
+    # Fields normalisation is known to publish. Extend this list when
+    # normalisation learns a new one -- that is the point of the test.
+    published = {
+        OriginMetadata: {
+            "scene_id", "origin_window_start_utc", "origin_window_end_utc",
+            "backtrack_hours", "n_particles", "timestep_minutes", "forcing",
+            "origin_window_method", "origin_peak_utc",
+            "origin_uncertainty_km", "origin_uncertainty_coverage",
+            "origin_uncertainty_method", "source", "crs",
+        },
+        FilteredVessel: {"mmsi", "reason", "filter_reason", "failed_gates"},
+    }
+    for model, fields in published.items():
+        declared = set(model.model_fields)
+        missing = fields - declared
+        assert not missing, (
+            f"{model.__name__} does not declare {sorted(missing)}, which "
+            "normalisation writes. The stage will run, produce a correct file, "
+            "and then be marked FAILED by its own contract check.")
+
+
+def test_the_contracts_forbid_extras_so_this_matters():
+    """If the models ever allowed extras the tests above would pass vacuously."""
+    from contracts.schemas.geo import OriginMetadata
+    from contracts.schemas.tabular import FilteredVessel
+
+    for model in (OriginMetadata, FilteredVessel):
+        assert model.model_config.get("extra") == "forbid", (
+            f"{model.__name__} no longer forbids extra fields; the contract "
+            "has stopped being a contract")

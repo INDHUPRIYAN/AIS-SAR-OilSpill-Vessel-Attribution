@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "origin_window_utc": [
+    "2023-01-07T11:10:08Z",
+    "2023-01-08T00:10:08Z"
+  ],
+  "origin_window_hours": 13.0,
+  "origin_window_method": "cloud_convergence",
+  "peak_utc": "2023-01-08T00:10:08Z",
+  "ais_span_utc": [
+    "2023-01-07T00:10:00Z",
+    "2023-01-07T23:55:00Z"
+  ],
+  "rows_total": 86269,
+  "rows_inside_window": 45405,
+  "mmsi_inside_window": 384,
+  "sources": [
+    "real"
+  ],
+  "uncovered_minutes_at_start": 0.0,
+  "uncovered_minutes_at_end": 15.1,
+  "window_fully_covered": false,
+  "covered_fraction": 0.9806
+}

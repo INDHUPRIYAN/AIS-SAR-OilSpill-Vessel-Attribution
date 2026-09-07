@@ -198,6 +198,23 @@ class OriginMetadata(ContractModel):
         description="How the radius was derived. Says 'not ML' explicitly, because the "
                     "hindcast is physics and the UI must never imply otherwise.",
     )
+    # How the WINDOW itself was derived, which cannot be read off the window.
+    # 'cloud_convergence' means the backtracked cloud had a real spread minimum
+    # and the window localises a release. 'age_estimate' and 'midpoint' mean the
+    # current field never deformed the cloud, so the whole run is reported as
+    # the window and the peak carries no information at all. Without this a
+    # consumer cannot tell a located origin from an admission that the drift
+    # could not locate one, and both look like a start and an end.
+    origin_window_method: Optional[str] = Field(
+        default=None,
+        description="cloud_convergence | age_estimate | midpoint -- the latter two "
+                    "mean the window is the whole run and localises nothing",
+    )
+    origin_peak_utc: Optional[UTCDateTime] = Field(
+        default=None,
+        description="Most probable discharge time inside the window. Meaningless "
+                    "unless origin_window_method is 'cloud_convergence'.",
+    )
     source: SourceFlag = SourceFlag.REAL
     crs: str = "EPSG:4326"
 
