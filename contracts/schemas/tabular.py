@@ -139,6 +139,20 @@ class Suspect(ContractModel):
 class FilteredVessel(ContractModel):
     mmsi: int
     reason: str = Field(description="e.g. 'outside time window', 'never entered origin cloud'")
+    # The exclusion ledger. `reason` is the sentence a human reads, with the
+    # measured number in it; these two are the machine-readable gate identities
+    # behind it, so the funnel can report WHICH gate excluded a vessel without
+    # pattern-matching English prose (audit H5). Optional because the engine
+    # may emit only the sentence, and because runs sealed before this existed
+    # must stay readable. Added rather than smuggled: the pipeline was already
+    # writing them and this file is what says whether that is legal.
+    filter_reason: Optional[str] = Field(
+        default=None,
+        description="Machine-readable identity of the decisive gate, "
+                    "e.g. 'outside origin region'")
+    failed_gates: List[str] = Field(
+        default_factory=list,
+        description="Every gate this vessel failed, not only the decisive one")
 
 
 class SuspectsReport(ContractModel):

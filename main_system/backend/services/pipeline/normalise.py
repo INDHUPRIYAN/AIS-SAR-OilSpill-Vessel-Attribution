@@ -317,7 +317,20 @@ def normalise_origin_cloud(payload: dict, scene_meta: dict,
             "forcing": _merge_forcing(payload.get("metadata", {}).get("forcing"), forcing),
             # Real uncertainty, lifted off the engine's origin_window feature.
             # Absent stays absent: a degenerate cloud has no honest radius.
+            #
+            # `origin_window_method` travels with the window because the two
+            # cannot be read apart. "cloud_convergence" means the drift found a
+            # spread minimum and the window means something; "age_estimate" and
+            # "midpoint" mean the field did not deform the cloud at all, the
+            # whole run is being reported as the window, and the peak carries
+            # no information. The engine says which, and that used to stop at
+            # the engine: the published cloud showed a start and an end with no
+            # way to tell an located release from an admission that the drift
+            # could not locate one.
             **{k: v for k, v in {
+                "origin_window_method": window.get("method"),
+                "origin_peak_utc": _utc(window.get("peak_utc"), None)
+                                   if window.get("peak_utc") else None,
                 "origin_uncertainty_km": window.get("origin_uncertainty_km"),
                 "origin_uncertainty_coverage": window.get("origin_uncertainty_coverage"),
                 "origin_uncertainty_method": window.get("origin_uncertainty_method"),

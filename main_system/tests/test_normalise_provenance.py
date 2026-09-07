@@ -266,3 +266,141 @@ def test_sealed_artefacts_still_validate(scene_meta):
         if not path.exists():
             continue
         model.model_validate(json.loads(path.read_text(encoding="utf-8")))
+
+
+# --------------------------------------------------------------------------
+# The exclusion ledger must satisfy the contract it is written into
+# --------------------------------------------------------------------------
+#
+# `normalise` writes `filter_reason` and `failed_gates` onto every filtered_out
+# entry so the funnel can name the gate that excluded a vessel instead of
+# pattern-matching English prose (audit H5). `FilteredVessel` forbade extra
+# fields, so any run that actually filtered a vessel produced a suspects.json
+# that its own validator rejected -- and the pipeline duly marked a completed
+# attribution stage FAILED. It went unnoticed because every earlier run had an
+# empty `filtered_out`; the first real-AIS run filtered 29 vessels and the
+# stage failed on a CONTRACT VIOLATION while holding four ranked suspects.
+
+
+def _report(filtered):
+    return {
+        "scene_id": "S1A_TEST",
+        "run_id": "inv-test",
+        "generated_utc": "2023-01-08T00:10:08Z",
+        "weights": {"proximity": 0.30, "temporal": 0.20, "trajectory": 0.20,
+                    "behaviour": 0.10, "ais_gap": 0.15, "vessel_prior": 0.05},
+        "suspects": [],
+        "filtered_out": filtered,
+        "total_vessels_considered": len(filtered),
+        "source": "real",
+    }
+
+
+def test_the_exclusion_ledger_validates():
+    from contracts.schemas.tabular import SuspectsReport
+
+    report = SuspectsReport.model_validate(_report([{
+        "mmsi": 205125000,
+        "reason": "Filtered out: closest approach was 13.563 km from the origin region.",
+        "filter_reason": "outside origin region",
+        "failed_gates": ["outside origin region",
+                         "course incompatible with slick axis"],
+    }]))
+    entry = report.filtered_out[0]
+    assert entry.filter_reason == "outside origin region"
+    assert len(entry.failed_gates) == 2
+
+
+def test_the_ledger_fields_stay_optional():
+    """Runs sealed before the ledger existed carry only `reason`, and must
+    still load -- otherwise a schema addition silently invalidates history."""
+    from contracts.schemas.tabular import SuspectsReport
+
+    report = SuspectsReport.model_validate(_report([
+        {"mmsi": 205125000, "reason": "Filtered out: outside the time window."}]))
+    entry = report.filtered_out[0]
+    assert entry.filter_reason is None
+    assert entry.failed_gates == []
+
+
+def test_what_normalise_emits_is_what_the_contract_accepts():
+    """Pins the two together. The defect was that they disagreed, and nothing
+    compared them until a real run did."""
+    import json
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(REPO_ROOT / "main_system"))
+    from backend.services.pipeline import normalise
+
+    src = inspect_source = Path(normalise.__file__).read_text(encoding="utf-8")
+    assert '"filter_reason"' in src and '"failed_gates"' in src, \
+        "normalise no longer emits the ledger; this test is stale"
+
+    from contracts.schemas.tabular import FilteredVessel
+
+    emitted = {"mmsi", "reason", "filter_reason", "failed_gates"}
+    declared = set(FilteredVessel.model_fields)
+    assert emitted <= declared, (
+        f"normalise writes {sorted(emitted - declared)} which the contract does "
+        "not declare; extend the contract rather than dropping the field")
+
+
+# --------------------------------------------------------------------------
+# How the origin window was derived must survive into the published cloud
+# --------------------------------------------------------------------------
+#
+# `origin_window()` reports one of three methods. "cloud_convergence" means the
+# backtracked cloud had a genuine spread minimum and the window localises a
+# release. "age_estimate" and "midpoint" mean the current field did not deform
+# the cloud at all -- there is no convergence to find, the whole run is reported
+# as the window, and the peak is a placeholder carrying no information.
+#
+# Normalisation lifted start and end out of the engine's origin_window feature
+# and dropped the feature, so the published artefact showed a window without
+# saying which of those two very different things it was. A UI reading it could
+# present "release localised to 10:10-00:10" for a run that had actually
+# reported it could not localise anything.
+
+
+def _cloud(method, peak="2023-01-08T00:10:08Z"):
+    return {
+        "type": "FeatureCollection",
+        "metadata": {"forcing": {}},
+        "features": [
+            {"type": "Feature",
+             "geometry": {"type": "Point", "coordinates": [-91.0, 28.5]},
+             "properties": {"kind": "origin_window", "method": method,
+                            "start_utc": "2023-01-07T10:10:08Z",
+                            "end_utc": "2023-01-08T00:10:08Z",
+                            "peak_utc": peak,
+                            "origin_uncertainty_km": 0.3658}},
+            {"type": "Feature",
+             "geometry": {"type": "Point", "coordinates": [-91.0, 28.5]},
+             "properties": {"step_index": 0, "t_utc": "2023-01-08T00:10:08Z"}},
+        ],
+    }
+
+
+@pytest.mark.parametrize("method", ["cloud_convergence", "age_estimate", "midpoint"])
+def test_the_derivation_method_reaches_the_published_cloud(method, tmp_path):
+    import json
+
+    import sys
+    sys.path.insert(0, str(REPO_ROOT / "main_system"))
+    from backend.services.pipeline import normalise
+
+    path = tmp_path / "origin_cloud.geojson"
+    path.write_text(json.dumps(_cloud(method)), encoding="utf-8")
+    normalise.normalise_file("origin_cloud", path,
+                             scene_meta={"scene_id": "S1A_TEST",
+                                         "acquired_utc": "2023-01-08T00:10:08Z"})
+    md = json.loads(path.read_text(encoding="utf-8"))["metadata"]
+
+    assert md["origin_window_method"] == method, (
+        "the published cloud does not say how its window was derived; a window "
+        "from 'midpoint' carries no information and must not read like one from "
+        "'cloud_convergence'")
+    assert md["origin_peak_utc"] == "2023-01-08T00:10:08Z"
+    assert md["origin_window_start_utc"] == "2023-01-07T10:10:08Z"
+    assert md["origin_window_end_utc"] == "2023-01-08T00:10:08Z"

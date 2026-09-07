@@ -1,0 +1,99 @@
+{
+  "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
+  "acquired_utc": "2023-01-08T00:10:08Z",
+  "recorded_utc": "2026-09-07T07:08:48Z",
+  "currents": {
+    "file": "data/metocean/S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG/currents.nc",
+    "provider": "Copernicus Marine Service (CMEMS)",
+    "title": "OceanTrace Normalized Surface Currents",
+    "variables": [
+      "uo",
+      "vo"
+    ],
+    "grid": {
+      "lat": 36,
+      "lon": 49,
+      "time": 3
+    },
+    "lon_range": [
+      -93.5,
+      -89.5
+    ],
+    "lat_range": [
+      26.75,
+      29.6667
+    ],
+    "time_range_utc": [
+      "2023-01-07T00:00:00.000000000",
+      "2023-01-09T00:00:00.000000000"
+    ],
+    "timesteps": 3,
+    "finite_fraction": 0.9274,
+    "mean_magnitude_m_s": 0.1496
+  },
+  "wind": {
+    "file": "data/metocean/S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG/wind.nc",
+    "provider": "Open-Meteo API",
+    "title": "OceanTrace Normalized 10m Atmospheric Winds (Open-Meteo Fallback)",
+    "variables": [
+      "u10",
+      "v10"
+    ],
+    "grid": {
+      "time": 72,
+      "lat": 2,
+      "lon": 2
+    },
+    "lon_range": [
+      -93.5,
+      -89.5
+    ],
+    "lat_range": [
+      26.7,
+      29.7
+    ],
+    "time_range_utc": [
+      "2023-01-07T00:00:00.000000000",
+      "2023-01-09T23:00:00.000000000"
+    ],
+    "timesteps": 72,
+    "finite_fraction": 1.0,
+    "mean_magnitude_m_s": 6.0546
+  },
+  "provider_chain": {
+    "currents": [
+      "CMEMS",
+      "HYCOM",
+      "LocalCache"
+    ],
+    "wind": [
+      "ERA5",
+      "OpenMeteo"
+    ]
+  },
+  "what_actually_served": {
+    "currents": "CMEMS (chain primary)",
+    "wind": "Open-Meteo (chain's declared real fallback)"
+  },
+  "era5": {
+    "outcome": "NOT REACHED during the forcing fetch",
+    "detail": "A `--what both` fetch was started at 12:03 IST. CMEMS served currents at 12:04; the ERA5 leg then sat without returning for 33 minutes. A direct socket probe at 12:36 IST showed cds.climate.copernicus.eu timing out on BOTH IPv4 and IPv6, so the request was not queued at CDS -- it could not reach CDS. The chain's declared real fallback (Open-Meteo) served instead. A probe five minutes later, at 12:41, connected on both families in ~0.2 s: the link to CDS from this host is intermittent rather than down. This is a reachability observation from this network, NOT a claim that ERA5 was unavailable, and NOT a licence or credential problem -- the credentials were never exercised.",
+    "reachability_probes": {
+      "12:36 IST": {
+        "ipv4": "FAIL TimeoutError",
+        "ipv6": "FAIL TimeoutError"
+      },
+      "12:41 IST": {
+        "ipv4": "OK 0.23s",
+        "ipv6": "OK 0.21s"
+      }
+    },
+    "retry": "A second ERA5 attempt was launched once the host answered again; if it delivers, the flagship is re-run on the chain primary and this record is updated to say so."
+  },
+  "openmeteo_note": "The first two Open-Meteo attempts reported a connect timeout and would have been recorded as a provider failure. They were not: IPv4 to archive-api.open-meteo.com blackholes from this host while IPv6 connects in ~0.2 s, and `requests` tries the IPv4 address first. The fetch was re-run with getaddrinfo ordered IPv6-first and the provider answered normally. Recording the earlier timeouts as 'Open-Meteo failed' would have blamed a working service for a local network fault.",
+  "limitations": [
+    "Currents are CMEMS daily means: 3 timesteps across the window, so the drift interpolates between daily fields and cannot resolve tidal or sub-daily variability.",
+    "Open-Meteo is a point API and the adapter sampled the bbox corners, so the wind field is 2x2 -- effectively spatially uniform across the scene. Leeway is therefore near-constant over the slick.",
+    "No forcing was mocked. Both grids carry their real provider in the NetCDF global attributes and the run reads provenance from there."
+  ]
+}
