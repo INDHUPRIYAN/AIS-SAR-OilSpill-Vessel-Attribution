@@ -1,0 +1,27 @@
+{
+  "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
+  "bbox": [
+    -92.994988,
+    27.217558,
+    -90.086841,
+    29.142895
+  ],
+  "window_utc": [
+    "2023-01-07T00:10:08Z",
+    "2023-01-08T00:10:08Z"
+  ],
+  "hours_back": 24.0,
+  "hours_back_source": "analysis_engines/config/drift.yaml drift.hours",
+  "archives": [
+    "..\\data\\ais\\raw\\AIS_2023_01_07.csv",
+    "..\\data\\ais\\raw\\AIS_2023_01_08.csv"
+  ],
+  "rows": 86830,
+  "unique_mmsi": 441,
+  "measured_rows": 67471,
+  "interpolated_rows": 19359,
+  "identities": 126,
+  "data_source": "real",
+  "provider": "MarineCadastre (NOAA Office for Coastal Management)",
+  "wall_seconds": 54.6
+}

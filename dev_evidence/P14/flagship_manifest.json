@@ -1,10 +1,10 @@
 {
-  "run_id": "inv-gulf-flagship-20230108-final",
+  "run_id": "inv-gulf-flagship-20230108-2day",
   "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
   "scene_path": "../data/scenes/S1A_GULF_20230108/scene_sigma0_db.tif",
-  "generated_utc": "2026-09-07T07:43:23Z",
-  "total_seconds": 371.82,
-  "code_git_sha": "1a20f7b5decc5093c6429e2e168ccf9692a3bb54+dirty",
+  "generated_utc": "2026-09-07T08:04:36Z",
+  "total_seconds": 384.3,
+  "code_git_sha": "03b48a779b2ebb12aea0ac3a2c1801cbb8b3e729",
   "models": [
     {
       "kind": "screen",
@@ -32,7 +32,7 @@
     "considered": [
       {
         "file": "vessels.parquet",
-        "path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/data/runs/inv-gulf-flagship-20230108-final/vessels.parquet",
+        "path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/data/runs/inv-gulf-flagship-20230108-2day/vessels.parquet",
         "data_source": "real",
         "covers_origin": true
       },
@@ -73,10 +73,10 @@
       "contract": "detect",
       "source": "real",
       "detail": "engine=ml, 31 oil + 361 look-alike candidate(s), confidence 0.6882",
-      "seconds": 147.32,
+      "seconds": 154.43,
       "warnings": [
         "screen: 127 oil candidate(s) over 1768 tile(s), best 0.73",
-        "ml inference 62.0s",
+        "ml inference 64.2s",
         "screen rejected 361/392 segmented region(s) as look-alike"
       ],
       "idempotency_key": "03e0b4cffd65029b92812ae953a922e7b50f6689418aba5dc759afa326de7bb2"
@@ -91,7 +91,7 @@
       "contract": "slick",
       "source": "real",
       "detail": "Engine A: 62 slick(s)",
-      "seconds": 204.36,
+      "seconds": 205.36,
       "warnings": [],
       "idempotency_key": "e5a69f43a0bdd48c5e6a04425223a0017123885056d180206c2a5d1083debf13"
     },
@@ -105,7 +105,7 @@
       "contract": "origin_cloud",
       "source": "real",
       "detail": "Engine B [euler] hindcast 24h, currents+wind",
-      "seconds": 4.14,
+      "seconds": 4.37,
       "warnings": [],
       "idempotency_key": "ebd57066be74d5a3fd1714c5f52ae937bc52645aead1502713d409435860c646"
     },
@@ -119,7 +119,7 @@
       "contract": "forecast",
       "source": "real",
       "detail": "Engine B [euler] forecast 23h, currents+wind",
-      "seconds": 2.67,
+      "seconds": 2.68,
       "warnings": [],
       "idempotency_key": "9735ad403b0e9d06eb7f6d1276f4bea7f91c033c50fcb101833f3c0b131ae236"
     },
@@ -133,12 +133,12 @@
       "contract": "suspects",
       "source": "real",
       "detail": "Engine C: 4 suspect(s), top MMSI 367653160 score 0.67",
-      "seconds": 3.62,
+      "seconds": 3.58,
       "warnings": [
         "real AIS: vessels.parquet covers the computed origin window -- no synthetic fleet was generated",
-        "AIS index: 439 vessels/86269 rows -> 32 vessels/3571 rows (query 287.8 ms vs full scan 33.6 ms; ingest 1514.1 ms)"
+        "AIS index: 441 vessels/86830 rows -> 32 vessels/3610 rows (query 302.5 ms vs full scan 34.0 ms; ingest 1523.4 ms)"
       ],
-      "idempotency_key": "c8fe088358776547de41766dbd7c5d26a7aeea26a041d6183fa3c8004f78620b"
+      "idempotency_key": "5399b1c6ed278870f72f9b04b318625f4230459c4ff291f2cf2480685f5c16fb"
     }
   ],
   "artefacts": [
@@ -149,8 +149,8 @@
     },
     {
       "file": "detect_response.json",
-      "bytes": 79226,
-      "sha256": "9d11d4edd423b0c2c33fa7c60b6e93a336aa8ec748f32e03936059e211a9b040"
+      "bytes": 79225,
+      "sha256": "3bcf3519d787c71b8e7cbc2cac2221b9a81c7cfdd9ea7de70b747da38cd1b96b"
     },
     {
       "file": "raw_mask.tif",
@@ -159,8 +159,8 @@
     },
     {
       "file": "slick.geojson",
-      "bytes": 482445,
-      "sha256": "b40295a8e7c95c40ee5aab31e97c14bf04eca0486fd2ef33e5c44333179e623e"
+      "bytes": 482444,
+      "sha256": "baf3d59a8552f98b2cd67ede227e132ee4b0537d1faf5735455815a0b2648e78"
     },
     {
       "file": "origin_cloud.geojson",
@@ -174,15 +174,15 @@
     },
     {
       "file": "vessels.parquet",
-      "bytes": 1507742,
-      "sha256": "6364d248b72142ec859a1e9056714b072881bd730bd0be8807de15dc5625561b"
+      "bytes": 1516974,
+      "sha256": "e80b5b6b194caa502f441338b1e6cd8d6e0a17c33a5818f1ae7ee8320dc56716"
     },
     {
       "file": "suspects.json",
-      "bytes": 11514,
-      "sha256": "ecded1dd2ffe549b4f1849cd59b131a3b68c57c72489ca6240f7570c1168b27c"
+      "bytes": 11511,
+      "sha256": "097b48cc4ad06f3ef9c34e30343db7bfd94ea0e2414dae7d335ba877c6fa0520"
     }
   ],
-  "artefact_digest": "bf47d72e6f76e5362b67d7e5675af0d2be03569e10580fc7bc149b89721e1817",
+  "artefact_digest": "fd42e078f836611043fd088e1e0abc490064b05404f887c2a69571ab65f94a84",
   "immutable": true
 }

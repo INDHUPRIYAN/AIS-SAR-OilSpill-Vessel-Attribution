@@ -1,7 +1,7 @@
 {
   "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
-  "run_id": "inv-gulf-flagship-20230108-final",
-  "generated_utc": "2026-09-07T07:43:20Z",
+  "run_id": "inv-gulf-flagship-20230108-2day",
+  "generated_utc": "2026-09-07T08:04:34Z",
   "weights": {
     "proximity": 0.3,
     "temporal": 0.2,
@@ -16,9 +16,9 @@
       "mmsi": 367653160,
       "vessel_name": null,
       "vessel_type": "other",
-      "total_score": 0.6689,
+      "total_score": 0.6691,
       "sub_scores": {
-        "proximity": 0.989,
+        "proximity": 0.99,
         "temporal": 0.637,
         "trajectory": 0.973,
         "behaviour": 0.311,
@@ -28,7 +28,7 @@
       "reason": "Passed through the 90% origin region at 2023-01-07 18:00 UTC, slowed from 18.3 to 18.1 kn, altered course by 178\u00b0, and ran within 4\u00b0 of the slick's axis.",
       "evidence": {
         "closest_approach_km": 0.0,
-        "time_in_origin_window_min": 759.9,
+        "time_in_origin_window_min": 774.9,
         "ais_gap_minutes": null,
         "course_delta_deg": 178.1,
         "min_sog_kn": 18.1,
@@ -66,19 +66,19 @@
       "mmsi": 367357000,
       "vessel_name": null,
       "vessel_type": "other",
-      "total_score": 0.6256,
+      "total_score": 0.633,
       "sub_scores": {
-        "proximity": 0.921,
+        "proximity": 0.944,
         "temporal": 0.653,
         "trajectory": 0.949,
-        "behaviour": 0.075,
+        "behaviour": 0.079,
         "ais_gap": 0.0,
         "vessel_prior": 0.427
       },
       "reason": "Passed through the 90% origin region at 2023-01-07 18:10 UTC, ran within 8\u00b0 of the slick's axis.",
       "evidence": {
         "closest_approach_km": 0.0,
-        "time_in_origin_window_min": 764.9,
+        "time_in_origin_window_min": 774.9,
         "ais_gap_minutes": null,
         "course_delta_deg": 5.1,
         "min_sog_kn": 9.1,
@@ -91,9 +91,9 @@
       "mmsi": 367630990,
       "vessel_name": null,
       "vessel_type": "other",
-      "total_score": 0.5024,
+      "total_score": 0.4978,
       "sub_scores": {
-        "proximity": 0.691,
+        "proximity": 0.675,
         "temporal": 0.506,
         "trajectory": 0.858,
         "behaviour": 0.026,
@@ -103,7 +103,7 @@
       "reason": "Passed through the 90% origin region at 2023-01-07 16:35 UTC, but no unusual speed, course or transmission behaviour was recorded.",
       "evidence": {
         "closest_approach_km": 0.0,
-        "time_in_origin_window_min": 515.0,
+        "time_in_origin_window_min": 520.0,
         "ais_gap_minutes": null,
         "course_delta_deg": 5.2,
         "min_sog_kn": 10.6,
@@ -187,7 +187,7 @@
     },
     {
       "mmsi": 338064000,
-      "reason": "Filtered out: closest approach was 14.368 km from the origin region.",
+      "reason": "Filtered out: closest approach was 14.343 km from the origin region.",
       "filter_reason": "outside origin region",
       "failed_gates": [
         "outside origin region"
@@ -231,7 +231,7 @@
     },
     {
       "mmsi": 367507790,
-      "reason": "Filtered out: closest approach was 8.394 km from the origin region.",
+      "reason": "Filtered out: closest approach was 4.823 km from the origin region.",
       "filter_reason": "outside origin region",
       "failed_gates": [
         "outside origin region"
@@ -317,7 +317,7 @@
     },
     {
       "mmsi": 538003696,
-      "reason": "Filtered out: closest approach was 14.601 km from the origin region.",
+      "reason": "Filtered out: closest approach was 13.874 km from the origin region.",
       "filter_reason": "outside origin region",
       "failed_gates": [
         "outside origin region",

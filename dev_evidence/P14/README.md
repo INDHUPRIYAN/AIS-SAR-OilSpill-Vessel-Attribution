@@ -1,20 +1,23 @@
 # P14 — the flagship real-data run
 
-**Run id: `inv-gulf-flagship-20230108-final`**
-Code `1a20f7b`, artefact digest `bf47d72e6f76e536`, 8 artefacts hashed and
-re-verified unchanged.
+**Run id: `inv-gulf-flagship-20230108-2day`**
+Code `03b48a7`, artefact digest `fd42e078f8366110`, 8 artefacts hashed and
+re-verified unchanged. This is the run with D1's **complete two-day AIS
+ingest**; `inv-gulf-flagship-20230108-final` is its one-day predecessor, still
+sealed and still verifying, and the two are compared in
+[`two_day_delta.json`](two_day_delta.json).
 
 ```
-5/5 stages ran for real, 0 from mocks, 0 failed  (371.82s)
+5/5 stages ran for real, 0 from mocks, 0 failed  (384.30s)
 ```
 
 | stage | status | engine | data_source | seconds |
 |---|---|---|---|---|
-| detect | ok | ml | sensor | 147.32 |
-| characterise | ok | primary | sensor | 204.36 |
-| drift_hindcast | ok | euler | cached | 4.14 |
-| drift_forecast | ok | euler | cached | 2.67 |
-| attribution | ok | primary | sensor | 3.62 |
+| detect | ok | ml | sensor | 154.43 |
+| characterise | ok | primary | sensor | 205.36 |
+| drift_hindcast | ok | euler | cached | 4.37 |
+| drift_forecast | ok | euler | cached | 2.68 |
+| attribution | ok | primary | sensor | 3.58 |
 
 Every input is real. Nothing in this run is mocked, synthesised or planted.
 
@@ -27,7 +30,7 @@ Every input is real. Nothing in this run is mocked, synthesised or planted.
 | screen | `yolo11n-screen-dartis-2026-08-24` | 127 oil candidates over 1768 tiles, best 0.73 |
 | currents | **CMEMS** (chain primary) | 49 × 36 @ 1/12°, 3 daily steps, 92.7% finite, mean 0.15 m/s |
 | wind | **ECMWF ERA5 (CDS API)** (chain primary) | 17 × 12 @ 0.25°, 72 hourly steps, 100% finite, mean 5.37 m/s |
-| AIS | **MarineCadastre** (NOAA OCM) | 2023-01-07 archive, 86,269 rows, 439 MMSI, contract-valid at exactly 14 columns, all `source: real` |
+| AIS | **MarineCadastre** (NOAA OCM) | 2023-01-07 **and** 2023-01-08 archives, 86,830 rows, 441 MMSI, 126 identities, contract-valid at exactly 14 columns, all `source: real` |
 
 Provider detail and the reachability record: [`forcing.json`](forcing.json).
 
@@ -99,38 +102,70 @@ this run's origin is.
   acquisition, not a labelled incident, and the Gulf of Mexico carries abundant
   natural seeps. The 31 "oil" regions are model output.
 * **All four ranked vessels have `vessel_name: null`.** The identity sidecar
-  holds 123 identities and matches 8 of the 28 filtered vessels, but none of
-  the four ranked ones: MarineCadastre carried no static name, IMO or call sign
+  holds 126 identities but matches none of the four ranked MMSIs: MarineCadastre carried no static name, IMO or call sign
   for those MMSIs in this window. That is absence of data. It stays null rather
   than being filled in from anywhere else.
 
-## AIS coverage — the exact limitation
+## AIS coverage — the two-day ingest, and what it changed
 
 [`ais_coverage.json`](ais_coverage.json), measured from the run's own artefacts:
 
 ```
 origin window     2023-01-07T11:10:08Z .. 2023-01-08T00:10:08Z   (13.0 h)
-AIS on disk       2023-01-07T00:10:00Z .. 2023-01-07T23:55:00Z
-covered fraction  0.9806
-uncovered         15.1 minutes, at the END of the window
-rows in window    45,405   MMSI in window 384   sources ['real']
+AIS on disk       2023-01-07T00:10:00Z .. 2023-01-08T00:10:00Z
+covered fraction  0.9998
+uncovered         0.1 minutes
+rows in window    45,966   MMSI in window 386   sources ['real']
 ```
 
-**The two-day ingest D1 asks for is NOT complete.** The 2023-01-07 archive
-downloaded in full (333,938,388 B). The 2023-01-08 archive did not: NOAA
-throttled the transfer to roughly 1–2 kB/s, and it stalled around 239 MB of
-326 MB with a projected completion of about 14 hours. The download is
-resumable and was left running; this run used one day.
+**D1's two-day ingest is complete.** Both MarineCadastre archives downloaded in
+full — 2023-01-07 (333,938,388 B) and 2023-01-08 (326,026,492 B, matching the
+server's declared length, zip integrity verified). The second took hours: NOAA
+throttled it to ~1–2 kB/s for most of the transfer, which is why
+`ais/fetch_archive.py` resumes from the byte already on disk rather than
+restarting.
 
-The consequence, stated precisely: **the final 15.1 minutes of the origin
-window — 2023-01-07T23:55 to 2023-01-08T00:10:08, ending at the acquisition
-instant — carry no AIS.** A vessel that entered the origin region only inside
-that last quarter-hour would not appear in the ranking or in the exclusion
-ledger. It would be invisible, not excluded.
+The archives are concatenated **before** parsing, byte-exactly: day1 + day2
+minus 127 bytes, precisely one duplicate header line, with the header-equality
+guard confirming both days share a schema first. Parsing them separately would
+run `interpolate_trajectory` on each in isolation and sever every vessel track
+at midnight — exactly where the origin window sits.
 
-This is why the window's `covers_origin: true` is true but not the whole story:
-`vessels_cover_origin` asks whether *any* report lands inside the window, and
-45,405 do. It does not ask whether the window is covered end to end.
+The residual 0.1 minutes is **not a gap in the data**: MarineCadastre reports
+land on a one-minute grid, so the last row is 00:10:00 while acquisition is at
+00:10:08. Coverage is complete to the archive's own resolution. `covered_fraction`
+is reported as 0.9998 rather than rounded to 1.0 because the measurement is what
+it is.
+
+### What the second day actually changed
+
+Recorded in [`two_day_delta.json`](two_day_delta.json). The honest answer:
+**measurably, but not materially.**
+
+| rank | MMSI | one day | two days | delta | minutes in origin window |
+|---|---|---|---|---|---|
+| 1 | 367653160 | 0.6689 | 0.6691 | +0.0002 | 759.9 → 774.9 |
+| 2 | 367668740 | 0.6405 | 0.6405 | 0.0000 | 724.9 → 724.9 |
+| 3 | 367357000 | 0.6256 | 0.6330 | +0.0074 | 764.9 → 774.9 |
+| 4 | 367630990 | 0.5024 | **0.4978** | **−0.0046** | 515.0 → 520.0 |
+
+* The ordering is unchanged and no vessel entered or left the ranking.
+* 485 rows across 248 MMSI fall in the final 10 minutes, but only **2 MMSI**
+  (367642490, 538004693) are genuinely new to the dataset, and **neither
+  reached attribution**. Day 2 mostly adds track *points* to vessels already
+  followed through 2023-01-07 — which is why it refines evidence rather than
+  changing who is considered.
+* Three of the four suspects gained time inside the origin window, and their
+  proximity sub-scores moved. **Rank #4's score went down.** The extra data did
+  not flatter the result; it re-measured it.
+
+The one-day predecessor was therefore not biased by its 15-minute gap — but
+that is now **measured, not assumed**, and it could only be established by
+doing the ingest. Under one day, a vessel entering the origin region solely in
+that final quarter-hour would have been *invisible rather than excluded*:
+absent from both the ranking and the exclusion ledger, with nothing in the
+artefact to hint it existed. That is the failure mode D1's second archive
+exists to prevent.
 
 ## Four defects this run exposed
 

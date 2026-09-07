@@ -9,16 +9,16 @@
   "peak_utc": "2023-01-08T00:10:08Z",
   "ais_span_utc": [
     "2023-01-07T00:10:00Z",
-    "2023-01-07T23:55:00Z"
+    "2023-01-08T00:10:00Z"
   ],
-  "rows_total": 86269,
-  "rows_inside_window": 45405,
-  "mmsi_inside_window": 384,
+  "rows_total": 86830,
+  "rows_inside_window": 45966,
+  "mmsi_inside_window": 386,
   "sources": [
     "real"
   ],
   "uncovered_minutes_at_start": 0.0,
-  "uncovered_minutes_at_end": 15.1,
+  "uncovered_minutes_at_end": 0.1,
   "window_fully_covered": false,
-  "covered_fraction": 0.9806
+  "covered_fraction": 0.9998
 }

@@ -1,0 +1,82 @@
+{
+  "question": "Did D1's second archive change the flagship result?",
+  "answer": "Yes, measurably but not materially. The ordering is unchanged and no vessel entered or left the ranking, but three of the four suspects gained track time inside the origin window and their proximity sub-scores moved -- one of them DOWNWARD. The one-day result was not biased by the gap, but that is now measured rather than assumed.",
+  "mmsi_only_in_day_2": [
+    367642490,
+    538004693
+  ],
+  "mmsi_only_in_day_2_reaching_attribution": 0,
+  "rows_in_final_10_minutes": 485,
+  "mmsi_reporting_in_final_10_minutes": 248,
+  "note_on_those_248": "Almost all were already tracked through 2023-01-07. Day 2 mostly adds track POINTS to known vessels rather than new vessels -- which is why it refines evidence rather than changing who is considered.",
+  "vessels_considered": [
+    32,
+    32
+  ],
+  "filtered": [
+    28,
+    28
+  ],
+  "per_suspect": [
+    {
+      "rank": 1,
+      "mmsi": 367653160,
+      "score_one_day": 0.6689,
+      "score_two_day": 0.6691,
+      "delta": 0.0002,
+      "time_in_origin_window_min": [
+        759.9,
+        774.9
+      ],
+      "proximity": [
+        0.989,
+        0.99
+      ]
+    },
+    {
+      "rank": 2,
+      "mmsi": 367668740,
+      "score_one_day": 0.6405,
+      "score_two_day": 0.6405,
+      "delta": 0.0,
+      "time_in_origin_window_min": [
+        724.9,
+        724.9
+      ],
+      "proximity": [
+        0.963,
+        0.963
+      ]
+    },
+    {
+      "rank": 3,
+      "mmsi": 367357000,
+      "score_one_day": 0.6256,
+      "score_two_day": 0.633,
+      "delta": 0.0074,
+      "time_in_origin_window_min": [
+        764.9,
+        774.9
+      ],
+      "proximity": [
+        0.921,
+        0.944
+      ]
+    },
+    {
+      "rank": 4,
+      "mmsi": 367630990,
+      "score_one_day": 0.5024,
+      "score_two_day": 0.4978,
+      "delta": -0.0046,
+      "time_in_origin_window_min": [
+        515.0,
+        520.0
+      ],
+      "proximity": [
+        0.691,
+        0.675
+      ]
+    }
+  ]
+}
