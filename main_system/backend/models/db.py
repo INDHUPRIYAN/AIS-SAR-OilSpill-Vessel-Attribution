@@ -313,6 +313,57 @@ class Report(Base):
     review_note = Column(Text)
 
 
+class Alert(Base):
+    """Something the system noticed that a human has not yet dealt with.
+
+    The watcher already opened investigations by itself; what it could not do
+    was tell anyone. An investigation appearing in a list is not a notification
+    -- nobody watches a list. An alert is the row that says "this happened, it
+    is yours, and here is how long it has been waiting".
+
+    Two design choices worth stating.
+
+    **Dismissal requires a reason.** An alert that can be cleared with one
+    unexplained click becomes a queue people clear rather than read, and the
+    record of why nobody acted disappears with it. The reason is stored and the
+    dismissal is audited.
+
+    **Severity is derived, never typed in.** It comes from what was detected --
+    a scene with oil candidates outranks a scene without. A free-text severity
+    field would drift into a mood ring.
+    """
+
+    __tablename__ = "alerts"
+
+    id = Column(String(64), primary_key=True)
+    # new_scene | run_failed | detection | provider_down
+    kind = Column(String(32), nullable=False, index=True)
+    # info | warning | critical
+    severity = Column(String(16), default="info", nullable=False, index=True)
+    # open | acknowledged | assigned | dismissed
+    status = Column(String(16), default="open", nullable=False, index=True)
+    title = Column(String(300), nullable=False)
+    detail = Column(Text)
+
+    aoi_id = Column(String(64), nullable=True, index=True)
+    scene_id = Column(String(200), nullable=True)
+    run_id = Column(String(64), ForeignKey("runs.id"), nullable=True, index=True)
+    investigation_id = Column(String(64), ForeignKey("investigations.id"),
+                              nullable=True, index=True)
+
+    created_utc = Column(DateTime(timezone=True), default=utcnow, nullable=False,
+                         index=True)
+    acknowledged_utc = Column(DateTime(timezone=True))
+    acknowledged_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_utc = Column(DateTime(timezone=True))
+    dismissed_utc = Column(DateTime(timezone=True))
+    dismissed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # Required to dismiss. Never nullable in practice, nullable in the column
+    # so a row can exist before it is dismissed.
+    dismiss_reason = Column(Text)
+
+
 class ApiProvider(Base):
     """Current health of one external dependency."""
 

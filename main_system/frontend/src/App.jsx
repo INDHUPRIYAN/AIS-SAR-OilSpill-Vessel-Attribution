@@ -11,6 +11,7 @@ import Incident from "./pages/Incident";
 import Investigation from "./pages/Investigation";
 import Monitoring from "./pages/Monitoring";
 import Catalog from "./pages/Catalog";
+import Alerts, { AlertBell } from "./pages/Alerts";
 import Keys from "./pages/Keys";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
@@ -60,6 +61,7 @@ function App() {
           <NavLink to="/analytics"><BarChart3 size={14} /> Analytics</NavLink>
           <NavLink to="/monitoring"><Activity size={14} /> Monitoring</NavLink>
           <NavLink to="/catalog"><Database size={14} /> Data & Models</NavLink>
+          <NavLink to="/alerts"><AlertBell /> Alerts</NavLink>
           <NavLink to="/keys"><KeyRound size={14} /> Keys</NavLink>
           <NavLink to="/about"><BookOpen size={14} /> About</NavLink>
         </nav>
@@ -94,6 +96,7 @@ function App() {
           <Route path="/report" element={<Report />} />
           <Route path="/monitoring" element={<Monitoring />} />
           <Route path="/catalog" element={<Catalog />} />
+          <Route path="/alerts" element={<Alerts />} />
           <Route path="/keys" element={<Keys />} />
         </Routes>
       </main>

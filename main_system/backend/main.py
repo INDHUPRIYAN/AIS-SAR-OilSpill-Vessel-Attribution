@@ -32,6 +32,7 @@ from backend.api.auth import bootstrap_admin, router as auth_router  # noqa: E40
 from backend.api.incidents import router as incidents_router  # noqa: E402
 from backend.api.routes import router  # noqa: E402
 from backend.api.scenes import router as scenes_router  # noqa: E402
+from backend.api.alerts import router as alerts_router
 from backend.api.catalog import router as catalog_router
 from backend.api.events import router as events_router
 from backend.api.reports import router as reports_router
@@ -157,6 +158,7 @@ app.include_router(vessels_router, prefix="/api", dependencies=_authenticated)
 app.include_router(events_router, prefix="/api", dependencies=_authenticated)
 app.include_router(reports_router, prefix="/api", dependencies=_authenticated)
 app.include_router(catalog_router, prefix="/api", dependencies=_authenticated)
+app.include_router(alerts_router, prefix="/api", dependencies=_authenticated)
 # Public by necessity: /auth/login is how a session is obtained. The routes in
 # here that need a session (/auth/me, /auth/roles) declare it themselves.
 app.include_router(auth_router, prefix="/api")

@@ -148,6 +148,20 @@ export const api = {
   forcingField: (runId) => request(`/api/runs/${runId}/forcing_field`),
 
   // Provider truth, model registry and measured host health.
+  // Alerts: the queue that turns the watcher into a notification.
+  listAlerts: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== ""),
+    ).toString();
+    return request(`/api/alerts${q ? `?${q}` : ""}`);
+  },
+  alertsSummary: () => request("/api/alerts/summary"),
+  ackAlert: (id) => request(`/api/alerts/${id}/ack`, { method: "POST" }),
+  assignAlert: (id, userId) =>
+    request(`/api/alerts/${id}/assign`, { method: "POST", body: { user_id: userId } }),
+  dismissAlert: (id, reason) =>
+    request(`/api/alerts/${id}/dismiss`, { method: "POST", body: { reason } }),
+
   catalog: () => request("/api/catalog"),
   models: () => request("/api/models"),
   systemHealth: () => request("/api/system/health"),

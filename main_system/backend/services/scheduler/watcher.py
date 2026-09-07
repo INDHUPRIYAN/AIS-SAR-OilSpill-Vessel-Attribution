@@ -247,6 +247,11 @@ class AOIWatcher:
                 record = self._open_investigation(aoi, scene, acquired, db)
                 if record is not None:
                     opened.append(record)
+                # Opening an investigation is not telling anyone. Nobody
+                # watches a list, so the sweep also raises an alert -- which is
+                # the row that says "this happened, it is yours, and here is
+                # how long it has been waiting".
+                self._raise_new_scene_alert(db, aoi, scene, acquired, record)
                 # Advance the mark only past scenes actually handled, so the
                 # ones trimmed by max_scenes_per_poll come back next tick.
                 state.last_scene_id = _scene_id(scene)
@@ -310,6 +315,35 @@ class AOIWatcher:
         return record
 
     # -- one sweep --------------------------------------------------------
+
+    @staticmethod
+    def _raise_new_scene_alert(db, aoi, scene, acquired, record) -> None:
+        """One alert per newly-seen scene. Never fatal to the sweep.
+
+        A failure here must not lose the investigation that was just opened:
+        the alert is a notification about work, not the work itself.
+        """
+        try:
+            from backend.api.alerts import raise_alert
+
+            raise_alert(
+                db, kind="new_scene",
+                # Severity is derived, never typed in: a scene we have not
+                # processed yet cannot be more than informational, because
+                # nothing has been detected in it.
+                severity="info",
+                title=f"New Sentinel-1 pass over {aoi.name}",
+                detail=(f"Acquired {acquired:%Y-%m-%dT%H:%M:%SZ}. "
+                        + ("An investigation was opened automatically."
+                           if record else
+                           "No investigation was opened -- auto_run is off for "
+                           "this AOI.")),
+                aoi_id=aoi.id, scene_id=_scene_id(scene),
+                investigation_id=(record or {}).get("investigation_id"))
+        except Exception as exc:                       # noqa: BLE001
+            print(f"[watcher] alert for {aoi.id} failed: "
+                  f"{type(exc).__name__}: {exc}")
+
 
     def tick(self, now: Optional[datetime] = None,
              aois: Optional[Sequence[AOI]] = None,
