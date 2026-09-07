@@ -605,8 +605,13 @@ def init_db() -> None:
             row.kind = spec["kind"]
             row.chain = ",".join(spec["chain"])
             row.needs_credentials = spec["needs_credentials"]
-            if row.active_provider is None:
+            # A NOT_DEPLOYED adapter has no fallback chain, so it has no active
+            # member either. Defaulting it to itself would put a provider that
+            # feeds nothing at the head of a chain that does not exist.
+            if row.active_provider is None and spec["chain"]:
                 row.active_provider = spec["chain"][0]
+            if spec.get("deployment") == "NOT_DEPLOYED":
+                row.status = "NOT_DEPLOYED"
         db.commit()
 
 

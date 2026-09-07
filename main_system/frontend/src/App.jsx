@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import {
-  Activity, BarChart3, BookOpen, Film, FolderOpen, KeyRound, Moon, Radar,
-  Sun, Waves,
+  Activity, BarChart3, BookOpen, Database, Film, FolderOpen, KeyRound,
+  Moon, Radar, Sun, Waves,
 } from "lucide-react";
 
 import Incident from "./pages/Incident";
 import Investigation from "./pages/Investigation";
 import Monitoring from "./pages/Monitoring";
+import Catalog from "./pages/Catalog";
 import Keys from "./pages/Keys";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
@@ -58,6 +59,7 @@ function App() {
           <NavLink to="/investigation"><Radar size={14} /> Workspace</NavLink>
           <NavLink to="/analytics"><BarChart3 size={14} /> Analytics</NavLink>
           <NavLink to="/monitoring"><Activity size={14} /> Monitoring</NavLink>
+          <NavLink to="/catalog"><Database size={14} /> Data & Models</NavLink>
           <NavLink to="/keys"><KeyRound size={14} /> Keys</NavLink>
           <NavLink to="/about"><BookOpen size={14} /> About</NavLink>
         </nav>
@@ -91,6 +93,7 @@ function App() {
           <Route path="/investigation" element={<Investigation />} />
           <Route path="/report" element={<Report />} />
           <Route path="/monitoring" element={<Monitoring />} />
+          <Route path="/catalog" element={<Catalog />} />
           <Route path="/keys" element={<Keys />} />
         </Routes>
       </main>

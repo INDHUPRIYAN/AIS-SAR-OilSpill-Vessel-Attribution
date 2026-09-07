@@ -147,6 +147,11 @@ export const api = {
   vesselsGeojson: (runId) => request(`/api/runs/${runId}/vessels_geojson`),
   forcingField: (runId) => request(`/api/runs/${runId}/forcing_field`),
 
+  // Provider truth, model registry and measured host health.
+  catalog: () => request("/api/catalog"),
+  models: () => request("/api/models"),
+  systemHealth: () => request("/api/system/health"),
+
   apiStatus: () => request("/api/apis/status"),
   testProvider: (p) => request(`/api/apis/${p}/test`, { method: "POST" }),
   testAll: () => request("/api/apis/test-all", { method: "POST" }),

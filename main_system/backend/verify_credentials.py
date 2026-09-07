@@ -150,10 +150,19 @@ def check_hycom():
 
 
 def check_aisstream():
-    key = os.getenv("AISSTREAM_API_KEY")
-    if not key:
-        return SKIP, "no AISStream key (optional -- only the live demo tab needs it)"
-    return WARN, "key present; validated on first websocket connect (no REST probe exists)"
+    """Live AIS is NOT DEPLOYED. This check reports that, not a missing key.
+
+    The old message said the key was "optional -- only the live demo tab needs
+    it". There is no live demo tab, and nothing in the pipeline consumes live
+    AIS: it is stream-only and cannot answer questions about a scene acquired
+    in the past, which is every question this system asks. Telling an operator
+    a key is optional implies configuring it would enable something.
+    """
+    if os.getenv("AISSTREAM_API_KEY"):
+        return WARN, ("a key is set but NOTHING READS IT -- live AIS is not "
+                      "deployed and no code path consumes this credential")
+    return SKIP, ("live AIS is NOT DEPLOYED; no key is needed and setting one "
+                  "would enable nothing")
 
 
 CHECKS = [
@@ -164,7 +173,7 @@ CHECKS = [
     ("ERA5 / CDS (wind primary)", check_era5),
     ("Open-Meteo (wind fallback)", check_openmeteo),
     ("HYCOM (currents fallback)", check_hycom),
-    ("AISStream (optional)", check_aisstream),
+    ("AISStream (NOT DEPLOYED)", check_aisstream),
 ]
 
 ICON = {OK: "[PASS]", BAD: "[FAIL]", SKIP: "[ -- ]", WARN: "[WARN]"}

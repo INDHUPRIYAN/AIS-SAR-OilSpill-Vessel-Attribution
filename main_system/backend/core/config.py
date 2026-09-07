@@ -126,7 +126,9 @@ class Settings:
             "HYCOM": (),
             "DMA": (),
             "MarineCadastre": (),
-            "AISStream": ("AISSTREAM_API_KEY",),
+            # AISStream deliberately absent: live AIS is NOT_DEPLOYED, nothing
+            # reads this key, and offering the field invited operators to
+            # configure a capability that does not exist.
         }
         return {name: os.getenv(name) for name in mapping.get(provider, ())}
 
@@ -173,6 +175,78 @@ PROVIDERS: List[dict] = [
     {"name": "SyntheticGenerator", "purpose": "Synthetic AIS with known culprit",
      "owner": "Krishnan", "chain": ["DMA", "MarineCadastre", "SyntheticGenerator"],
      "needs_credentials": False, "kind": "ais"},
+
+    # Adapters that exist and are NOT wired to the pipeline. Listing them as
+    # NOT_DEPLOYED is the point: leaving them out entirely would let a reader
+    # assume optical and live AIS were never considered, and showing them
+    # alongside working providers would imply they are available. Neither is
+    # true, and the difference is the roadmap.
+    {"name": "Sentinel2", "purpose": "Optical confirmation of SAR detections",
+     "owner": "Pavitra", "chain": [], "needs_credentials": False,
+     "kind": "optical", "deployment": "NOT_DEPLOYED",
+     "not_deployed_reason":
+         "The adapter exists and is unit-tested (scene_service/satellite/"
+         "s2_adapter.py) but no optical data is wired into the pipeline and no "
+         "accuracy has been measured for it. /api/scenes/search?source=S2 "
+         "returns 501 rather than an empty list, because an empty list would "
+         "read as 'we looked and found none'."},
+    {"name": "AISStream", "purpose": "Live AIS over WebSocket",
+     "owner": "Krishnan", "chain": [], "needs_credentials": False,
+     "kind": "ais", "deployment": "NOT_DEPLOYED",
+     "not_deployed_reason":
+         "Live AIS is stream-only: it cannot answer questions about a scene "
+         "acquired in the past, which is every question this system asks. "
+         "Nothing in the pipeline consumes it and no key field is offered."},
 ]
+
+# Where each provider actually has data. Stated so the catalogue can say "this
+# provider does not cover your AOI" instead of letting a search return nothing
+# and leaving the operator to guess whether that is an outage.
+PROVIDER_COVERAGE: Dict[str, dict] = {
+    "CDSE": {"dataset": "SENTINEL-1 GRD (IW)", "bbox": [-180, -90, 180, 90],
+             "temporal": "2014-10-03 .. present", "resolution": "10 m",
+             "note": "global"},
+    "ASF": {"dataset": "SENTINEL-1 GRD (IW)", "bbox": [-180, -90, 180, 90],
+            "temporal": "2014-10-03 .. present", "resolution": "10 m",
+            "note": "global; NASA Earthdata mirror"},
+    "LocalCache": {"dataset": "downloaded scenes on this host",
+                   "bbox": None, "temporal": "whatever has been fetched",
+                   "resolution": "10 m", "note": "see /api/scenes/local"},
+    "CMEMS": {"dataset": "GLORYS / Analysis-Forecast surface currents",
+              "bbox": [-180, -80, 180, 90], "temporal": "1993 .. present",
+              "resolution": "1/12 deg, daily means",
+              "note": "daily means: no tidal or sub-daily structure"},
+    "HYCOM": {"dataset": "GOFS 3.1 surface currents", "bbox": [-180, -80, 180, 90],
+              "temporal": "1994 .. present", "resolution": "1/12 deg",
+              "note": "OPeNDAP; used when CMEMS is unavailable"},
+    "ERA5": {"dataset": "ERA5 single-levels 10 m wind",
+             "bbox": [-180, -90, 180, 90], "temporal": "1940 .. present (~5 day lag)",
+             "resolution": "0.25 deg, hourly", "note": "CDS queue can be slow"},
+    "OpenMeteo": {"dataset": "ERA5-derived 10 m wind (point API)",
+                  "bbox": [-180, -90, 180, 90], "temporal": "1940 .. present",
+                  "resolution": "hourly; sampled per point",
+                  "note": "point API -- the adapter samples bbox corners, so "
+                          "the field is spatially coarse"},
+    "DMA": {"dataset": "Danish Maritime Authority AIS archive",
+            "bbox": [3.0, 53.0, 17.0, 59.0], "temporal": "2006 .. present",
+            "resolution": "1 s .. 1 min reports",
+            "note": "Danish/Baltic waters ONLY; adapter not yet exercised on a "
+                    "real archive"},
+    "MarineCadastre": {"dataset": "NOAA AISDataHandler daily archives",
+                       "bbox": [-180, 0, -60, 75], "temporal": "2009 .. present",
+                       "resolution": "1 min reports",
+                       "note": "US waters ONLY; exercised end to end by the "
+                               "flagship run"},
+    "SyntheticGenerator": {"dataset": "generated around a run's own origin",
+                           "bbox": None, "temporal": "any",
+                           "resolution": "configurable",
+                           "note": "every row is flagged SYNTHETIC"},
+    "Sentinel2": {"dataset": "Sentinel-2 L2A (adapter only)",
+                  "bbox": [-180, -90, 180, 90], "temporal": "n/a -- not deployed",
+                  "resolution": "10 m", "note": "NOT DEPLOYED"},
+    "AISStream": {"dataset": "live AIS WebSocket (not consumed)",
+                  "bbox": None, "temporal": "live only",
+                  "resolution": "n/a", "note": "NOT DEPLOYED"},
+}
 
 PROVIDER_BY_NAME = {p["name"]: p for p in PROVIDERS}
