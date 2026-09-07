@@ -56,6 +56,10 @@ class TimestepCloud:
     centroid: tuple[float, float]
     spread_m: float
     ellipse: list[tuple[float, float]]      # closed lon/lat ring
+    # (semi_major_m, semi_minor_m, orientation_deg) of that same ring, or
+    # None when the cloud is too small to fit. Published as the hindcast's
+    # uncertainty, so it must never be invented when the fit fails.
+    ellipse_axes: tuple[float, float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -93,6 +97,29 @@ def density_weights(lons: np.ndarray, lats: np.ndarray) -> np.ndarray:
     return np.ones(n) if peak <= 0 else np.clip(density / peak, 0.0, 1.0)
 
 
+def _ellipse_geometry(lons: np.ndarray, lats: np.ndarray, level: float):
+    """Shared covariance solve behind the ellipse ring and its axis lengths.
+
+    Both the drawn ring and the published `semi_major_m` / `semi_minor_m` must
+    describe the same ellipse, so the eigen-decomposition happens exactly once
+    here. Returns None when the cloud is too small or degenerate to fit.
+    """
+    frame = LocalFrame(float(np.mean(lats)), float(np.mean(lons)))
+    x, y = frame.to_metres(lons, lats)
+
+    if x.size < 3:
+        return None
+    cov = np.cov(np.vstack([x, y]))
+    if not np.all(np.isfinite(cov)):
+        return None
+
+    eigvals, eigvecs = np.linalg.eigh(cov)
+    eigvals = np.clip(eigvals, 0.0, None)
+    scale = math.sqrt(_CHI2_2DF.get(round(level, 2), _CHI2_2DF[0.90]))
+    axes = scale * np.sqrt(eigvals)               # semi-axes, metres
+    return frame, x, y, eigvals, eigvecs, axes
+
+
 def confidence_ellipse(
     lons: np.ndarray, lats: np.ndarray, level: float = 0.9, points: int = 64
 ) -> list[tuple[float, float]]:
@@ -102,22 +129,13 @@ def confidence_ellipse(
     deliberately *not* the ``4*sqrt(eigenvalue)`` shape convention Engine A uses for a
     best-fit ellipse. The two answer different questions.
     """
-    frame = LocalFrame(float(np.mean(lats)), float(np.mean(lons)))
-    x, y = frame.to_metres(lons, lats)
-
-    if x.size < 3:
+    solved = _ellipse_geometry(lons, lats, level)
+    if solved is None:
         return []
-    cov = np.cov(np.vstack([x, y]))
-    if not np.all(np.isfinite(cov)):
-        return []
-
-    eigvals, eigvecs = np.linalg.eigh(cov)
-    eigvals = np.clip(eigvals, 0.0, None)
-    scale = math.sqrt(_CHI2_2DF.get(round(level, 2), _CHI2_2DF[0.90]))
+    frame, x, y, _eigvals, eigvecs, axes = solved
 
     theta = np.linspace(0.0, 2.0 * math.pi, points, endpoint=False)
     unit = np.vstack([np.cos(theta), np.sin(theta)])
-    axes = scale * np.sqrt(eigvals)
     ring = (eigvecs @ (unit * axes[:, None])) + np.array(
         [[float(np.mean(x))], [float(np.mean(y))]]
     )
@@ -126,6 +144,35 @@ def confidence_ellipse(
     coords = [(round(float(lo), 6), round(float(la), 6)) for lo, la in zip(ring_lon, ring_lat)]
     coords.append(coords[0])                      # close the ring
     return coords
+
+
+def ellipse_axes_m(
+    lons: np.ndarray, lats: np.ndarray, level: float = 0.9
+) -> tuple[float, float, float] | None:
+    """Semi-axis lengths in metres and the major-axis bearing, or None.
+
+    The published uncertainty of the hindcast: `origin_cloud.geojson` used to
+    carry zero-radius ellipses because these numbers were never computed, only
+    drawn (audit H-06). Returned as
+    ``(semi_major_m, semi_minor_m, orientation_deg)`` with the bearing measured
+    clockwise from north and folded to [0, 180) - the contract's convention,
+    matching how Engine A reports a slick's orientation.
+    """
+    solved = _ellipse_geometry(lons, lats, level)
+    if solved is None:
+        return None
+    _frame, _x, _y, _eigvals, eigvecs, axes = solved
+
+    # eigh returns ascending eigenvalues, so the last column is the major axis.
+    major_i = int(np.argmax(axes))
+    minor_i = 1 - major_i
+    east, north = float(eigvecs[0, major_i]), float(eigvecs[1, major_i])
+    bearing = math.degrees(math.atan2(east, north)) % 180.0
+    return (
+        round(float(axes[major_i]), 3),
+        round(float(axes[minor_i]), 3),
+        round(bearing, 3),
+    )
 
 
 def advective_spread_m(spread_m: float, elapsed_h: float, diffusion_m2_s: float) -> float:
@@ -174,6 +221,7 @@ def build_clouds(
                 centroid=(float(np.mean(lons)), float(np.mean(lats))),
                 spread_m=_spread_m(lons, lats),
                 ellipse=confidence_ellipse(lons, lats, level),
+                ellipse_axes=ellipse_axes_m(lons, lats, level),
             )
         )
     return clouds

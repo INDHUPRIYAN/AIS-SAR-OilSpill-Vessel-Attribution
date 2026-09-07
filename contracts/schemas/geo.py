@@ -63,6 +63,16 @@ class SlickProperties(ContractModel):
     age_confidence: Optional[Score] = Field(
         default=None, description="Low is expected and honest — Fay spreading is a rough proxy"
     )
+    age_method: Optional[str] = Field(
+        default=None,
+        description="How the age was derived, e.g. 'damping+fay'. Without it the number "
+                    "reads as a measurement rather than an inversion of assumed thickness.",
+    )
+    age_confidence_label: Optional[str] = Field(
+        default=None,
+        description="The engine's own categorical confidence ('low'), kept beside the "
+                    "numeric score so the UI can render LOW rather than infer it from 0.25",
+    )
     engine: str = Field(default="ml", description="ml | threshold_fallback")
     source: SourceFlag = SourceFlag.REAL
 
@@ -171,6 +181,23 @@ class OriginMetadata(ContractModel):
         default_factory=dict,
         description="Provenance of the physics, e.g. {'currents':'CMEMS','wind':'ERA5','windage':0.03}",
     )
+    # The engine computes these and they are the only honest statement of how
+    # tightly the origin is known. They used to be dropped in normalisation,
+    # leaving the published ellipses zero-radius (audit H-06). Optional because
+    # a degenerate cloud legitimately has no fit -- absent beats fabricated.
+    origin_uncertainty_km: Optional[float] = Field(
+        default=None, ge=0,
+        description="Radius around the origin estimate containing `coverage` of cases",
+    )
+    origin_uncertainty_coverage: Optional[float] = Field(
+        default=None, gt=0, le=1,
+        description="Fraction of closed-loop cases the radius contains, e.g. 0.908",
+    )
+    origin_uncertainty_method: Optional[str] = Field(
+        default=None,
+        description="How the radius was derived. Says 'not ML' explicitly, because the "
+                    "hindcast is physics and the UI must never imply otherwise.",
+    )
     source: SourceFlag = SourceFlag.REAL
     crs: str = "EPSG:4326"
 
@@ -205,6 +232,13 @@ class ForecastMetadata(ContractModel):
     issued_utc: UTCDateTime
     horizons_h: List[int]
     forcing: Dict[str, Any] = Field(default_factory=dict)
+    weathering: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Fate model output and, more importantly, its own assumptions: "
+                    "oil_type_assumed, temperature_c_assumed, confidence and the list "
+                    "of processes NOT modelled. The engine computes this and fixes its "
+                    "confidence at 'low'; normalisation used to drop it entirely.",
+    )
     crs: str = "EPSG:4326"
 
 

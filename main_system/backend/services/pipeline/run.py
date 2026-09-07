@@ -32,6 +32,7 @@ import shutil
 import sys
 import time
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -431,6 +432,39 @@ def resolve_metocean(meta: Optional[dict], out_dir: Path):
         return scored[0][3].resolve()
 
     return best("currents*.nc"), best("wind*.nc")
+
+
+@lru_cache(maxsize=32)
+def _forcing_attrs(path_str: str) -> tuple:
+    """Global attributes of a forcing grid, as a hashable pair list."""
+    try:
+        import xarray as xr
+
+        with xr.open_dataset(path_str) as ds:
+            return tuple((str(k), str(v)) for k, v in ds.attrs.items())
+    except Exception:                              # noqa: BLE001 - provenance is best-effort
+        return ()
+
+
+def forcing_provenance(path) -> Optional[dict]:
+    """Who actually served this grid, read from the file itself.
+
+    The published forcing block used to be a bare filename, which said nothing
+    about whether the physics came from CMEMS or a static fallback (audit
+    H-11). The normalised grids carry a `provider` global attribute, so the
+    real identity is available without guessing -- and when it is absent the
+    field is simply omitted rather than filled with the filename dressed up as
+    a provider.
+    """
+    if not path:
+        return None
+    attrs = dict(_forcing_attrs(str(path)))
+    block = {"file": Path(path).name}
+    for src, dst in (("provider", "provider"), ("title", "dataset"),
+                     ("history", "normalised")):
+        if attrs.get(src):
+            block[dst] = attrs[src]
+    return block
 
 
 def forcing_coverage_hours(paths, acquired_utc: Optional[str]):
@@ -877,8 +911,8 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
                             mode=mode, hours=hours)
         s.seconds = res.seconds
         if res.ok:
-            forcing = {"currents": mode_currents.name if mode_currents else None,
-                       "wind": mode_wind.name if mode_wind else None,
+            forcing = {"currents": forcing_provenance(mode_currents),
+                       "wind": forcing_provenance(mode_wind),
                        "engine": res.engine_used, "hours": hours}
             shutil.copy(native, out_dir / s.output)
             normalise.normalise_file(

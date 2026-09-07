@@ -317,6 +317,19 @@ def _ellipse_features(clouds, level: float) -> list[dict[str, Any]]:
                     "level": level,
                     "timestep_h": cloud.elapsed_h,
                     "time_utc": _utc(cloud.time_s),
+                    # The ring's own semi-axes. Emitted here so normalisation
+                    # can publish real uncertainty instead of zero-filling
+                    # absent keys, which is what made every published ellipse
+                    # zero-radius (audit H-06). Omitted entirely when the fit
+                    # failed -- a missing number is honest, a zero is not.
+                    **(
+                        {
+                            "semi_major_m": cloud.ellipse_axes[0],
+                            "semi_minor_m": cloud.ellipse_axes[1],
+                            "orientation_deg": cloud.ellipse_axes[2],
+                        }
+                        if cloud.ellipse_axes else {}
+                    ),
                 },
             }
         )

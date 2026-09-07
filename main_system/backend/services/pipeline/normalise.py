@@ -18,7 +18,10 @@ Differences handled here:
       damping_ratio_db              damping_ratio
       age_hours_est                 age_hours_estimate
       age_confidence "low"          age_confidence 0.25   (categorical -> score)
-      age_method                    (dropped; not in contract)
+                                    + age_confidence_label "low" (kept: the UI
+                                      must render LOW, not infer it from 0.25)
+      age_method                    age_method            (carried; an inversion
+                                      of assumed thickness must say so)
       scene_id/detected_utc in      top-level metadata{}
         each feature's properties
 
@@ -59,6 +62,89 @@ def _utc(value: Any, default: Optional[datetime] = None) -> str:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _age_label(value: Any) -> Optional[str]:
+    """The engine's categorical age confidence, preserved as a word.
+
+    Flattening 'low' to 0.25 loses the label the UI must render (the truth
+    rules require age to show LOW wherever it appears) and makes a category
+    look like a measurement. A numeric input is mapped back to the band it
+    falls in, so a run that only ever had the score still renders honestly.
+    """
+    if isinstance(value, str):
+        label = value.strip().lower()
+        return label if label in AGE_CONFIDENCE else None
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return None
+    for label, threshold in (("low", 0.25), ("medium", 0.5), ("high", 0.75)):
+        if score <= threshold:
+            return label
+    return "high"
+
+
+def _merge_forcing(engine_block: Optional[dict], run_block: Optional[dict]) -> Dict[str, Any]:
+    """Engine forcing provenance, enriched with what the run resolved.
+
+    The engine records structure the run does not have (per-field variables,
+    fallback, windage, and whether the ML residual was applied); the run
+    records identity the engine does not have (which provider actually served
+    the grid, and which file). Replacing one with the other loses half the
+    story -- which is what reduced the published block to two filenames
+    (audit H-11). Neither side is invented: keys absent on both stay absent.
+    """
+    merged: Dict[str, Any] = json.loads(json.dumps(engine_block or {}))
+    for key, value in (run_block or {}).items():
+        if key in ("currents", "wind"):
+            # Per-field: keep the engine's structure, add the run's identity.
+            # A field neither side has stays absent -- an empty {} would read
+            # as "we looked and found nothing", which is not what happened.
+            if value is None and key not in merged:
+                continue
+            field = merged.get(key)
+            if not isinstance(field, dict):
+                field = {} if value is None else {"provider": value}
+                merged[key] = field
+            if isinstance(value, dict):
+                field.update({k: v for k, v in value.items() if v is not None})
+            elif value is not None:
+                field.setdefault("file", value)
+        elif value is not None:
+            merged[key] = value
+    return merged
+
+
+class MissingEllipseAxes(ValueError):
+    """The engine drew a confidence ellipse but published no axis lengths."""
+
+
+def _require_axes(props: dict, step_index: int) -> Dict[str, float]:
+    """Ellipse semi-axes, or a loud failure.
+
+    Zero-filling absent axes is what made every published ellipse zero-radius
+    while the UI rendered them as certainty (audit H-06). A silent 0.0 is the
+    one outcome this must never produce, so a partially-populated ellipse
+    raises. A cloud too degenerate to fit is a separate, legitimate case: the
+    engine omits all three keys together, and the ellipse is then dropped by
+    the caller rather than published with invented dimensions.
+    """
+    keys = ("semi_major_m", "semi_minor_m", "orientation_deg")
+    present = [k for k in keys if props.get(k) is not None]
+    if not present:
+        raise MissingEllipseAxes(
+            f"confidence ellipse at step {step_index} carries no axis lengths; "
+            f"the engine must emit {keys} or omit the ellipse entirely")
+    if len(present) != len(keys):
+        raise MissingEllipseAxes(
+            f"confidence ellipse at step {step_index} is partially specified "
+            f"(has {present}); refusing to default the rest to zero")
+    return {
+        "semi_major_m": float(props["semi_major_m"]),
+        "semi_minor_m": float(props["semi_minor_m"]),
+        "orientation_deg": float(props["orientation_deg"]) % 180.0,
+    }
 
 
 def _already_contract(payload: dict) -> bool:
@@ -108,6 +194,12 @@ def normalise_slick(payload: dict, scene_meta: dict, detect: dict) -> dict:
             "damping_ratio": p.get("damping_ratio_db", p.get("damping_ratio")),
             "age_hours_estimate": p.get("age_hours_est", p.get("age_hours_estimate")),
             "age_confidence": conf,
+            # The numeric score alone loses the two things that make the age
+            # defensible: how it was derived, and that the engine itself calls
+            # it low. Both were dropped here (audit C-05/C-07), leaving a bare
+            # 32.8 h that reads like a measurement.
+            "age_method": p.get("age_method"),
+            "age_confidence_label": _age_label(p.get("age_confidence")),
             "engine": detect.get("engine", "ml"),
             "source": scene_meta.get("source", "real"),
         }
@@ -136,6 +228,7 @@ def normalise_origin_cloud(payload: dict, scene_meta: dict,
 
     particles: List[dict] = []
     ellipses: List[dict] = []
+    dropped_ellipses: List[int] = []
     window: Dict[str, Any] = {}
     max_back_h = 0.0
 
@@ -158,6 +251,14 @@ def normalise_origin_cloud(payload: dict, scene_meta: dict,
         step_index = int(round(abs(step_h)))
 
         if kind == "confidence_ellipse":
+            # A cloud too degenerate to fit is a real outcome; the engine says
+            # so by omitting all three axis keys. Drop the ellipse instead of
+            # publishing one with no dimensions -- the particles still carry
+            # the spread, and a missing ellipse is visibly missing.
+            if not any(p.get(k) is not None
+                       for k in ("semi_major_m", "semi_minor_m", "orientation_deg")):
+                dropped_ellipses.append(step_index)
+                continue
             ellipses.append({
                 "type": "Feature", "geometry": f["geometry"],
                 "properties": {
@@ -165,9 +266,13 @@ def normalise_origin_cloud(payload: dict, scene_meta: dict,
                     "t_utc": _utc(p.get("time_utc") or p.get("t_utc")),
                     "step_index": step_index,
                     "center": list(p.get("center") or _centroid(f["geometry"])),
-                    "semi_major_m": float(p.get("semi_major_m", 0.0)),
-                    "semi_minor_m": float(p.get("semi_minor_m", 0.0)),
-                    "orientation_deg": float(p.get("orientation_deg", 0.0)) % 180.0,
+                    # Carried verbatim from the engine. These used to default to
+                    # 0.0 when absent, which published a zero-radius ellipse for
+                    # every step and quietly claimed perfect certainty (audit
+                    # H-06). The engine now emits real axes; when it genuinely
+                    # cannot fit one it omits them, and _require_axes says so
+                    # loudly rather than filling the gap with a zero.
+                    **_require_axes(p, step_index),
                     # contract requires 0 < level < 1
                     "confidence_level": min(max(float(
                         p.get("level", p.get("confidence_level", 0.9))), 0.01), 0.99),
@@ -185,6 +290,12 @@ def normalise_origin_cloud(payload: dict, scene_meta: dict,
 
     acquired = _utc(scene_meta.get("acquired_utc"))
     steps = {f["properties"]["step_index"] for f in particles} or {0}
+    if dropped_ellipses:
+        # Lands in the run log next to the stage lines. Fewer ellipses than
+        # steps is a real property of the result and should not be inferable
+        # only by counting features.
+        print(f"[normalise] {len(dropped_ellipses)} confidence ellipse(s) had no "
+              f"axis fit and were not published (steps {sorted(dropped_ellipses)})")
     return {
         "type": "FeatureCollection",
         "metadata": {
@@ -198,7 +309,19 @@ def normalise_origin_cloud(payload: dict, scene_meta: dict,
             "timestep_minutes": max(
                 (max_back_h * 60.0 / max(len(steps) - 1, 1)) if len(steps) > 1 else 60.0,
                 1.0),
-            "forcing": forcing or {},
+            # The engine's own structured provenance (per-field provider,
+            # variables, fallback, windage, ml_residual) merged under the run's
+            # resolved file/provider context. Previously the run-level dict
+            # replaced the engine block outright, reducing the whole thing to
+            # two filenames (audit H-11).
+            "forcing": _merge_forcing(payload.get("metadata", {}).get("forcing"), forcing),
+            # Real uncertainty, lifted off the engine's origin_window feature.
+            # Absent stays absent: a degenerate cloud has no honest radius.
+            **{k: v for k, v in {
+                "origin_uncertainty_km": window.get("origin_uncertainty_km"),
+                "origin_uncertainty_coverage": window.get("origin_uncertainty_coverage"),
+                "origin_uncertainty_method": window.get("origin_uncertainty_method"),
+            }.items() if v is not None},
             "source": scene_meta.get("source", "real"),
             "crs": "EPSG:4326",
         },
@@ -227,13 +350,21 @@ def normalise_forecast(payload: dict, scene_meta: dict,
                 "area_km2": float(p.get("area_km2", 0.0)),
                 "source": scene_meta.get("source", "real"),
             }})
+    engine_meta = payload.get("metadata", {}) or {}
     return {
         "type": "FeatureCollection",
         "metadata": {
             "scene_id": scene_meta.get("scene_id", "unknown"),
             "issued_utc": acquired,
             "horizons_h": sorted(set(horizons)) or [6, 12, 24],
-            "forcing": forcing or {},
+            "forcing": _merge_forcing(engine_meta.get("forcing"), forcing),
+            # The fate model states its own assumptions -- assumed oil type and
+            # sea temperature, a confidence fixed at 'low', and the processes it
+            # does NOT model. All of it was computed and then dropped here, so
+            # the forecast reached the UI with no way to qualify it. Absent when
+            # the engine did not run weathering; never synthesised.
+            **({"weathering": engine_meta["weathering"]}
+               if isinstance(engine_meta.get("weathering"), dict) else {}),
             "crs": "EPSG:4326",
         },
         "features": features,
