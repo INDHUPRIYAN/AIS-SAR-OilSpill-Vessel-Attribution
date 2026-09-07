@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import threading
 import uuid
 import zipfile
@@ -48,6 +49,15 @@ settings = get_settings()
 # Relative scene paths are resolved against the repo, not the server's CWD,
 # so a path means the same thing from the API, the CLI and a test.
 REPO_ROOT = settings.data_root.parent
+
+RUN_SORTABLE = {
+    "started_utc": Run.started_utc,
+    "finished_utc": Run.finished_utc,
+    "seconds": Run.seconds,
+    "status": Run.status,
+    "top_score": Run.top_score,
+    "slick_area_km2": Run.slick_area_km2,
+}
 
 # Contract file -> what the UI calls the layer.
 LAYER_FILES = {
@@ -242,6 +252,7 @@ def _execute_run(run_id: str, investigation_id: Optional[str],
             detect = next((s for s in stages if s["stage"] == "detect"), {})
             row.detect_engine = (detect.get("detail") or "").split("engine=")[-1].split(",")[0]
             row.manifest_path = str(settings.runs_root / run_id / "manifest.json")
+            summarise_outcome(row, settings.runs_root / run_id)
             db.commit()
     except Exception as exc:
         with SessionLocal() as db:
@@ -286,9 +297,66 @@ def start_run(request: Request, investigation_id: str, body: RunRequest,
 
 
 @router.get("/runs")
-def list_runs(db: Session = Depends(get_db), limit: int = Query(50, le=200)):
-    rows = db.query(Run).order_by(Run.started_utc.desc()).limit(limit).all()
-    return [_run_dict(r) for r in rows]
+def list_runs(db: Session = Depends(get_db),
+              q: Optional[str] = None,
+              status: Optional[str] = None,
+              incident: Optional[str] = None,
+              region: Optional[str] = None,
+              since: Optional[datetime] = Query(None, alias="from"),
+              until: Optional[datetime] = Query(None, alias="to"),
+              archived: bool = False,
+              sort: str = "started_utc",
+              order: str = Query("desc", pattern="^(asc|desc)$"),
+              offset: int = Query(0, ge=0),
+              limit: int = Query(50, ge=1, le=200)):
+    """Searchable, sortable, paginated run history.
+
+    Returns `{total, items}` rather than a bare list: without the total a UI
+    cannot page, and the previous endpoint silently truncated at 50 with no
+    way to tell a short page from the end of the data (audit RH-01..05).
+
+    Archived runs are excluded by default and never deleted -- a run is
+    evidence, so hiding it is a listing preference, not a lifecycle.
+    """
+    query = db.query(Run)
+    if not archived:
+        query = query.filter(Run.archived.is_(False))
+    if status:
+        query = query.filter(Run.status == status)
+    if incident:
+        query = query.filter(Run.incident_id == incident)
+    if region:
+        query = query.filter(Run.region == region)
+    if since:
+        query = query.filter(Run.started_utc >= since)
+    if until:
+        query = query.filter(Run.started_utc <= until)
+    if q:
+        like = f"%{q}%"
+        query = query.filter(Run.id.ilike(like) | Run.scene_id.ilike(like)
+                             | Run.investigation_id.ilike(like))
+
+    total = query.count()
+    column = RUN_SORTABLE.get(sort, Run.started_utc)
+    query = query.order_by(column.desc() if order == "desc" else column.asc())
+    rows = query.offset(offset).limit(limit).all()
+    return {"total": total, "offset": offset, "limit": limit,
+            "items": [_run_dict(r) for r in rows]}
+
+
+@router.post("/runs/{run_id}/archive",
+             dependencies=[Depends(require_role("investigator", "analyst"))])
+def archive_run(request: Request, run_id: str, archived: bool = True,
+                db: Session = Depends(get_db)):
+    """Hide a run from the default listing. It is never deleted."""
+    row = db.get(Run, run_id)
+    if row is None:
+        raise HTTPException(404, "run not found")
+    row.archived = bool(archived)
+    audit_service.record(db, "run.archive", request=request, resource=run_id,
+                         detail=json.dumps({"archived": row.archived}), commit=False)
+    db.commit()
+    return _run_dict(row)
 
 
 @router.get("/runs/{run_id}")
@@ -318,13 +386,51 @@ def _resolve_run_dir(run_id: str) -> Path:
     return run_dir
 
 
+def summarise_outcome(row: Run, run_dir: Path) -> None:
+    """Copy the run's headline result onto its DB row, once, at seal time.
+
+    Denormalised so the history page can show what a run found without opening
+    every artefact bundle. Read from the sealed files rather than recomputed,
+    and silent on failure -- a summary that cannot be read is left null, never
+    guessed, because a wrong top suspect on a listing is worse than a blank.
+    """
+    try:
+        suspects_path = run_dir / "suspects.json"
+        if suspects_path.exists():
+            payload = json.loads(suspects_path.read_text(encoding="utf-8"))
+            top = (payload.get("suspects") or [None])[0]
+            if top:
+                row.top_suspect_mmsi = int(top["mmsi"])
+                row.top_score = float(top.get("total_score") or 0.0)
+    except Exception:                              # noqa: BLE001
+        pass
+    try:
+        slick_path = run_dir / "slick.geojson"
+        if slick_path.exists():
+            slick = json.loads(slick_path.read_text(encoding="utf-8"))
+            areas = [f["properties"].get("area_km2") or 0.0
+                     for f in slick.get("features", [])]
+            if areas:
+                row.slick_area_km2 = round(float(sum(areas)), 4)
+    except Exception:                              # noqa: BLE001
+        pass
+
+
 def _run_dict(r: Run) -> dict:
     return {"run_id": r.id, "investigation_id": r.investigation_id,
+            "incident_id": r.incident_id,
             "scene_id": r.scene_id, "status": r.status,
             "started_utc": r.started_utc, "finished_utc": r.finished_utc,
             "seconds": r.seconds, "detect_engine": r.detect_engine,
             "stages_total": r.stages_total, "stages_real": r.stages_real,
             "stages_mock": r.stages_mock, "stages_failed": r.stages_failed,
+            # Denormalised outcome, so a 90-row history page does not open 90
+            # artefact bundles to say what each run found.
+            "top_suspect_mmsi": r.top_suspect_mmsi,
+            "top_score": r.top_score,
+            "slick_area_km2": r.slick_area_km2,
+            "region": r.region,
+            "archived": bool(r.archived),
             "error": r.error}
 
 
@@ -411,6 +517,106 @@ def weights_profile() -> dict:
         # so scores stay comparable but no longer match the file as written.
         "on_invalid": "Engine C renormalises and records a warning in the run; "
                       "this endpoint reports the file as written.",
+    }
+
+
+# The three gates, in the order the UI narrates them. These strings are the
+# engine's own `filter_reason` values (analysis_engines/.../gates.py), not
+# prose -- matching on the humanised sentence would break the moment someone
+# improved the wording.
+GATE_ORDER = (
+    ("after_spatial", "outside origin region"),
+    ("after_temporal", "outside time window"),
+    ("after_trajectory", "course incompatible with slick axis"),
+)
+
+
+@router.get("/runs/{run_id}/funnel")
+def run_funnel(run_id: str):
+    """How many vessels survived each stage, and why the rest did not.
+
+    Six counts rather than the four the plan first sketched, because the AIS
+    index and the three gates are different things and collapsing them hides
+    where the population actually fell away.
+
+    One honesty note that the UI must not lose: the gates are evaluated
+    TOGETHER, not in sequence. A vessel can fail several at once, and
+    `failed_gates` lists all of them. The cumulative counts below therefore
+    answer "how many would remain if the gates were applied in this order",
+    which is a presentation of one evaluation -- not a record of three passes.
+    `exclusive` reports each gate's own toll independent of order.
+    """
+    run_dir = _resolve_run_dir(run_id)
+    suspects_path = run_dir / "suspects.json"
+    if not suspects_path.exists():
+        raise HTTPException(404, f"run {run_id} has no suspects.json")
+
+    try:
+        payload = json.loads(suspects_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise HTTPException(422, f"malformed suspects.json: {exc}")
+
+    suspects = payload.get("suspects") or []
+    filtered = payload.get("filtered_out") or []
+    considered = int(payload.get("total_vessels_considered",
+                                 len(suspects) + len(filtered)))
+
+    # `found` is what AIS supplied before the spatial index pruned it. The
+    # index writes it into the manifest; absent that we say so rather than
+    # guessing, because a fabricated top-of-funnel would overstate the
+    # filtering the system actually did.
+    found = None
+    manifest_path = run_dir / "manifest.json"
+    if manifest_path.exists():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            for stage in manifest.get("stages", []):
+                for warning in stage.get("warnings", []) or []:
+                    match = re.search(r"AIS index: (\d+) vessels", str(warning))
+                    if match:
+                        found = int(match.group(1))
+        except (json.JSONDecodeError, OSError):
+            found = None
+
+    gates_of = {}
+    for row in filtered:
+        gates = row.get("failed_gates")
+        if not gates and row.get("filter_reason"):
+            gates = [row["filter_reason"]]
+        gates_of[row.get("mmsi")] = set(gates or [])
+
+    unknown_gate = sum(1 for g in gates_of.values() if not g)
+
+    steps, survivors = [], set(gates_of) | {s.get("mmsi") for s in suspects}
+    exclusive = {}
+    for key, reason in GATE_ORDER:
+        removed = {m for m in survivors if reason in gates_of.get(m, ())}
+        survivors -= removed
+        steps.append((key, len(survivors)))
+        exclusive[key] = sum(1 for g in gates_of.values() if reason in g)
+
+    histogram = {}
+    for row in filtered:
+        label = row.get("filter_reason") or "unclassified"
+        histogram[label] = histogram.get(label, 0) + 1
+
+    return {
+        "run_id": run_id,
+        "found": found,
+        "found_note": (None if found is not None else
+                       "not recorded by this run; the AIS index writes it into "
+                       "the manifest warnings"),
+        "indexed": considered,
+        **dict(steps),
+        "candidates": len(suspects),
+        "filtered": len(filtered),
+        "reasons_histogram": histogram,
+        "exclusive_by_gate": exclusive,
+        "unclassified": unknown_gate,
+        "gates_are_sequential": False,
+        "note": "Gates are evaluated together; a vessel may fail several. The "
+                "cumulative counts show one ordering of a single evaluation.",
+        "source": payload.get("source"),
     }
 
 

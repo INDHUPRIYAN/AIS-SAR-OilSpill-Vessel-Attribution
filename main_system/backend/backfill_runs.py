@@ -64,6 +64,37 @@ def summarise(manifest: dict) -> dict:
     }
 
 
+def _denormalise(row: Run, run_dir: Path) -> None:
+    """Fill the run's headline outcome from its own sealed artefacts.
+
+    Shares its intent with `routes.summarise_outcome`, which does the same at
+    seal time for new runs; this is the catch-up pass for the 90-odd runs that
+    predate the columns. Silent on failure -- a summary that cannot be read
+    stays null rather than being guessed, because a wrong top suspect on a
+    listing is worse than a blank one.
+    """
+    try:
+        suspects_path = run_dir / "suspects.json"
+        if suspects_path.exists():
+            payload = json.loads(suspects_path.read_text(encoding="utf-8"))
+            top = (payload.get("suspects") or [None])[0]
+            if top:
+                row.top_suspect_mmsi = int(top["mmsi"])
+                row.top_score = float(top.get("total_score") or 0.0)
+    except Exception:                              # noqa: BLE001
+        pass
+    try:
+        slick_path = run_dir / "slick.geojson"
+        if slick_path.exists():
+            slick = json.loads(slick_path.read_text(encoding="utf-8"))
+            areas = [f["properties"].get("area_km2") or 0.0
+                     for f in slick.get("features", [])]
+            if areas:
+                row.slick_area_km2 = round(float(sum(areas)), 4)
+    except Exception:                              # noqa: BLE001
+        pass
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dry-run", action="store_true")
@@ -74,7 +105,7 @@ def main(argv=None) -> int:
     init_db()
     runs_root = get_settings().runs_root
     db = SessionLocal()
-    added = updated = skipped = 0
+    added = updated = skipped = summarised = 0
     try:
         for manifest_path in sorted(runs_root.glob("*/manifest.json")):
             run_id = manifest_path.parent.name
@@ -87,7 +118,9 @@ def main(argv=None) -> int:
             fields = summarise(manifest)
             row = db.get(Run, run_id)
             if row is None:
-                db.add(Run(id=run_id, manifest_path=str(manifest_path), **fields))
+                row = Run(id=run_id, manifest_path=str(manifest_path), **fields)
+                db.add(row)
+                _denormalise(row, manifest_path.parent)
                 added += 1
                 print(f"  + {run_id:28} {fields['scene_id']} "
                       f"({fields['stages_real']}/{fields['stages_total']} real)")
@@ -95,18 +128,26 @@ def main(argv=None) -> int:
                 for k, v in fields.items():
                     setattr(row, k, v)
                 row.manifest_path = str(manifest_path)
+                _denormalise(row, manifest_path.parent)
                 updated += 1
                 print(f"  ~ {run_id:28} refreshed from manifest")
+            elif row.top_suspect_mmsi is None and row.slick_area_km2 is None:
+                # Rows that predate the denormalised columns: fill the summary
+                # without touching anything the manifest would rewrite, so a
+                # backfill for display cannot move an API run's start time.
+                _denormalise(row, manifest_path.parent)
+                summarised += 1
+                print(f"  s {run_id:28} outcome summarised")
             else:
                 skipped += 1
         if args.dry_run:
             db.rollback()
-            print(f"\n--dry-run: would add {added}, refresh {updated} "
-                  f"({skipped} already current)")
+            print(f"\n--dry-run: would add {added}, refresh {updated}, "
+                  f"summarise {summarised} ({skipped} already current)")
         else:
             db.commit()
-            print(f"\nregistered {added}, refreshed {updated} "
-                  f"({skipped} already current)")
+            print(f"\nregistered {added}, refreshed {updated}, "
+                  f"summarised {summarised} ({skipped} already current)")
     finally:
         db.close()
     return 0

@@ -62,8 +62,8 @@ class Run(Base):
     id = Column(String(64), primary_key=True)
     investigation_id = Column(String(64), ForeignKey("investigations.id"))
     scene_id = Column(String(200))
-    status = Column(String(32), default="pending")     # pending|running|complete|failed
-    started_utc = Column(DateTime(timezone=True), default=utcnow)
+    status = Column(String(32), default="pending", index=True)  # pending|running|complete|failed
+    started_utc = Column(DateTime(timezone=True), default=utcnow, index=True)
     finished_utc = Column(DateTime(timezone=True))
     seconds = Column(Float, default=0.0)
 
@@ -83,6 +83,15 @@ class Run(Base):
     # later, and a sealed run must keep saying which case it was evidence for.
     incident_id = Column(String(32), ForeignKey("incidents.id"), nullable=True,
                          index=True)
+
+    # Denormalised at seal time so the history table can show an outcome
+    # without opening 90-odd artefact bundles to render one page. Recomputed
+    # only by the backfill; a sealed run's summary never changes on its own.
+    top_suspect_mmsi = Column(Integer, nullable=True)
+    top_score = Column(Float, nullable=True)
+    slick_area_km2 = Column(Float, nullable=True)
+    archived = Column(Boolean, nullable=False, default=False, index=True)
+    region = Column(String(120), nullable=True, index=True)
 
     investigation = relationship("Investigation", back_populates="runs")
 

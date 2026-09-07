@@ -84,7 +84,18 @@ export const api = {
   invLayer: (id, name) => request(`/api/investigations/${id}/layers/${name}`),
   invReplay: (id) => request(`/api/investigations/${id}/replay`, { method: "POST" }),
 
-  listRuns: () => request("/api/runs"),
+  // `/api/runs` now returns {total, items}. Unwrapped here so the two existing
+  // callers keep receiving an array; paging callers use listRunsPaged.
+  listRuns: async (params = {}) => (await api.listRunsPaged(params)).items,
+  listRunsPaged: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== ""),
+    ).toString();
+    return request(`/api/runs${q ? `?${q}` : ""}`);
+  },
+  runFunnel: (runId) => request(`/api/runs/${runId}/funnel`),
+  archiveRun: (runId, archived = true) =>
+    request(`/api/runs/${runId}/archive?archived=${archived}`, { method: "POST" }),
   getRun: (id) => request(`/api/runs/${id}`),
   layer: (runId, name, opts = {}) =>
     request(`/api/layers/${runId}/${name}${opts.lite ? "?lite=true" : ""}`),

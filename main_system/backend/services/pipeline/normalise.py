@@ -408,8 +408,18 @@ def normalise_suspects(payload: dict, scene_meta: dict, run_id: str,
     suspects, filtered = [], []
     for v in payload.get("vessels", payload.get("suspects", [])):
         if v.get("filtered"):
-            filtered.append({"mmsi": int(v["mmsi"]),
-                             "reason": v.get("reason") or v.get("filter_reason") or "filtered"})
+            # `reason` is the humanised sentence with its measured number in
+            # it; `filter_reason` and `failed_gates` are the machine-readable
+            # gate identities behind it. Only the sentence used to survive, so
+            # the funnel had no way to say WHICH gate excluded a vessel
+            # without pattern-matching English prose (audit H5).
+            filtered.append({
+                "mmsi": int(v["mmsi"]),
+                "reason": v.get("reason") or v.get("filter_reason") or "filtered",
+                "filter_reason": v.get("filter_reason"),
+                "failed_gates": list(v.get("failed_gates") or
+                                     ([v["filter_reason"]] if v.get("filter_reason") else [])),
+            })
             continue
         scores = {weight_alias.get(k, k): float(x)
                   for k, x in (v.get("scores") or v.get("sub_scores") or {}).items()}
