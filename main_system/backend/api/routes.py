@@ -254,6 +254,16 @@ def _execute_run(run_id: str, investigation_id: Optional[str],
             row.manifest_path = str(settings.runs_root / run_id / "manifest.json")
             summarise_outcome(row, settings.runs_root / run_id)
             db.commit()
+            # Index the vessels this run considered, so the dossier can answer
+            # "what else do we know about this MMSI" without rescanning every
+            # artefact. Failure here must not fail the run: the index is
+            # derived data and can be rebuilt by the backfill.
+            try:
+                from backend.services import vessel_index
+
+                vessel_index.index_run(db, run_id, settings.runs_root / run_id)
+            except Exception as exc:               # noqa: BLE001
+                print(f"[vessel_index] {run_id}: {type(exc).__name__}: {exc}")
     except Exception as exc:
         with SessionLocal() as db:
             row = db.get(Run, run_id)

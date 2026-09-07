@@ -94,6 +94,15 @@ export const api = {
     return request(`/api/runs${q ? `?${q}` : ""}`);
   },
   runFunnel: (runId) => request(`/api/runs/${runId}/funnel`),
+
+  listVessels: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== ""),
+    ).toString();
+    return request(`/api/vessels${q ? `?${q}` : ""}`);
+  },
+  getVessel: (mmsi) => request(`/api/vessels/${mmsi}`),
+  vesselTracks: (mmsi) => request(`/api/vessels/${mmsi}/tracks`),
   archiveRun: (runId, archived = true) =>
     request(`/api/runs/${runId}/archive?archived=${archived}`, { method: "POST" }),
   getRun: (id) => request(`/api/runs/${id}`),

@@ -26,6 +26,7 @@ class MarineCadastreIngest:
             'Heading': 'heading_deg',
             'VesselName': 'vessel_name',
             'IMO': 'imo',
+            'CallSign': 'call_sign',
             'VesselType': 'vessel_type',
             'Status': 'status',
             'Length': 'length_m',
@@ -69,4 +70,47 @@ class MarineCadastreIngest:
         if df.empty:
             return pd.DataFrame()
         df = interpolate_trajectory(df)
+
+        # Identity is lifted off here, BEFORE to_contract() projects onto the
+        # frozen 14 columns and drops it. MarineCadastre publishes name, IMO
+        # and call sign; the contract deliberately does not carry them, and
+        # widening it would change a file five modules validate against. This
+        # is the side channel: the same bytes, kept beside the contract file
+        # instead of smuggled into it.
+        MarineCadastreIngest.last_identities = MarineCadastreIngest.vessel_identities(df)
         return to_contract(df, source='real')
+
+    #: Identity table from the most recent parse, keyed by MMSI. Populated as
+    #: a side effect because the contract-returning signature is frozen too.
+    last_identities: dict = {}
+
+    @staticmethod
+    def vessel_identities(df) -> dict:
+        """One identity row per MMSI, from whatever the source actually gave.
+
+        Never invents: a field the archive left blank stays absent rather than
+        becoming an empty string, so "we do not know this vessel's name" and
+        "this vessel has no name" remain different statements. Synthetic AIS
+        has none of these columns at all and yields an empty table.
+        """
+        out = {}
+        if df is None or getattr(df, "empty", True) or "mmsi" not in df.columns:
+            return out
+        fields = [c for c in ("vessel_name", "imo", "call_sign") if c in df.columns]
+        if not fields:
+            return out
+
+        for mmsi, group in df.groupby("mmsi"):
+            identity = {}
+            for field in fields:
+                values = group[field].dropna()
+                values = values[values.astype(str).str.strip() != ""]
+                if values.empty:
+                    continue
+                # The archive repeats identity on every fix; take the most
+                # common rather than the first, so one corrupt row cannot
+                # rename a vessel.
+                identity[field] = str(values.mode().iloc[0]).strip()
+            if identity:
+                out[int(mmsi)] = identity
+        return out

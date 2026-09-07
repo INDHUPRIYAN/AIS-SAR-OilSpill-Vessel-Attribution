@@ -32,6 +32,7 @@ from backend.api.auth import bootstrap_admin, router as auth_router  # noqa: E40
 from backend.api.incidents import router as incidents_router  # noqa: E402
 from backend.api.routes import router  # noqa: E402
 from backend.api.scenes import router as scenes_router  # noqa: E402
+from backend.api.vessels import router as vessels_router  # noqa: E402
 from backend.api.scheduler_routes import router as scheduler_router  # noqa: E402
 from backend.core.config import get_settings  # noqa: E402
 from backend.models.db import SessionLocal, init_db, utcnow  # noqa: E402
@@ -149,6 +150,7 @@ app.include_router(scheduler_router, prefix="/api", dependencies=_authenticated)
 app.include_router(scenes_router, prefix="/api", dependencies=_authenticated)
 app.include_router(audit_router, prefix="/api", dependencies=_authenticated)
 app.include_router(incidents_router, prefix="/api", dependencies=_authenticated)
+app.include_router(vessels_router, prefix="/api", dependencies=_authenticated)
 # Public by necessity: /auth/login is how a session is obtained. The routes in
 # here that need a session (/auth/me, /auth/roles) declare it themselves.
 app.include_router(auth_router, prefix="/api")

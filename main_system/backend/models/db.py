@@ -288,6 +288,75 @@ class AuditLog(Base):
 
 
 # --------------------------------------------------------------------------
+# vessels
+# --------------------------------------------------------------------------
+
+
+class Vessel(Base):
+    """What is known about one MMSI, across every run it appeared in.
+
+    Identity (`name`, `imo`, `call_sign`) lives HERE and not in
+    `vessels.parquet`. That file is a frozen 14-column contract validated by
+    five modules, and `validate_vessels_df` rejects extra columns outright --
+    so identity is carried beside it rather than smuggled into it. The values
+    come from the MarineCadastre archive at ingest, before the contract
+    projection drops them.
+
+    Every field is nullable and stays null when the source did not supply it.
+    Synthetic AIS has no names at all, and inventing one for a vessel the
+    system may go on to rank as a suspect is the single worst thing this table
+    could do.
+    """
+
+    __tablename__ = "vessels"
+
+    mmsi = Column(Integer, primary_key=True)
+    name = Column(String(120), nullable=True)
+    imo = Column(String(20), nullable=True)
+    call_sign = Column(String(20), nullable=True)
+    flag = Column(String(64), nullable=True)
+    vessel_type = Column(String(32), nullable=True)
+    length_m = Column(Float, nullable=True)
+    width_m = Column(Float, nullable=True)
+    draught_m = Column(Float, nullable=True)
+    # real | synthetic. A vessel seen in both is 'real': the synthetic
+    # generator reuses MMSI ranges, and downgrading a real vessel because a
+    # scenario borrowed its number would mislabel actual evidence.
+    source = Column(String(16), nullable=False, default="synthetic", index=True)
+    first_seen_utc = Column(DateTime(timezone=True), nullable=True)
+    last_seen_utc = Column(DateTime(timezone=True), nullable=True)
+
+    appearances = relationship("VesselAppearance", back_populates="vessel",
+                               cascade="all, delete-orphan")
+
+
+class VesselAppearance(Base):
+    """One vessel's presence in one run, ranked or excluded.
+
+    Filtered vessels are recorded too, with the gate that excluded them. A
+    dossier that showed only the runs where a vessel scored highly would be a
+    prosecution file rather than a record.
+    """
+
+    __tablename__ = "vessel_appearances"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    mmsi = Column(Integer, ForeignKey("vessels.mmsi"), nullable=False, index=True)
+    run_id = Column(String(64), ForeignKey("runs.id"), nullable=False, index=True)
+    incident_id = Column(String(32), nullable=True, index=True)
+
+    rank = Column(Integer, nullable=True)
+    total_score = Column(Float, nullable=True)
+    filtered = Column(Boolean, nullable=False, default=False)
+    filter_reason = Column(String(120), nullable=True)
+    ais_gap_minutes = Column(Float, nullable=True)
+    source = Column(String(16), nullable=False, default="synthetic")
+    seen_utc = Column(DateTime(timezone=True), default=utcnow)
+
+    vessel = relationship("Vessel", back_populates="appearances")
+
+
+# --------------------------------------------------------------------------
 # incidents
 # --------------------------------------------------------------------------
 
