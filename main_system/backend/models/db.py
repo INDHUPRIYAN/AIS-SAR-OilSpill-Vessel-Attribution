@@ -274,6 +274,45 @@ class Job(Base):
     inputs_json = Column(Text)
 
 
+class Report(Base):
+    """A composed investigation report, versioned against the run it describes.
+
+    Versioning is keyed to `artefact_digest`, not to a timestamp. That is the
+    hash of the run's sealed artefact list, so a report can state which exact
+    bytes it was composed from -- and a report whose digest no longer matches
+    its run is detectably stale rather than quietly wrong.
+
+    The review states are draft -> in_review -> published, and **published is
+    immutable**. Editing a published report does not change it; it creates the
+    next version as a draft. A report that could be edited after approval is
+    not an approved report, it is a document that once had approval.
+    """
+
+    __tablename__ = "reports"
+
+    id = Column(String(64), primary_key=True)
+    run_id = Column(String(64), ForeignKey("runs.id"), index=True, nullable=False)
+    investigation_id = Column(String(64), ForeignKey("investigations.id"),
+                              nullable=True, index=True)
+    version = Column(Integer, default=1, nullable=False)
+    # draft | in_review | published
+    status = Column(String(16), default="draft", nullable=False, index=True)
+    # The composed document. Stored rather than recomposed on read: a report is
+    # a statement made at a moment, and recomposing it later would silently
+    # rewrite history whenever the composer changed.
+    body_json = Column(Text, nullable=False)
+    # Hash of the run's artefact list at compose time.
+    artefact_digest = Column(String(64), index=True)
+    title = Column(String(300))
+    created_utc = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_utc = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    submitted_utc = Column(DateTime(timezone=True))
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    published_utc = Column(DateTime(timezone=True))
+    review_note = Column(Text)
+
+
 class ApiProvider(Base):
     """Current health of one external dependency."""
 

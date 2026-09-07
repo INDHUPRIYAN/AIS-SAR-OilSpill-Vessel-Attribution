@@ -13,10 +13,16 @@ discovered later is an impeachment. Per-module detail lives in
 
 1. **No public bulk historic AIS exists for Indian waters.** MarineCadastre covers US
    waters, DMA covers Danish/Baltic waters; AISStream is live-only. This is a
-   data-availability fact, not an engineering gap. **All AIS in this repository is
-   synthetic and labelled SYNTHETIC everywhere, including the UI.** Ingest adapters for
-   MarineCadastre and DMA are implemented against the published formats and unit-tested
-   against format fixtures; they have not yet been exercised on a real archive.
+   data-availability fact, not an engineering gap. **Any run over Indian waters uses
+   synthetic AIS, labelled SYNTHETIC everywhere including the UI.** Runs over US waters
+   use real MarineCadastre archives: the flagship run
+   `inv-gulf-flagship-20230108-2day` ingested the 2023-01-07 and 2023-01-08 archives
+   (86,830 rows, 441 MMSI) and its attribution stage carries `source: real`. The
+   MarineCadastre adapter has therefore been exercised end to end on real archives; the
+   DMA adapter has not, and is still only unit-tested against format fixtures.
+   `ensure_vessels` chooses real AIS only when it actually covers the run's computed
+   origin window — a real archive for the wrong day is rejected in favour of clearly
+   labelled synthesis, and the manifest's `ais` block records which path ran.
 2. **Vessels without AIS are invisible to attribution.** A transponder-off or spoofing
    vessel cannot be ranked. The system can still say "no AIS-carrying candidate
    matches" — itself investigative signal. SAR ship detection (CFAR) crossed against

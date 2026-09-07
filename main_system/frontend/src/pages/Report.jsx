@@ -11,6 +11,7 @@
 import { useSearchParams } from "react-router-dom";
 import { Printer } from "lucide-react";
 
+import ReportReview from "../components/ReportReview";
 import { api, useApi, fmt } from "../lib/api";
 import "../report.css";
 
@@ -197,6 +198,8 @@ export default function Report() {
             </table>
           </section>
         )}
+
+        <ReportReview runId={runId} />
 
         <footer className="rp-foot">
           OceanTrace · SIH 2026 · PS26143 — SAR oil-spill detection, drift

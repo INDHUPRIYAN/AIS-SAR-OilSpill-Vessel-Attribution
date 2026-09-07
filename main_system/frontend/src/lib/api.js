@@ -127,6 +127,21 @@ export const api = {
   layer: (runId, name, opts = {}) =>
     request(`/api/layers/${runId}/${name}${opts.lite ? "?lite=true" : ""}`),
 
+  // Reports: composed server-side, versioned, reviewable.
+  listReports: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== ""),
+    ).toString();
+    return request(`/api/reports${q ? `?${q}` : ""}`);
+  },
+  getReport: (id) => request(`/api/reports/${id}`),
+  composeReport: (body) => request("/api/reports", { method: "POST", body }),
+  submitReport: (id, body = {}) =>
+    request(`/api/reports/${id}/submit`, { method: "POST", body }),
+  publishReport: (id, body = {}) =>
+    request(`/api/reports/${id}/publish`, { method: "POST", body }),
+  reviseReport: (id) => request(`/api/reports/${id}/revise`, { method: "POST" }),
+
   metrics: () => request("/api/metrics"),
   replayRuns: () => request("/api/replay/runs"),
   vesselsGeojson: (runId) => request(`/api/runs/${runId}/vessels_geojson`),

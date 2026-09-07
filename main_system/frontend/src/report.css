@@ -99,3 +99,40 @@
     margin: 0; padding: 0;
   }
 }
+
+/* ------------------------------------------------------ review lifecycle --
+ * A DRAFT page that leaves the screen as a PDF must still say DRAFT. The
+ * watermark prints deliberately — hiding it under @media print would defeat
+ * the only moment it matters.
+ */
+.rp-watermark {
+  position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 108px; font-weight: 800; letter-spacing: 0.2em;
+  color: rgba(220, 38, 38, 0.10); transform: rotate(-24deg);
+  user-select: none;
+}
+.rp-sheet { position: relative; }
+
+.rp-review {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 6px 0 10px;
+}
+.rp-badge {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+  padding: 3px 8px; border-radius: 4px; text-transform: uppercase;
+}
+.rp-badge-draft { background: #fef3c7; color: #92400e; }
+.rp-badge-in_review { background: #dbeafe; color: #1e40af; }
+.rp-badge-published { background: #d1fae5; color: #065f46; }
+
+.rp-warn {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; color: #b91c1c; margin: 6px 0;
+}
+.rp-kv { display: grid; grid-template-columns: 130px 1fr; gap: 4px 12px; margin: 8px 0; }
+.rp-kv dt { font-size: 11px; color: #5a6a80; text-transform: uppercase; letter-spacing: 0.05em; }
+.rp-kv dd { margin: 0; font-size: 12px; word-break: break-all; }
+.rp-hash { font-size: 10px; word-break: break-all; }
+
+@media print { .rp-noprint { display: none !important; } }
