@@ -10,7 +10,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity, Crosshair, Download, Droplets, FileText, Info,
-  Layers as LayersIcon, Play, Zap,
+  Layers as LayersIcon, Play, Plus, RotateCcw, Square, Zap,
 } from "lucide-react";
 
 import WorkspaceMap from "../components/workspace/WorkspaceMap";
@@ -20,8 +20,10 @@ import SpillPanel from "../components/workspace/SpillPanel";
 import SuspectsPanel from "../components/workspace/SuspectsPanel";
 import TimeSlider from "../components/workspace/TimeSlider";
 import { sourceBadge } from "../components/workspace/palette";
+import NewInvestigation from "../components/NewInvestigation";
 import { Spinner, Empty } from "../components/ui";
 import { api, useApi } from "../lib/api";
+import { useRunEvents } from "../lib/useRunEvents";
 import { guessPlace, fmtUtc } from "../lib/replay";
 
 const LAYER_STAGE = {
@@ -40,6 +42,11 @@ export default function Investigation() {
     () => (invId ? api.getInvestigation(invId) : Promise.resolve(null)), [invId]);
 
   const [running, setRunning] = useState(false);
+  // The job behind the current run: what makes it cancellable. Null when the
+  // page is showing a finished run rather than driving a live one.
+  const [job, setJob] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [replayRunId, setReplayRunId] = useState(null);
   const [replayMode, setReplayMode] = useState(true);
   const [status, setStatus] = useState(null);
@@ -204,7 +211,8 @@ export default function Investigation() {
       } else {
         setReplayRunId(null);
         setRunning(true);
-        await api.startRun(invId, { engine: "auto" });
+        const started = await api.startRun(invId, { engine: "auto" });
+        setJob({ id: started.job_id, run_id: started.run_id });
       }
     } catch (e) {
       setRunning(false);
@@ -212,13 +220,31 @@ export default function Investigation() {
     }
   }
 
-  async function createInv() {
-    const created = await api.createInvestigation({
-      name: "New investigation",
-      scene_meta_path: "contracts/mocks/scene_meta.json",
-    });
-    await reloadInvs();
-    setParams({ inv: created.id });
+  async function cancelRun() {
+    if (!job?.id) return;
+    setCancelling(true);
+    try {
+      const result = await api.cancelJob(job.id);
+      // Cooperative: the pipeline stops at the next stage boundary, so the
+      // button reports what was asked rather than pretending it stopped now.
+      toast(result.detail || "cancelling at the next stage boundary");
+    } catch (e) {
+      toast(e.message || "could not cancel");
+      setCancelling(false);
+    }
+  }
+
+  async function rerunLast() {
+    const runId = job?.run_id || status?.run_id;
+    if (!runId) return;
+    try {
+      const started = await api.rerun(runId);
+      setJob({ id: started.job_id, run_id: started.run_id });
+      setRunning(true);
+      toast(`re-running as ${started.run_id}`);
+    } catch (e) {
+      toast(e.message || "could not re-run");
+    }
   }
 
   /* ----------------------------------------------------------- rendering -- */
@@ -228,10 +254,18 @@ export default function Investigation() {
         <Empty icon={<Crosshair size={30} color="var(--ink-3)" />}
           title="No investigation selected"
           hint="Create an investigation to begin." />
-        <button className="btn btn-primary" onClick={createInv}
+        <button className="btn btn-primary" onClick={() => setWizardOpen(true)}
           data-testid="create-investigation">
-          <Zap size={13} /> Create investigation
+          <Plus size={13} /> New investigation
         </button>
+        {wizardOpen && (
+          <NewInvestigation
+            onClose={() => setWizardOpen(false)}
+            onCreated={async (created) => {
+              await reloadInvs();
+              setParams({ inv: created.id });
+            }} />
+        )}
       </div>
     );
   }
@@ -286,6 +320,10 @@ export default function Investigation() {
               <option key={x.id} value={x.id}>{x.name} · {x.id}</option>
             ))}
           </select>
+          <button className="btn btn-icon" title="New investigation"
+            onClick={() => setWizardOpen(true)} data-testid="new-investigation-btn">
+            <Plus size={14} />
+          </button>
         </div>
       </div>
 
@@ -295,6 +333,20 @@ export default function Investigation() {
           className="panel" style={{ padding: 13 }}>
           <div className="ws-panel-title"><Zap size={13} /> Run</div>
           <div style={{ display: "flex", gap: 8 }}>
+            {running && job?.id && (
+              <button className="btn" style={{ justifyContent: "center" }}
+                onClick={cancelRun} disabled={cancelling} data-testid="cancel-btn"
+                title="Stops at the next stage boundary. The run will not be sealed.">
+                <Square size={12} /> {cancelling ? "Cancelling…" : "Cancel"}
+              </button>
+            )}
+            {!running && (job?.run_id || status?.run_id) && (
+              <button className="btn btn-icon" onClick={rerunLast}
+                title="Run again with the same inputs, under a new run id"
+                data-testid="rerun-btn">
+                <RotateCcw size={13} />
+              </button>
+            )}
             <button className="btn btn-primary" style={{ flex: 1, justifyContent: "center" }}
               onClick={run} disabled={running} data-testid="run-btn">
               {running ? <Spinner /> : <Play size={13} />}
@@ -423,6 +475,15 @@ export default function Investigation() {
           ))}
         </AnimatePresence>
       </div>
+
+      {wizardOpen && (
+        <NewInvestigation
+          onClose={() => setWizardOpen(false)}
+          onCreated={async (created) => {
+            await reloadInvs();
+            setParams({ inv: created.id });
+          }} />
+      )}
     </div>
   );
 }

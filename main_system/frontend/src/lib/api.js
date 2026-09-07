@@ -79,6 +79,24 @@ export const api = {
   startRun: (id, body) =>
     request(`/api/investigations/${id}/run`, { method: "POST", body }),
 
+  // Jobs: a run you can watch and stop.
+  getJob: (jobId) => request(`/api/jobs/${jobId}`),
+  cancelJob: (jobId) => request(`/api/jobs/${jobId}/cancel`, { method: "POST" }),
+  rerun: (runId) => request(`/api/runs/${runId}/rerun`, { method: "POST" }),
+
+  // AOIs. The registry is a table now, so these actually change something.
+  listAois: () => request("/api/aois"),
+  getAoi: (id) => request(`/api/aois/${id}`),
+  createAoi: (body) => request("/api/aois", { method: "POST", body }),
+  updateAoi: (id, body) => request(`/api/aois/${id}`, { method: "PATCH", body }),
+  deleteAoi: (id) => request(`/api/aois/${id}`, { method: "DELETE" }),
+  searchScenes: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== ""),
+    ).toString();
+    return request(`/api/scenes/search${q ? `?${q}` : ""}`);
+  },
+
   getInvestigation: (id) => request(`/api/investigations/${id}`),
   invStatus: (id, run) => request(`/api/investigations/${id}/status${run ? `?run=${run}` : ""}`),
   invLayer: (id, name) => request(`/api/investigations/${id}/layers/${name}`),
