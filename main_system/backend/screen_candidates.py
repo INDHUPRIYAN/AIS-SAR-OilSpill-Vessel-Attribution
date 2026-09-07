@@ -50,6 +50,36 @@ def _scene_meta_for(raster: Path) -> Optional[dict]:
     return None
 
 
+def _candidate_class(candidate: Any) -> str:
+    """The candidate's class, whether it arrives as a model or as JSON.
+
+    `class` is a Python keyword, so the contract model calls the field `class_`
+    and aliases it. Reading only one of the two spellings silently returns ""
+    for the other, and every candidate then counts as neither oil nor
+    look-alike -- which is how a screening log can report zero of both while
+    the detector found dozens.
+    """
+    if isinstance(candidate, dict):
+        value = candidate.get("class", candidate.get("class_"))
+    else:
+        value = getattr(candidate, "class_", None) or getattr(candidate, "class", None)
+    value = getattr(value, "value", value)             # Enum -> its string
+    return str(value or "").lower()
+
+
+def _warnings_beside(out_dir: Path) -> List[str]:
+    """The detector's own warnings. These carry the fallback notice, which is
+    the difference between "the model found little" and "the model never ran"."""
+    path = out_dir / "detect_warnings.json"
+    if not path.exists():
+        return []
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    return [str(w) for w in loaded] if isinstance(loaded, list) else []
+
+
 def screen_one(raster: Path, out_root: Path) -> Dict[str, Any]:
     """Run detection on one scene. Never raises; a failure is a result."""
     from backend.services.detection.service import detect
@@ -75,16 +105,36 @@ def screen_one(raster: Path, out_root: Path) -> Dict[str, Any]:
                       error=str(exc)[:300], seconds=round(time.perf_counter() - started, 2))
         return record
 
-    candidates = list(getattr(response, "candidates", []) or [])
-    oil = [c for c in candidates if getattr(c, "is_oil", None) is not False]
+    # `class` is the field the detector actually publishes, and separating oil
+    # from look-alike is the whole point of the screening stage. An earlier
+    # version of this asked for `is_oil`, which no candidate carries, so
+    # `getattr(..., None) is not False` was true for every row and each screened
+    # scene was reported as entirely oil -- the look-alike rejection the
+    # pipeline performs was invisible in the log meant to evidence it.
+    classes = [_candidate_class(c)
+               for c in (getattr(response, "candidates", []) or [])]
+    oil = [c for c in classes if c == "oil"]
+    lookalike = [c for c in classes if c == "lookalike"]
+    candidates = classes
+    unlabelled = [c for c in classes if c not in ("oil", "lookalike")]
+    engine = getattr(response, "engine", None)
     record.update({
         "ok": True,
         "seconds": round(time.perf_counter() - started, 2),
-        "engine": getattr(response, "engine", None),
+        "engine": engine,
         "model_version": getattr(response, "model_version", None),
+        # A result produced by the threshold fallback is not a measurement of
+        # the deployed model, and presenting the two together under one heading
+        # would overstate what was tested.
+        "deployed_model_ran": engine == "ml",
         "candidates": len(candidates),
         "oil_candidates": len(oil),
+        "lookalike_candidates": len(lookalike),
+        # A candidate that is neither must not be quietly absorbed into either
+        # tally; if this is ever non-zero the two counts above are incomplete.
+        "unlabelled_candidates": len(unlabelled),
         "confidence": getattr(response, "confidence", None),
+        "warnings": _warnings_beside(out_dir),
         # The measurement that decides the flagship. Recorded whichever way it
         # comes out; a screening log that only kept the winner would be a
         # selection effect rather than evidence.
@@ -123,27 +173,42 @@ def main(argv=None) -> int:
         results.append(result)
         if result["ok"]:
             print(f"  {'OIL ' if result['detected'] else '--- '}"
-                  f"{result['scene_id'][:52]:<54}"
-                  f"{result['oil_candidates']:>3} oil / {result['candidates']:>3} cand"
+                  f"{result['scene_id'][:44]:<46}"
+                  f"{result['oil_candidates']:>4} oil /{result['lookalike_candidates']:>4} lookalike"
                   f"  conf {result.get('confidence')}"
-                  f"  {result['seconds']:>6.1f}s")
+                  f"  {'ml' if result['deployed_model_ran'] else 'FALLBACK':<9}"
+                  f"{result['seconds']:>7.1f}s")
         else:
-            print(f"  ERR  {result['scene_id'][:52]:<54}{result['error_class']}")
+            print(f"  ERR  {result['scene_id'][:44]:<46}{result['error_class']}")
 
     detected = [r for r in results if r.get("detected")]
+    fell_back = [r for r in results if r.get("ok") and not r.get("deployed_model_ran")]
     log = {
         "screened_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "candidates_screened": len(results),
         "with_oil": len(detected),
+        "deployed_model_ran": len(results) - len(fell_back),
         "results": results,
         "note": "Detection only. No threshold, gate or weight was changed. "
                 "Scenes that found nothing are listed: a log of only the "
-                "winner would be a selection effect, not evidence.",
+                "winner would be a selection effect, not evidence. "
+                "`oil_candidates` counts class=='oil' only -- look-alikes are "
+                "reported separately because rejecting them is the stage being "
+                "evidenced. A scene with deployed_model_ran=false was measured "
+                "by the threshold fallback and says nothing about the deployed "
+                "segmenter.",
     }
     (out_root / "screening_log.json").write_text(
         json.dumps(log, indent=2, default=str), encoding="utf-8")
 
     print(f"\n{len(detected)}/{len(results)} candidate(s) detected oil")
+    if fell_back:
+        print(f"{len(fell_back)} scene(s) fell back to threshold-morphology and "
+              f"do NOT measure the deployed model:")
+        for r in fell_back:
+            for w in r.get("warnings", []):
+                if "fall" in w.lower() or "failed" in w.lower():
+                    print(f"  {r['scene_id'][:44]}: {w}")
     if not detected:
         # Not an error exit: this is a real answer about real data, and D1
         # already says what to do with it.

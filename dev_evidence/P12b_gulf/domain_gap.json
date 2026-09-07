@@ -1,0 +1,15 @@
+{
+  "sigma0_path": "data/scenes/S1A_GULF_20230108/scene_sigma0_db.tif",
+  "n_sea_pixels": 418132486,
+  "p1_db": -32.65,
+  "p50_db": -19.75,
+  "p99_db": -11.95,
+  "db_min": -35.0,
+  "db_max": 0.0,
+  "frac_at_or_below_db_min": 0.0018,
+  "frac_at_or_above_db_max": 0.0,
+  "verdict": "PASS",
+  "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
+  "normalisation": "main_system/config/normalisation.yaml (FROZEN)",
+  "note": "Gate run BEFORE detection. A DOMAIN GAP verdict would have made the segmenter output uninterpretable on this scene rather than merely poor, and the honest response would have been to say so, not to widen the clip range."
+}

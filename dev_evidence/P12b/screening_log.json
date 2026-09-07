@@ -1,0 +1,124 @@
+{
+  "screened_utc": "2026-09-07T05:43:02Z",
+  "candidates_screened": 5,
+  "with_oil": 5,
+  "deployed_model_ran": 5,
+  "results": [
+    {
+      "scene_id": "00000",
+      "raster": "..\\data\\raw\\trujillo\\part3\\Images\\Oil\\00000.tif",
+      "acquired_utc": null,
+      "bbox": null,
+      "screened_utc": "2026-09-07T05:42:47Z",
+      "ok": true,
+      "seconds": 9.69,
+      "engine": "ml",
+      "model_version": "unet-r34-fullcorpus-e48+yolo-screen",
+      "deployed_model_ran": true,
+      "candidates": 216,
+      "oil_candidates": 1,
+      "lookalike_candidates": 215,
+      "unlabelled_candidates": 0,
+      "confidence": 0.7643,
+      "warnings": [
+        "screen: 1 oil candidate(s) over 9 tile(s), best 0.37",
+        "ml inference 0.6s",
+        "screen rejected 215/216 segmented region(s) as look-alike"
+      ],
+      "detected": true
+    },
+    {
+      "scene_id": "00005",
+      "raster": "..\\data\\raw\\trujillo\\part3\\Images\\Oil\\00005.tif",
+      "acquired_utc": null,
+      "bbox": null,
+      "screened_utc": "2026-09-07T05:42:56Z",
+      "ok": true,
+      "seconds": 1.61,
+      "engine": "ml",
+      "model_version": "unet-r34-fullcorpus-e48+yolo-screen",
+      "deployed_model_ran": true,
+      "candidates": 174,
+      "oil_candidates": 174,
+      "lookalike_candidates": 0,
+      "unlabelled_candidates": 0,
+      "confidence": 0.7299,
+      "warnings": [
+        "screen: 0 oil candidate(s) over 9 tile(s), best 0.00",
+        "ml inference 0.6s",
+        "screen returned no detections anywhere in this scene, so look-alike rejection was NOT applied; candidates are reported as oil without stage-1 confirmation"
+      ],
+      "detected": true
+    },
+    {
+      "scene_id": "00014",
+      "raster": "..\\data\\raw\\trujillo\\part3\\Images\\Oil\\00014.tif",
+      "acquired_utc": null,
+      "bbox": null,
+      "screened_utc": "2026-09-07T05:42:58Z",
+      "ok": true,
+      "seconds": 1.44,
+      "engine": "ml",
+      "model_version": "unet-r34-fullcorpus-e48+yolo-screen",
+      "deployed_model_ran": true,
+      "candidates": 41,
+      "oil_candidates": 41,
+      "lookalike_candidates": 0,
+      "unlabelled_candidates": 0,
+      "confidence": 0.8846,
+      "warnings": [
+        "screen: 0 oil candidate(s) over 9 tile(s), best 0.00",
+        "ml inference 0.5s",
+        "screen returned no detections anywhere in this scene, so look-alike rejection was NOT applied; candidates are reported as oil without stage-1 confirmation"
+      ],
+      "detected": true
+    },
+    {
+      "scene_id": "00019",
+      "raster": "..\\data\\raw\\trujillo\\part3\\Images\\Oil\\00019.tif",
+      "acquired_utc": null,
+      "bbox": null,
+      "screened_utc": "2026-09-07T05:43:00Z",
+      "ok": true,
+      "seconds": 1.44,
+      "engine": "ml",
+      "model_version": "unet-r34-fullcorpus-e48+yolo-screen",
+      "deployed_model_ran": true,
+      "candidates": 25,
+      "oil_candidates": 7,
+      "lookalike_candidates": 18,
+      "unlabelled_candidates": 0,
+      "confidence": 0.9388,
+      "warnings": [
+        "screen: 15 oil candidate(s) over 9 tile(s), best 0.59",
+        "ml inference 0.5s",
+        "screen rejected 18/25 segmented region(s) as look-alike"
+      ],
+      "detected": true
+    },
+    {
+      "scene_id": "00021",
+      "raster": "..\\data\\raw\\trujillo\\part3\\Images\\Oil\\00021.tif",
+      "acquired_utc": null,
+      "bbox": null,
+      "screened_utc": "2026-09-07T05:43:01Z",
+      "ok": true,
+      "seconds": 1.44,
+      "engine": "ml",
+      "model_version": "unet-r34-fullcorpus-e48+yolo-screen",
+      "deployed_model_ran": true,
+      "candidates": 14,
+      "oil_candidates": 4,
+      "lookalike_candidates": 10,
+      "unlabelled_candidates": 0,
+      "confidence": 0.8815,
+      "warnings": [
+        "screen: 5 oil candidate(s) over 9 tile(s), best 0.52",
+        "ml inference 0.5s",
+        "screen rejected 10/14 segmented region(s) as look-alike"
+      ],
+      "detected": true
+    }
+  ],
+  "note": "Detection only. No threshold, gate or weight was changed. Scenes that found nothing are listed: a log of only the winner would be a selection effect, not evidence. `oil_candidates` counts class=='oil' only -- look-alikes are reported separately because rejecting them is the stage being evidenced. A scene with deployed_model_ran=false was measured by the threshold fallback and says nothing about the deployed segmenter."
+}

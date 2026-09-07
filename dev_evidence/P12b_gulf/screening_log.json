@@ -1,0 +1,37 @@
+{
+  "screened_utc": "2026-09-07T05:42:11Z",
+  "candidates_screened": 1,
+  "with_oil": 1,
+  "deployed_model_ran": 1,
+  "results": [
+    {
+      "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
+      "raster": "..\\data\\scenes\\S1A_GULF_20230108\\scene_sigma0_db.tif",
+      "acquired_utc": "2023-01-08T00:10:08Z",
+      "bbox": [
+        -92.994988,
+        27.217558,
+        -90.086841,
+        29.142895
+      ],
+      "screened_utc": "2026-09-07T05:39:41Z",
+      "ok": true,
+      "seconds": 150.17,
+      "engine": "ml",
+      "model_version": "unet-r34-fullcorpus-e48+yolo-screen",
+      "deployed_model_ran": true,
+      "candidates": 392,
+      "oil_candidates": 31,
+      "lookalike_candidates": 361,
+      "unlabelled_candidates": 0,
+      "confidence": 0.6882,
+      "warnings": [
+        "screen: 127 oil candidate(s) over 1768 tile(s), best 0.73",
+        "ml inference 61.9s",
+        "screen rejected 361/392 segmented region(s) as look-alike"
+      ],
+      "detected": true
+    }
+  ],
+  "note": "Detection only. No threshold, gate or weight was changed. Scenes that found nothing are listed: a log of only the winner would be a selection effect, not evidence. `oil_candidates` counts class=='oil' only -- look-alikes are reported separately because rejecting them is the stage being evidenced. A scene with deployed_model_ran=false was measured by the threshold fallback and says nothing about the deployed segmenter."
+}

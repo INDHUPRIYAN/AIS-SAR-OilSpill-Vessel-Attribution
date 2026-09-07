@@ -1,0 +1,35 @@
+{
+  "screened_utc": "2026-09-07T05:34:08Z",
+  "candidates_screened": 1,
+  "with_oil": 1,
+  "results": [
+    {
+      "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
+      "raster": "..\\data\\scenes\\S1A_GULF_20230108\\scene_sigma0_db.tif",
+      "acquired_utc": "2023-01-08T00:10:08Z",
+      "bbox": [
+        -92.994988,
+        27.217558,
+        -90.086841,
+        29.142895
+      ],
+      "screened_utc": "2026-09-07T05:25:09Z",
+      "ok": true,
+      "seconds": 538.99,
+      "engine": "threshold_fallback",
+      "model_version": "threshold-morphology-v1",
+      "candidates": 59,
+      "oil_candidates": 35,
+      "confidence": 0.4599,
+      "detected": true,
+      "deployed_model_ran": false,
+      "lookalike_candidates": 24,
+      "warnings": [
+        "screen: 127 oil candidate(s) over 1768 tile(s), best 0.73",
+        "ML path failed (MemoryError: Unable to allocate 2.24 GiB for an array with shape (19968, 30048) and data type float32); falling back to threshold"
+      ]
+    }
+  ],
+  "note": "Detection only. No threshold, gate or weight was changed. Counts recomputed from the saved detect_response.json files after a defect in the harness was found: it counted every candidate as oil because it asked for an `is_oil` field the detector does not publish. The rasters and model outputs are unchanged; only the tally was wrong. `oil_candidates` now counts class=='oil' and look-alikes are reported separately. deployed_model_ran=false means the threshold fallback produced the result and it does not measure the deployed segmenter.",
+  "deployed_model_ran": 0
+}

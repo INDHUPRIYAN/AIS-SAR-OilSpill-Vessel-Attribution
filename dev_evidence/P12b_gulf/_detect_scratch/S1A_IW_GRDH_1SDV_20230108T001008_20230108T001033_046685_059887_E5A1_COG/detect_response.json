@@ -1,0 +1,4322 @@
+{
+  "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
+  "mask_path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/dev_evidence/P12b_gulf/_detect_scratch/S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG/raw_mask.tif",
+  "confidence": 0.6882,
+  "candidates": [
+    {
+      "bbox": [
+        -90.193934,
+        27.776452,
+        -90.177182,
+        27.860112
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.36745,
+        28.665725,
+        -90.350796,
+        28.759939
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.410829,
+        28.90431,
+        -90.395918,
+        28.981482
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.38914,
+        28.795862,
+        -90.374519,
+        28.870807
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.454208,
+        29.012758,
+        -90.41693,
+        29.04994
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.345761,
+        28.559698,
+        -90.330268,
+        28.640646
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.474155,
+        29.121206,
+        -90.438425,
+        29.133503
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.172244,
+        27.692114,
+        -90.161302,
+        27.751664
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.251256,
+        27.613102,
+        -90.192384,
+        27.621526
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.441621,
+        29.066691,
+        -90.427774,
+        29.083346
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.324071,
+        28.479524,
+        -90.314872,
+        28.510799
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.237313,
+        28.036727,
+        -90.228114,
+        28.055318
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.215623,
+        27.928279,
+        -90.207005,
+        27.94687
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.86631,
+        27.648154,
+        -90.847719,
+        27.662775
+      ],
+      "class": "oil",
+      "score": 0.2633,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.519277,
+        29.057009,
+        -90.497781,
+        29.06795
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.383427,
+        27.592284,
+        -90.370549,
+        27.599837
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.560377,
+        27.711383,
+        -91.541883,
+        27.728328
+      ],
+      "class": "oil",
+      "score": 0.4002,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.511628,
+        29.121206,
+        -90.488292,
+        29.12566
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.237313,
+        28.055512,
+        -90.231987,
+        28.077008
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.215623,
+        27.945708,
+        -90.210685,
+        27.96856
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.491584,
+        29.121206,
+        -90.475995,
+        29.127887
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.232754,
+        27.889451,
+        -92.224233,
+        27.902039
+      ],
+      "class": "oil",
+      "score": 0.3681,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.370258,
+        27.594221,
+        -90.359898,
+        27.599837
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.822931,
+        27.776839,
+        -90.812377,
+        27.785651
+      ],
+      "class": "oil",
+      "score": 0.3046,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.888,
+        27.790202,
+        -90.876284,
+        27.795043
+      ],
+      "class": "oil",
+      "score": 0.4334,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.497588,
+        29.056137,
+        -90.483741,
+        29.06214
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.24917,
+        27.741013,
+        -91.238132,
+        27.751664
+      ],
+      "class": "oil",
+      "score": 0.2579,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.324071,
+        28.510993,
+        -90.320682,
+        28.529778
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.419104,
+        27.526247,
+        -91.408647,
+        27.534284
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.822931,
+        27.65377,
+        -90.813345,
+        27.657934
+      ],
+      "class": "oil",
+      "score": 0.3858,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.036729,
+        27.546291,
+        -91.021236,
+        27.554908
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.40855,
+        27.527796,
+        -91.401191,
+        27.534574
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.238713,
+        27.764445,
+        -91.228933,
+        27.768222
+      ],
+      "class": "oil",
+      "score": 0.6721,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.537525,
+        27.697827,
+        -91.528036,
+        27.707704
+      ],
+      "class": "oil",
+      "score": 0.3794,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.343481,
+        27.754762,
+        -91.338059,
+        27.76338
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.839489,
+        27.650962,
+        -90.829322,
+        27.65561
+      ],
+      "class": "oil",
+      "score": 0.3365,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.17742,
+        29.01392,
+        -91.173063,
+        29.018858
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.150554,
+        27.627917,
+        -90.148231,
+        27.640214
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.358683,
+        27.766285,
+        -91.351712,
+        27.769965
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.234795,
+        28.033241,
+        -90.22792,
+        28.03634
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.302381,
+        28.40574,
+        -90.300445,
+        28.41765
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.381438,
+        27.746338,
+        -91.375822,
+        27.751664
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.475898,
+        29.048391,
+        -90.465925,
+        29.050618
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.208361,
+        27.916466,
+        -90.204681,
+        27.925181
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.20594,
+        27.906589,
+        -90.202939,
+        27.916175
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.259002,
+        28.16028,
+        -90.252321,
+        28.163766
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.25571,
+        27.616491,
+        -90.251256,
+        27.619784
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.324071,
+        28.47168,
+        -90.320488,
+        28.478362
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.479868,
+        29.056137,
+        -90.475027,
+        29.058267
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.379166,
+        28.793248,
+        -90.374519,
+        28.795572
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.897102,
+        27.787878,
+        -90.893229,
+        27.79117
+      ],
+      "class": "oil",
+      "score": 0.4334,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.214752,
+        27.925665,
+        -90.209232,
+        27.928085
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.118064,
+        27.642926,
+        -91.114288,
+        27.646024
+      ],
+      "class": "oil",
+      "score": 0.6599,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.258615,
+        27.612037,
+        -90.254355,
+        27.616201
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.248061,
+        28.126971,
+        -90.245834,
+        28.133071
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.497588,
+        29.063302,
+        -90.494489,
+        29.066401
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.316809,
+        28.475166,
+        -90.31371,
+        28.478943
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.172244,
+        27.689694,
+        -90.169823,
+        27.694245
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.41465,
+        27.503299,
+        -91.411648,
+        27.506978
+      ],
+      "class": "oil",
+      "score": 0.728,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.375435,
+        27.740625,
+        -91.371949,
+        27.745176
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.212428,
+        27.921985,
+        -90.209523,
+        27.925181
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.632514,
+        27.727747,
+        -91.628544,
+        27.729974
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.166047,
+        27.684949,
+        -90.161496,
+        27.686595
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.253483,
+        27.612715,
+        -90.248932,
+        27.61562
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.500299,
+        29.056137,
+        -90.497781,
+        29.058461
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.364061,
+        28.669017,
+        -90.360963,
+        28.672793
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.363577,
+        28.665725,
+        -90.359413,
+        28.668145
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.230051,
+        28.030917,
+        -90.227339,
+        28.033628
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.162271,
+        27.681754,
+        -90.159269,
+        27.685336
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.370303,
+        27.510367,
+        -91.368269,
+        27.513079
+      ],
+      "class": "oil",
+      "score": 0.4115,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.50727,
+        29.092641,
+        -90.502816,
+        29.094868
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.259002,
+        28.181582,
+        -90.256485,
+        28.184003
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.228792,
+        28.027819,
+        -90.226758,
+        28.030336
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.248932,
+        28.134524,
+        -90.247092,
+        28.1383
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.252462,
+        27.74905,
+        -91.249945,
+        27.751083
+      ],
+      "class": "oil",
+      "score": 0.2579,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.168758,
+        27.689694,
+        -90.165079,
+        27.692018
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.23624,
+        27.894195,
+        -92.233625,
+        27.896907
+      ],
+      "class": "oil",
+      "score": 0.3681,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.392476,
+        27.764833,
+        -91.389959,
+        27.766479
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.321457,
+        28.474779,
+        -90.318649,
+        28.477103
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.483451,
+        29.056137,
+        -90.479965,
+        29.057783
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.324071,
+        28.499761,
+        -90.321553,
+        28.501891
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.168952,
+        27.686886,
+        -90.166047,
+        27.689403
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.207296,
+        27.90688,
+        -90.205166,
+        27.910075
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.502429,
+        29.092835,
+        -90.500686,
+        29.094868
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.215139,
+        27.914626,
+        -90.21204,
+        27.916563
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.25571,
+        28.167639,
+        -90.253677,
+        28.170544
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.40855,
+        27.533025,
+        -91.406226,
+        27.534478
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.505334,
+        29.058364,
+        -90.502526,
+        29.060301
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.372142,
+        27.740045,
+        -91.370012,
+        27.742175
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.235667,
+        28.029077,
+        -90.232665,
+        28.030336
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.215429,
+        27.921501,
+        -90.213493,
+        27.923631
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.515598,
+        29.121206,
+        -90.513467,
+        29.122465
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.164401,
+        27.686886,
+        -90.163239,
+        27.689306
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.226274,
+        28.018814,
+        -90.225015,
+        28.021912
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.168855,
+        27.682528,
+        -90.166918,
+        27.685433
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.241372,
+        27.892065,
+        -92.23866,
+        27.894099
+      ],
+      "class": "oil",
+      "score": 0.3681,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.213396,
+        27.920436,
+        -90.211363,
+        27.922469
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.250094,
+        27.618137,
+        -90.248157,
+        27.620074
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.418523,
+        27.530314,
+        -91.416393,
+        27.53167
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.237313,
+        28.080106,
+        -90.236635,
+        28.085238
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.208845,
+        27.925762,
+        -90.207005,
+        27.927698
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.251643,
+        28.147208,
+        -90.2499,
+        28.15021
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.208748,
+        27.910559,
+        -90.206134,
+        27.911818
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.3751,
+        28.789278,
+        -90.373647,
+        28.791118
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.342565,
+        28.572285,
+        -90.341016,
+        28.575093
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.324071,
+        28.496953,
+        -90.323103,
+        28.499567
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.013199,
+        27.542611,
+        -91.01165,
+        27.544451
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.03944,
+        27.554812,
+        -91.037406,
+        27.555974
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.478803,
+        29.121206,
+        -90.47677,
+        29.122852
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.212525,
+        27.945515,
+        -90.210685,
+        27.94687
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.250772,
+        28.14043,
+        -90.248738,
+        28.141592
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.215139,
+        27.917531,
+        -90.21359,
+        27.919661
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.236046,
+        27.889935,
+        -92.234787,
+        27.892259
+      ],
+      "class": "oil",
+      "score": 0.3681,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.475898,
+        29.123239,
+        -90.474252,
+        29.124595
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.321263,
+        28.470518,
+        -90.319811,
+        28.472165
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.324071,
+        28.478846,
+        -90.322231,
+        28.480105
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.250094,
+        28.138106,
+        -90.248835,
+        28.139946
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.258034,
+        28.179549,
+        -90.256872,
+        28.181292
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.212525,
+        27.916756,
+        -90.210491,
+        27.918693
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.313904,
+        28.471293,
+        -90.312936,
+        28.47323
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.358348,
+        28.671922,
+        -90.35738,
+        28.674052
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.318358,
+        28.471293,
+        -90.316809,
+        28.472939
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.161399,
+        27.685336,
+        -90.159753,
+        27.686595
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.320295,
+        28.479911,
+        -90.318455,
+        28.48146
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.227533,
+        28.017749,
+        -90.226081,
+        28.019588
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.255904,
+        28.174611,
+        -90.255032,
+        28.176838
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.211169,
+        27.941545,
+        -90.210104,
+        27.943191
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.341984,
+        28.569961,
+        -90.340048,
+        28.571414
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.254161,
+        28.135008,
+        -90.252902,
+        28.136944
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.255904,
+        28.126003,
+        -90.254742,
+        28.127939
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.257937,
+        27.618137,
+        -90.256969,
+        27.620171
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.512693,
+        29.121399,
+        -90.511628,
+        29.122852
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.519277,
+        29.071533,
+        -90.518406,
+        29.073373
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.361737,
+        28.67289,
+        -90.360963,
+        28.674827
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.256872,
+        27.619687,
+        -90.254839,
+        27.620849
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.503107,
+        29.084701,
+        -90.502042,
+        29.086057
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.167984,
+        27.698021,
+        -90.166725,
+        27.69928
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.252127,
+        28.153986,
+        -90.250966,
+        28.155148
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.231406,
+        28.023752,
+        -90.229373,
+        28.024623
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.323393,
+        28.495403,
+        -90.322038,
+        28.496856
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.409615,
+        27.528377,
+        -91.408744,
+        27.529733
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.319423,
+        28.477684,
+        -90.318552,
+        28.479136
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.509594,
+        29.094287,
+        -90.507464,
+        29.094868
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.314388,
+        28.473714,
+        -90.31342,
+        28.474876
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.169533,
+        27.690952,
+        -90.168468,
+        27.692308
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.358251,
+        28.669307,
+        -90.35709,
+        28.670372
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.258518,
+        27.612037,
+        -90.256969,
+        27.613393
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.255807,
+        28.136654,
+        -90.254645,
+        28.137816
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.237313,
+        28.064807,
+        -90.236248,
+        28.066453
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.435521,
+        29.037836,
+        -90.433778,
+        29.038611
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.381878,
+        28.794507,
+        -90.380619,
+        28.795378
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.238467,
+        27.891,
+        -92.237305,
+        27.892356
+      ],
+      "class": "oil",
+      "score": 0.3681,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.250094,
+        28.129585,
+        -90.248932,
+        28.131038
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.158591,
+        27.676235,
+        -90.157817,
+        27.677493
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.254355,
+        28.147499,
+        -90.253289,
+        28.149242
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.258324,
+        27.616879,
+        -90.257453,
+        27.618428
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.234117,
+        28.044957,
+        -90.233052,
+        28.046022
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.504172,
+        29.091286,
+        -90.503204,
+        29.092351
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.159366,
+        27.678268,
+        -90.158397,
+        27.679333
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.25145,
+        28.136654,
+        -90.250385,
+        28.137622
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.246608,
+        28.124744,
+        -90.245737,
+        28.125906
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.212137,
+        27.906589,
+        -90.210685,
+        27.907364
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.161496,
+        27.690468,
+        -90.160721,
+        27.691727
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.257356,
+        28.159409,
+        -90.256485,
+        28.161152
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.248157,
+        28.133168,
+        -90.247189,
+        28.134233
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.235763,
+        28.030627,
+        -90.234795,
+        28.031789
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.213396,
+        27.936025,
+        -90.212331,
+        27.936897
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.213396,
+        27.918693,
+        -90.211944,
+        27.919371
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.16198,
+        27.692114,
+        -90.161302,
+        27.69318
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.508432,
+        29.061559,
+        -90.507464,
+        29.062528
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.465731,
+        29.048778,
+        -90.464763,
+        29.04965
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.511531,
+        29.094191,
+        -90.509982,
+        29.094772
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.277981,
+        28.283543,
+        -90.277012,
+        28.284511
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.208458,
+        27.919371,
+        -90.207683,
+        27.92063
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.211072,
+        27.909591,
+        -90.210394,
+        27.910753
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.167596,
+        27.686208,
+        -90.16595,
+        27.686595
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.35709,
+        28.665725,
+        -90.355734,
+        28.666306
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.253386,
+        28.155342,
+        -90.252612,
+        28.15631
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.028789,
+        27.554231,
+        -91.027917,
+        27.555005
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.317583,
+        28.482816,
+        -90.316906,
+        28.483881
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.320779,
+        28.479039,
+        -90.319714,
+        28.479717
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.274495,
+        28.268341,
+        -90.273817,
+        28.269309
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.15772,
+        27.671587,
+        -90.157042,
+        27.673039
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.251062,
+        27.619493,
+        -90.250191,
+        27.620268
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.255904,
+        28.142851,
+        -90.254548,
+        28.143529
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.514726,
+        29.062237,
+        -90.513855,
+        29.062915
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.249223,
+        28.129198,
+        -90.248254,
+        28.129973
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.492456,
+        29.059623,
+        -90.491875,
+        29.060591
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.256485,
+        28.14808,
+        -90.25571,
+        28.149145
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.255807,
+        28.134136,
+        -90.255129,
+        28.135105
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.209717,
+        27.90688,
+        -90.209039,
+        27.907848
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.460793,
+        29.048972,
+        -90.459825,
+        29.049553
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.341984,
+        28.568122,
+        -90.341306,
+        28.569187
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.252321,
+        28.143916,
+        -90.251353,
+        28.144691
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.256388,
+        28.141302,
+        -90.255613,
+        28.142076
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.441814,
+        29.043549,
+        -90.440943,
+        29.044324
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.256485,
+        28.177709,
+        -90.255613,
+        28.178774
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.232762,
+        28.042924,
+        -90.231793,
+        28.043602
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.205843,
+        27.910947,
+        -90.205069,
+        27.911721
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.237305,
+        27.906589,
+        -92.235852,
+        27.906977
+      ],
+      "class": "oil",
+      "score": 0.3681,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.315744,
+        28.472842,
+        -90.314775,
+        28.47352
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.15985,
+        27.681173,
+        -90.159075,
+        27.682141
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.339176,
+        28.571026,
+        -90.338595,
+        28.571898
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.317293,
+        28.478458,
+        -90.316325,
+        28.479039
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.160915,
+        27.686983,
+        -90.160237,
+        27.687757
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.420266,
+        27.529443,
+        -91.419491,
+        27.530411
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.25542,
+        28.172384,
+        -90.254742,
+        28.173158
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.212428,
+        27.908429,
+        -90.21175,
+        27.909204
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.341016,
+        28.560859,
+        -90.340241,
+        28.56144
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.302381,
+        28.400124,
+        -90.301413,
+        28.400705
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.259002,
+        28.180808,
+        -90.258228,
+        28.181486
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.249513,
+        28.127165,
+        -90.248835,
+        28.127843
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.231309,
+        28.030917,
+        -90.230825,
+        28.031789
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.213977,
+        27.916563,
+        -90.213299,
+        27.917241
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.379651,
+        28.794603,
+        -90.37907,
+        28.795378
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.254355,
+        28.144207,
+        -90.253677,
+        28.144884
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.256001,
+        28.170447,
+        -90.255516,
+        28.171222
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.204004,
+        27.905524,
+        -90.203326,
+        27.906009
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.358639,
+        28.674246,
+        -90.358155,
+        28.67502
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.314582,
+        28.470518,
+        -90.314001,
+        28.471584
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.51279,
+        29.094384,
+        -90.511918,
+        29.094868
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.359801,
+        28.667468,
+        -90.359026,
+        28.667952
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.252999,
+        28.14043,
+        -90.252515,
+        28.141302
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.405936,
+        27.533897,
+        -91.405451,
+        27.534768
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.252127,
+        28.142754,
+        -90.251546,
+        28.143432
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.208845,
+        27.92092,
+        -90.208167,
+        27.921598
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.375338,
+        27.832516,
+        -91.37466,
+        27.833193
+      ],
+      "class": "oil",
+      "score": 0.3077,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.168177,
+        27.692986,
+        -90.167499,
+        27.693567
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.315841,
+        28.470518,
+        -90.315163,
+        28.470906
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.279143,
+        28.28819,
+        -90.278852,
+        28.289352
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.25145,
+        28.15021,
+        -90.250869,
+        28.150985
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.317777,
+        28.492208,
+        -90.317003,
+        28.492595
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.255904,
+        28.129101,
+        -90.25542,
+        28.129779
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.829709,
+        27.654739,
+        -90.829128,
+        27.65532
+      ],
+      "class": "oil",
+      "score": 0.3365,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.515501,
+        29.094384,
+        -90.514726,
+        29.094772
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.338789,
+        28.560859,
+        -90.338014,
+        28.561247
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.226177,
+        28.023946,
+        -90.22579,
+        28.02472
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.231212,
+        28.027916,
+        -90.230728,
+        28.028593
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.214558,
+        27.923825,
+        -90.213977,
+        27.924309
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.237595,
+        27.895164,
+        -92.237014,
+        27.895745
+      ],
+      "class": "oil",
+      "score": 0.3681,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.478512,
+        29.05362,
+        -90.477835,
+        29.054007
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.334432,
+        28.561247,
+        -90.333754,
+        28.561731
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.256194,
+        28.155342,
+        -90.25571,
+        28.155923
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.323393,
+        28.470518,
+        -90.322715,
+        28.471196
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.23373,
+        28.030917,
+        -90.232955,
+        28.031982
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.206328,
+        27.912786,
+        -90.205843,
+        27.913464
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.163239,
+        27.690856,
+        -90.162852,
+        27.691533
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.438135,
+        29.044227,
+        -90.437651,
+        29.044808
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.358639,
+        28.665725,
+        -90.357961,
+        28.666112
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.333851,
+        28.566476,
+        -90.33327,
+        28.56696
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.300639,
+        28.399737,
+        -90.300154,
+        28.400318
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.46302,
+        29.049069,
+        -90.462342,
+        29.049456
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.255904,
+        28.15447,
+        -90.255516,
+        28.155051
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.254548,
+        28.127262,
+        -90.254064,
+        28.127746
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.232181,
+        28.029077,
+        -90.231697,
+        28.029658
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.207683,
+        27.918499,
+        -90.206618,
+        27.91879
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.211653,
+        27.911044,
+        -90.211169,
+        27.911528
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.382749,
+        27.597513,
+        -90.382265,
+        27.598191
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.210685,
+        27.944449,
+        -90.210201,
+        27.944934
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.212331,
+        27.911528,
+        -90.211847,
+        27.912012
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.254258,
+        27.614167,
+        -90.25358,
+        27.614555
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.495264,
+        29.062625,
+        -90.49478,
+        29.063206
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.235957,
+        28.031982,
+        -90.235473,
+        28.032466
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.226855,
+        28.027238,
+        -90.226371,
+        28.027722
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.224919,
+        28.017749,
+        -90.224531,
+        28.018426
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.475027,
+        29.122561,
+        -90.474542,
+        29.123046
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.333948,
+        28.558826,
+        -90.33356,
+        28.559407
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.259002,
+        28.192233,
+        -90.258712,
+        28.193202
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.25784,
+        28.16822,
+        -90.257163,
+        28.168607
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.250966,
+        28.146627,
+        -90.250481,
+        28.147208
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.226081,
+        28.022493,
+        -90.22579,
+        28.023171
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.193934,
+        27.861371,
+        -90.19374,
+        27.862629
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.519277,
+        29.068628,
+        -90.51889,
+        29.069112
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.319617,
+        28.482138,
+        -90.31923,
+        28.482622
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.375628,
+        27.83329,
+        -91.375047,
+        27.833678
+      ],
+      "class": "oil",
+      "score": 0.3077,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.192578,
+        27.79146,
+        -90.192094,
+        27.791848
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.165175,
+        27.695407,
+        -90.164788,
+        27.695891
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.226855,
+        28.025398,
+        -90.226371,
+        28.025785
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.238422,
+        27.74537,
+        -91.238132,
+        27.746048
+      ],
+      "class": "oil",
+      "score": 0.2579,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.165853,
+        27.68737,
+        -90.165466,
+        27.687951
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.165756,
+        27.674976,
+        -90.165272,
+        27.675363
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.256485,
+        27.617169,
+        -90.256001,
+        27.617556
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.241953,
+        27.894099,
+        -92.241565,
+        27.894583
+      ],
+      "class": "oil",
+      "score": 0.3681,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.240314,
+        27.615039,
+        -90.240024,
+        27.615717
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.317003,
+        28.470615,
+        -90.316712,
+        28.471099
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.247673,
+        28.125131,
+        -90.247189,
+        28.125519
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.212428,
+        27.941835,
+        -90.211944,
+        27.942416
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.518599,
+        29.070952,
+        -90.518309,
+        29.071436
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.338305,
+        28.573544,
+        -90.337917,
+        28.573834
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.276819,
+        28.281316,
+        -90.276335,
+        28.281703
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.209232,
+        27.919661,
+        -90.208845,
+        27.919952
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.320972,
+        28.500245,
+        -90.320585,
+        28.500632
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.324071,
+        28.495888,
+        -90.323684,
+        28.496275
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.317003,
+        28.479814,
+        -90.316615,
+        28.480201
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.320779,
+        28.472649,
+        -90.320488,
+        28.473133
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.254355,
+        28.158247,
+        -90.253967,
+        28.158537
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.166047,
+        27.688822,
+        -90.16566,
+        27.689113
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.157236,
+        27.669941,
+        -90.156848,
+        27.670425
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.275173,
+        28.271536,
+        -90.274785,
+        28.271826
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.252321,
+        28.15631,
+        -90.252031,
+        28.156697
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.23557,
+        28.027431,
+        -90.235279,
+        28.027819
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.211847,
+        27.919758,
+        -90.211459,
+        27.920049
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.162464,
+        27.691146,
+        -90.16198,
+        27.691437
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.840264,
+        27.652027,
+        -90.839973,
+        27.652415
+      ],
+      "class": "oil",
+      "score": 0.3365,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.319133,
+        28.484365,
+        -90.318745,
+        28.484752
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.318068,
+        28.48146,
+        -90.31768,
+        28.481751
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.31768,
+        28.479717,
+        -90.317196,
+        28.480298
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.237313,
+        28.049315,
+        -90.237022,
+        28.049799
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.236635,
+        28.030917,
+        -90.236248,
+        28.031208
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.214268,
+        27.911237,
+        -90.213977,
+        27.911625
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.165079,
+        27.694535,
+        -90.164788,
+        27.694922
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.480158,
+        29.057009,
+        -90.479868,
+        29.057396
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.355637,
+        28.666596,
+        -90.355347,
+        28.666887
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.318068,
+        28.474779,
+        -90.317777,
+        28.475069
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.278562,
+        28.288481,
+        -90.278174,
+        28.288771
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.257453,
+        28.149823,
+        -90.257163,
+        28.150113
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.162271,
+        27.688241,
+        -90.16198,
+        27.688629
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.378585,
+        27.596642,
+        -90.378198,
+        27.596932
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.476189,
+        29.126241,
+        -90.476092,
+        29.126919
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.463504,
+        29.049359,
+        -90.463117,
+        29.049553
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.297734,
+        28.389086,
+        -90.297443,
+        28.389376
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.277206,
+        28.284898,
+        -90.277012,
+        28.285286
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.259002,
+        28.176547,
+        -90.258712,
+        28.176838
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.259002,
+        28.160571,
+        -90.258712,
+        28.160861
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.253386,
+        28.129682,
+        -90.253096,
+        28.13007
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.233633,
+        28.0284,
+        -90.233343,
+        28.02869
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.207102,
+        27.916272,
+        -90.206812,
+        27.91666
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.35878,
+        27.768996,
+        -91.35849,
+        27.769384
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.248157,
+        27.618137,
+        -90.247867,
+        27.618428
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.475317,
+        29.121206,
+        -90.475027,
+        29.121496
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.51279,
+        29.064561,
+        -90.512402,
+        29.064755
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.511047,
+        29.061559,
+        -90.510756,
+        29.061753
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.342178,
+        28.565798,
+        -90.341887,
+        28.566088
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.334819,
+        28.562893,
+        -90.334528,
+        28.563087
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.318164,
+        28.479136,
+        -90.317874,
+        28.47933
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.30151,
+        28.39964,
+        -90.301316,
+        28.400124
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.230922,
+        28.036727,
+        -90.230535,
+        28.036921
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.236441,
+        28.030336,
+        -90.236054,
+        28.030627
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.212234,
+        27.916563,
+        -90.211944,
+        27.916756
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.21175,
+        27.907461,
+        -90.211459,
+        27.907751
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.839876,
+        27.650381,
+        -90.839683,
+        27.650672
+      ],
+      "class": "oil",
+      "score": 0.3365,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.256582,
+        27.621042,
+        -90.256388,
+        27.621333
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.487421,
+        29.121206,
+        -90.486936,
+        29.121303
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.475608,
+        29.053329,
+        -90.475414,
+        29.05362
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.378779,
+        28.792957,
+        -90.378489,
+        28.793151
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.358251,
+        28.67105,
+        -90.358058,
+        28.671341
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.255613,
+        28.151081,
+        -90.25542,
+        28.151372
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.245737,
+        28.123873,
+        -90.245446,
+        28.124163
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.215623,
+        27.9429,
+        -90.215429,
+        27.943287
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.208748,
+        27.923147,
+        -90.208555,
+        27.923438
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.210007,
+        27.908332,
+        -90.209717,
+        27.908526
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.237305,
+        27.890903,
+        -92.237111,
+        27.891194
+      ],
+      "class": "oil",
+      "score": 0.3681,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.191803,
+        27.788556,
+        -90.19161,
+        27.788846
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.164982,
+        27.678946,
+        -90.164691,
+        27.679139
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.165175,
+        27.670522,
+        -90.164788,
+        27.670715
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -91.400126,
+        27.53409,
+        -91.399642,
+        27.534187
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.454499,
+        29.123433,
+        -90.454402,
+        29.12382
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.25174,
+        28.155826,
+        -90.251546,
+        28.15602
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.253096,
+        28.153986,
+        -90.252902,
+        28.15418
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.257259,
+        28.1383,
+        -90.257066,
+        28.138494
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.228889,
+        28.030336,
+        -90.228695,
+        28.03053
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.253281,
+        27.896907,
+        -92.253088,
+        27.897197
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.253378,
+        27.895067,
+        -92.253185,
+        27.895261
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.184928,
+        27.787297,
+        -90.184638,
+        27.78749
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.16808,
+        27.681851,
+        -90.167887,
+        27.682044
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.159947,
+        27.67972,
+        -90.159753,
+        27.680011
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.497878,
+        29.059236,
+        -90.497781,
+        29.059526
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.360575,
+        28.675408,
+        -90.360285,
+        28.675698
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.280111,
+        28.277927,
+        -90.279917,
+        28.27812
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.255129,
+        28.170157,
+        -90.254935,
+        28.17035
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.251062,
+        28.125035,
+        -90.250869,
+        28.125228
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.246996,
+        28.124357,
+        -90.246802,
+        28.124647
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.229566,
+        28.031595,
+        -90.229373,
+        28.031789
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.236344,
+        27.61775,
+        -90.236151,
+        27.617944
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.497878,
+        29.123917,
+        -90.497781,
+        29.124111
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.475898,
+        29.05362,
+        -90.475801,
+        29.053813
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.255807,
+        28.171803,
+        -90.25571,
+        28.171996
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.254161,
+        28.1383,
+        -90.254064,
+        28.138494
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.254355,
+        28.136944,
+        -90.254161,
+        28.137041
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.248448,
+        28.127649,
+        -90.248254,
+        28.127746
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.23344,
+        28.048734,
+        -90.233343,
+        28.048927
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.234021,
+        28.031886,
+        -90.233827,
+        28.031982
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.252894,
+        27.896616,
+        -92.2527,
+        27.896713
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -92.234497,
+        27.893227,
+        -92.2344,
+        27.893421
+      ],
+      "class": "oil",
+      "score": 0.3681,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.502913,
+        29.056331,
+        -90.502816,
+        29.056428
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.373744,
+        28.788697,
+        -90.373647,
+        28.788794
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.278562,
+        28.289449,
+        -90.278465,
+        28.289546
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.254935,
+        28.171512,
+        -90.254839,
+        28.171609
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.254451,
+        28.135589,
+        -90.254355,
+        28.135686
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.193546,
+        27.797464,
+        -90.193449,
+        27.797561
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.894681,
+        27.792622,
+        -90.894584,
+        27.792719
+      ],
+      "class": "oil",
+      "score": 0.4334,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        -90.16963,
+        27.689984,
+        -90.169533,
+        27.690081
+      ],
+      "class": "lookalike",
+      "score": 0.6882,
+      "phenomenon": null
+    }
+  ],
+  "model_version": "unet-r34-fullcorpus-e48+yolo-screen",
+  "engine": "ml",
+  "runtime_ms": 150024
+}

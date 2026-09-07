@@ -1,0 +1,164 @@
+{
+  "scene_id": "00021",
+  "mask_path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/dev_evidence/P12b/_detect_scratch/00021/raw_mask.tif",
+  "confidence": 0.8815,
+  "candidates": [
+    {
+      "bbox": [
+        35.395812,
+        35.476605,
+        35.470283,
+        35.497266
+      ],
+      "class": "oil",
+      "score": 0.3024,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.3544,
+        35.422796,
+        35.390602,
+        35.45253
+      ],
+      "class": "lookalike",
+      "score": 0.8815,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.335895,
+        35.413723,
+        35.346674,
+        35.433576
+      ],
+      "class": "oil",
+      "score": 0.3507,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.369671,
+        35.413004,
+        35.384943,
+        35.421448
+      ],
+      "class": "lookalike",
+      "score": 0.8815,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.376319,
+        35.463579,
+        35.384853,
+        35.469868
+      ],
+      "class": "oil",
+      "score": 0.5176,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.347303,
+        35.414711,
+        35.348202,
+        35.416508
+      ],
+      "class": "lookalike",
+      "score": 0.8815,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.385482,
+        35.42046,
+        35.386649,
+        35.421538
+      ],
+      "class": "lookalike",
+      "score": 0.8815,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.353322,
+        35.414172,
+        35.35431,
+        35.41516
+      ],
+      "class": "lookalike",
+      "score": 0.8815,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.396441,
+        35.473551,
+        35.397339,
+        35.47418
+      ],
+      "class": "lookalike",
+      "score": 0.8815,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.459503,
+        35.485588,
+        35.461569,
+        35.485858
+      ],
+      "class": "lookalike",
+      "score": 0.8815,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.386021,
+        35.422886,
+        35.38647,
+        35.423604
+      ],
+      "class": "lookalike",
+      "score": 0.8815,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.415485,
+        35.477683,
+        35.416024,
+        35.478312
+      ],
+      "class": "oil",
+      "score": 0.285,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.462108,
+        35.487475,
+        35.462467,
+        35.487834
+      ],
+      "class": "lookalike",
+      "score": 0.8815,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.353861,
+        35.41552,
+        35.354041,
+        35.415699
+      ],
+      "class": "lookalike",
+      "score": 0.8815,
+      "phenomenon": null
+    }
+  ],
+  "model_version": "unet-r34-fullcorpus-e48+yolo-screen",
+  "engine": "ml",
+  "runtime_ms": 1438
+}

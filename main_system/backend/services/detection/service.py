@@ -21,12 +21,20 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
+
+# Above this many padded pixels the stitching canvases live on disk instead of
+# in RAM. ~200 M pixels is two 800 MB arrays; a full S1 IW GRD scene is three
+# times that and used to fail outright.
+_ON_DISK_PIXELS = 200_000_000
+# Rows per block when averaging and thresholding the stitched probabilities.
+_BLOCK_ROWS = 2048
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(REPO_ROOT) not in sys.path:
@@ -216,10 +224,27 @@ def infer_tiled(sess, db: np.ndarray, valid: np.ndarray, cfg,
     pad_w = max(0, -(-max(w - tile, 0) // step) * step + tile - w) if w > tile else tile - w
     pad_h, pad_w = max(pad_h, 0), max(pad_w, 0)
     xp = np.pad(x, ((0, pad_h), (0, pad_w)), mode="reflect") if (pad_h or pad_w) else x
+    if xp is not x:
+        del x                       # a second full-scene float32 copy, now dead
     H, W = xp.shape
 
-    prob = np.zeros((H, W), np.float32)
-    count = np.zeros((H, W), np.float32)
+    # A full Sentinel-1 IW GRD scene is ~600 M pixels once padded. Two float32
+    # canvases plus the padded input is over 8 GB, and the MemoryError that
+    # follows is caught upstream and quietly downgrades the run to the
+    # threshold engine -- so a real scene silently stopped being measured by
+    # the deployed model at all. On disk the values are identical and the
+    # deployed model actually runs.
+    scratch = tempfile.TemporaryDirectory(prefix="ot_segment_") \
+        if H * W > _ON_DISK_PIXELS else None
+    if scratch is not None:
+        root = Path(scratch.name)
+        prob = np.memmap(root / "prob.f32", np.float32, "w+", shape=(H, W))
+        count = np.memmap(root / "count.u16", np.uint16, "w+", shape=(H, W))
+    else:
+        prob = np.zeros((H, W), np.float32)
+        # Overlap counts are small integers -- at most ceil(tile/step)**2 -- so
+        # uint16 is exact here and a quarter of the memory.
+        count = np.zeros((H, W), np.uint16)
 
     coords, batch = [], []
     input_name = sess.get_inputs()[0].name
@@ -232,7 +257,7 @@ def infer_tiled(sess, db: np.ndarray, valid: np.ndarray, cfg,
         probs = 1.0 / (1.0 + np.exp(-logits))
         for (r, c), p in zip(coords, probs):
             prob[r:r + tile, c:c + tile] += p[0]
-            count[r:r + tile, c:c + tile] += 1.0
+            count[r:r + tile, c:c + tile] += 1
         coords.clear()
         batch.clear()
 
@@ -244,10 +269,28 @@ def infer_tiled(sess, db: np.ndarray, valid: np.ndarray, cfg,
                 flush()
     flush()
 
-    prob = np.divide(prob, np.maximum(count, 1e-6))[:h, :w]
-    prob = np.where(valid, prob, 0.0)
-    mask = (prob > threshold).astype(np.uint8)
-    conf = float(prob[mask.astype(bool)].mean()) if mask.any() else 0.0
+    # Average the seams, crop the padding, threshold and take the mean
+    # confidence -- in row blocks, because the whole-scene quotient is another
+    # 2 GB that is never needed all at once. Same arithmetic as one big
+    # expression, and `count` is 0 only where `prob` is 0 too.
+    del xp
+    mask = np.zeros((h, w), np.uint8)
+    hit_total, hit_count = 0.0, 0
+    for r0 in range(0, h, _BLOCK_ROWS):
+        r1 = min(r0 + _BLOCK_ROWS, h)
+        block = np.array(prob[r0:r1, :w], dtype=np.float32)
+        block /= np.maximum(np.asarray(count[r0:r1, :w]), 1)
+        block *= valid[r0:r1, :w]
+        hit = block > threshold
+        mask[r0:r1] = hit
+        if hit.any():
+            hit_total += float(block[hit].sum())
+            hit_count += int(hit.sum())
+    conf = hit_total / hit_count if hit_count else 0.0
+
+    del prob, count
+    if scratch is not None:
+        scratch.cleanup()
     return mask, conf
 
 

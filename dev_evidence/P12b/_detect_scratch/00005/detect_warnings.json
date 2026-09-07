@@ -1,0 +1,5 @@
+[
+  "screen: 0 oil candidate(s) over 9 tile(s), best 0.00",
+  "ml inference 0.6s",
+  "screen returned no detections anywhere in this scene, so look-alike rejection was NOT applied; candidates are reported as oil without stage-1 confirmation"
+]

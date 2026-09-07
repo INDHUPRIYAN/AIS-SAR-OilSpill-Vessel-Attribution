@@ -712,31 +712,165 @@ def vessels_cover_origin(vessels: Path, summary: dict,
         return False
 
 
+def file_data_source(vessels: Optional[Path]) -> str:
+    """What a vessels.parquet says about itself: real, synthetic or unknown.
+
+    Read from the file's own `source` column rather than from its path, because
+    a filename is a claim and the column is the record. "unknown" is a distinct
+    answer from "synthetic": a legacy file that predates the column has not
+    told us it is fabricated, and reporting it as such would be its own
+    invention.
+    """
+    if vessels is None:
+        return "none"
+    try:
+        import pandas as pd
+
+        col = pd.read_parquet(vessels, columns=["source"])["source"]
+    except Exception:
+        return "unknown"
+    values = {str(v).strip().lower() for v in col.dropna().unique()}
+    if not values:
+        return "unknown"
+    if values == {"real"}:
+        return "real"
+    if "real" in values:
+        return "mixed"
+    return "synthetic"
+
+
+def real_ais_candidates(out_dir: Path) -> List[Path]:
+    """Every vessels.parquet this run could legitimately use, best first.
+
+    The run directory comes first because `backend.prepare_ais` puts a file
+    there specifically for this scene. `data/ais/real/` is next: archives
+    ingested from MarineCadastre for some other date, which may or may not
+    cover this origin -- that is measured, not assumed.
+    """
+    real_dir = REPO_ROOT / "data" / "ais" / "real"
+    ordered = [
+        out_dir / "vessels.parquet",
+        *(sorted(real_dir.glob("*.parquet")) if real_dir.is_dir() else []),
+        REPO_ROOT / "data" / "ais" / "vessels.parquet",
+        REPO_ROOT / "ais_service" / "test_output" / "vessels.parquet",
+        MOCKS / "vessels.parquet",
+    ]
+    seen, out = set(), []
+    for candidate in ordered:
+        candidate = Path(candidate)
+        if not candidate.exists():
+            continue
+        key = candidate.resolve()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(candidate)
+    return out
+
+
+class AISChoice:
+    """Which AIS this run used, and every file it looked at to decide.
+
+    The decision itself was always made; what was missing was any record of it
+    (audit A-05/06). A sealed run that says only "vessels.parquet" cannot
+    distinguish real AIS that covered the origin from a synthetic fleet built
+    around it, and those are very different claims about the same investigation.
+    """
+
+    def __init__(self, path=None, data_source="none", covered=False,
+                 selection="none", detail="", considered=None):
+        self.path = Path(path) if path else None
+        self.data_source = data_source
+        self.covered = covered
+        self.selection = selection
+        self.detail = detail
+        self.considered = considered or []
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "selection": self.selection,
+            "data_source": self.data_source,
+            "covers_origin": self.covered,
+            "file": self.path.name if self.path else None,
+            "detail": self.detail,
+            # The ledger of rejections. Without it, "we synthesised" reads as a
+            # preference rather than as the last option after real data was
+            # checked and did not cover this origin.
+            "considered": self.considered,
+        }
+
+
 def ensure_vessels(out_dir: Path, origin_native: Path, meta: Optional[dict],
-                   stage: "Stage") -> Optional[Path]:
-    """Real AIS if we have it for this scene; otherwise synthesise it here.
+                   stage: "Stage") -> AISChoice:
+    """Real AIS if any covers this origin; otherwise synthesise it here.
+
+    Real-first, and measured rather than assumed (audit A-05/06). Every
+    candidate file is judged on the one question that matters -- does it hold a
+    vessel inside the cloud this run computed, in the window this run computed
+    -- and real data wins whenever the answer is yes. A real archive for a
+    different date is NOT better than synthetic: its vessels never enter this
+    cloud, attribution correctly returns NO_VESSELS_IN_WINDOW, and the run
+    looks broken when it was merely given the wrong day.
 
     Real AIS does not exist for Indian waters, which is why the synthetic
-    generator is mandatory infrastructure rather than a fallback. The important
-    part is that the culprit is planted at the origin THIS run computed -- a
-    pre-generated file describes a different event, and attribution then
-    correctly reports that no vessel went anywhere near the cloud.
-    """
-    existing = resolve_vessels(out_dir)
-    summary = origin_summary(origin_native)
-    if summary is None or not summary.get("window_start_utc"):
-        return existing
+    generator is mandatory infrastructure rather than a fallback. When it runs,
+    the culprit is planted at the origin THIS run computed, and every row it
+    produces stays flagged SYNTHETIC exactly as before.
 
-    # Judge the file on whether it actually covers this origin, not on where it
-    # came from. A pre-generated parquet is real data about a DIFFERENT event;
-    # its vessels never enter the cloud this run computed, and attribution then
-    # returns NO_VESSELS_IN_WINDOW, which reads like a bug but is correct.
-    if existing is not None and vessels_cover_origin(existing, summary):
-        return existing
-    if existing is not None:
+    Returns the choice AND the reasoning, so the sealed manifest can say which
+    path ran instead of leaving a reader to infer it from a filename.
+    """
+    summary = origin_summary(origin_native)
+    candidates = real_ais_candidates(out_dir)
+
+    if summary is None or not summary.get("window_start_utc"):
+        existing = resolve_vessels(out_dir)
+        return AISChoice(
+            existing, file_data_source(existing), covered=False,
+            selection="unjudged" if existing else "none",
+            detail="no origin window was computed, so no AIS file could be "
+                   "tested against it")
+
+    considered: List[Dict[str, Any]] = []
+    covering: List[tuple] = []
+    for candidate in candidates:
+        source = file_data_source(candidate)
+        covers = vessels_cover_origin(candidate, summary)
+        considered.append({"file": candidate.name,
+                           "path": str(candidate).replace("\\", "/"),
+                           "data_source": source,
+                           "covers_origin": covers})
+        if covers:
+            covering.append((source, candidate))
+
+    # Real first, then anything else that covers, then synthesis. "mixed"
+    # counts as real here because it contains genuine reports; the per-vessel
+    # `source` column still tells the UI which rows those are.
+    for wanted in ("real", "mixed"):
+        for source, candidate in covering:
+            if source == wanted:
+                stage.warnings.append(
+                    f"real AIS: {candidate.name} covers the computed origin "
+                    f"window -- no synthetic fleet was generated")
+                return AISChoice(candidate, source, covered=True,
+                                 selection="real",
+                                 detail="a real AIS archive holds reports inside "
+                                        "the computed origin window",
+                                 considered=considered)
+    if covering:
+        source, candidate = covering[0]
+        return AISChoice(candidate, source, covered=True,
+                         selection="existing",
+                         detail=f"{candidate.name} covers the origin window",
+                         considered=considered)
+
+    for entry in considered:
         stage.warnings.append(
-            f"{Path(existing).name} does not cover the computed origin window; "
-            f"generating AIS for this origin instead")
+            f"{entry['file']} ({entry['data_source']}) does not cover the "
+            f"computed origin window")
+    if considered:
+        stage.warnings.append("generating AIS for this origin instead")
+    existing = candidates[0] if candidates else None
 
     # The culprit's course must run along the slick's own axis -- that is what
     # the trajectory gate measures. With kinematically honest cog values a
@@ -778,9 +912,16 @@ def ensure_vessels(out_dir: Path, origin_native: Path, meta: Optional[dict],
         stage.warnings.append(
             f"synthesised AIS around the computed origin "
             f"({summary['lat']:.3f}, {summary['lon']:.3f}) -- flagged SYNTHETIC")
-        return out
+        return AISChoice(out, "synthetic", covered=True, selection="synthetic",
+                         detail="no real AIS covered the computed origin window; "
+                                "a fleet was synthesised around it and every row "
+                                "is flagged SYNTHETIC",
+                         considered=considered)
     stage.warnings.append(f"AIS generation failed ({res.error_class}): {res.detail}")
-    return existing
+    return AISChoice(existing, file_data_source(existing), covered=False,
+                     selection="generation_failed",
+                     detail=f"AIS generation failed ({res.error_class}): {res.detail}",
+                     considered=considered)
 
 
 def vessel_sources_of(vessels: Path) -> Dict[int, str]:
@@ -1061,7 +1202,8 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
     # --- attribution ------------------------------------------------------
     s = by_name["attribution"]
     origin_native = engine_dir(out_dir) / "origin_cloud.geojson"
-    vessels_path = ensure_vessels(out_dir, origin_native, meta, s)
+    ais_choice = ensure_vessels(out_dir, origin_native, meta, s)
+    vessels_path = ais_choice.path
     s.key(inputs={"origin_cloud": "origin_cloud.geojson",
                   "vessels": Path(vessels_path).name if vessels_path else None,
                   "slick": "slick.geojson" if slick_native.exists() else None},
@@ -1171,6 +1313,8 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
         # them, so a bug fixed later cannot be traced to the runs it affected.
         "code_git_sha": _git_sha(),
         "models": _model_records(),
+        # Which AIS path ran, and what was rejected on the way (audit A-05/06).
+        "ais": ais_choice.to_dict(),
         "attribution_profile": _weights_profile_stamp(),
         "stages": [s.to_dict() for s in stages],
     }

@@ -1,0 +1,461 @@
+{
+  "scene_id": "00014",
+  "mask_path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/dev_evidence/P12b/_detect_scratch/00014/raw_mask.tif",
+  "confidence": 0.8846,
+  "candidates": [
+    {
+      "bbox": [
+        34.920187,
+        35.438729,
+        35.033106,
+        35.530177
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.877068,
+        35.484363,
+        34.941118,
+        35.622704
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.027177,
+        35.481848,
+        35.061043,
+        35.490741
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.877068,
+        35.438729,
+        34.889196,
+        35.455438
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.877068,
+        35.466846,
+        34.887758,
+        35.475111
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.000676,
+        35.501341,
+        35.00957,
+        35.506731
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.877068,
+        35.472775,
+        34.883446,
+        35.481668
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.920187,
+        35.439448,
+        34.922882,
+        35.444119
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.974356,
+        35.461816,
+        34.97732,
+        35.464511
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.878775,
+        35.453551,
+        34.881111,
+        35.457324
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.877068,
+        35.553084,
+        34.878056,
+        35.556857
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.885423,
+        35.499545,
+        34.88704,
+        35.50233
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.975164,
+        35.484273,
+        34.977051,
+        35.48589
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.974446,
+        35.480411,
+        34.976781,
+        35.481758
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.027446,
+        35.484812,
+        35.028973,
+        35.48607
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.921086,
+        35.455617,
+        34.922164,
+        35.457144
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.926565,
+        35.465948,
+        34.927733,
+        35.467475
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.921086,
+        35.446993,
+        34.921984,
+        35.448071
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.921535,
+        35.445376,
+        34.922613,
+        35.446365
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.936806,
+        35.49703,
+        34.937435,
+        35.499096
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.975524,
+        35.498197,
+        34.976332,
+        35.499096
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.926745,
+        35.464151,
+        34.927554,
+        35.46496
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.920187,
+        35.438909,
+        34.923332,
+        35.439088
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.942017,
+        35.518499,
+        34.943005,
+        35.519038
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.877158,
+        35.451036,
+        34.877697,
+        35.452473
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.923691,
+        35.458402,
+        34.924499,
+        35.458851
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.939232,
+        35.497479,
+        34.939501,
+        35.498916
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.976961,
+        35.46478,
+        34.9775,
+        35.465319
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.877068,
+        35.548503,
+        34.877338,
+        35.549761
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.937166,
+        35.492807,
+        34.937435,
+        35.493346
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.97723,
+        35.463522,
+        34.97759,
+        35.463972
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.974805,
+        35.474122,
+        34.975075,
+        35.474572
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        35.001036,
+        35.501521,
+        35.001485,
+        35.501701
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.877158,
+        35.613631,
+        34.877338,
+        35.61399
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.978129,
+        35.438729,
+        34.978668,
+        35.438819
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.922523,
+        35.439717,
+        34.922972,
+        35.439807
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.959264,
+        35.498916,
+        34.959534,
+        35.499096
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.927554,
+        35.449329,
+        34.927733,
+        35.449509
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.877248,
+        35.610217,
+        34.877338,
+        35.610307
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.937525,
+        35.521823,
+        34.937615,
+        35.521913
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    },
+    {
+      "bbox": [
+        34.980105,
+        35.481668,
+        34.980195,
+        35.481758
+      ],
+      "class": "oil",
+      "score": 0.8846,
+      "phenomenon": null
+    }
+  ],
+  "model_version": "unet-r34-fullcorpus-e48+yolo-screen",
+  "engine": "ml",
+  "runtime_ms": 1435
+}
