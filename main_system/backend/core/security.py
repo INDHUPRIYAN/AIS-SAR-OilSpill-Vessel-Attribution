@@ -101,6 +101,74 @@ def last_four(value: str) -> str:
 # --------------------------------------------------------------------------
 
 
+# --------------------------------------------------------------------------
+# passwords
+#
+# Separate from the credential vault above and deliberately so: the vault
+# encrypts secrets we must be able to READ BACK (a provider key is useless
+# otherwise), while a password must never be recoverable at all. Same module,
+# opposite guarantees -- mixing them is how reversible "password encryption"
+# gets shipped.
+# --------------------------------------------------------------------------
+
+_ARGON2_UNAVAILABLE = "argon2-cffi is not installed; refusing to store a password"
+
+
+def _hasher():
+    from argon2 import PasswordHasher
+
+    # Library defaults (argon2id, m=64MiB, t=3, p=4) are the RFC 9106
+    # second-recommended profile and are left alone: hand-tuning these without
+    # measuring on the deployment host usually weakens them.
+    return PasswordHasher()
+
+
+def hash_password(password: str) -> str:
+    """argon2id hash, or a loud refusal.
+
+    There is no fallback to a weaker scheme. The vault above degrades visibly
+    to `plain:` because an unreadable provider key breaks the demo and the
+    banner tells the operator; a password store has no equivalent excuse --
+    silently downgrading it would be invisible to everyone, forever.
+    """
+    if not password or len(password) < 8:
+        raise ValueError("password must be at least 8 characters")
+    try:
+        return _hasher().hash(password)
+    except ImportError as exc:                     # pragma: no cover - install issue
+        raise RuntimeError(_ARGON2_UNAVAILABLE) from exc
+
+
+def verify_password(stored: Optional[str], password: str) -> bool:
+    """Constant-time-ish verification that never raises on bad input.
+
+    Returns False for an absent hash rather than throwing, so an account with
+    no password set (OIDC-only, once that exists) simply cannot log in by
+    password instead of producing a 500 that leaks which accounts exist.
+    """
+    if not stored or not password:
+        return False
+    try:
+        from argon2.exceptions import VerificationError, VerifyMismatchError
+
+        try:
+            return bool(_hasher().verify(stored, password))
+        except (VerifyMismatchError, VerificationError):
+            return False
+        except Exception:                          # noqa: BLE001 - malformed hash
+            return False
+    except ImportError:                            # pragma: no cover - install issue
+        return False
+
+
+def needs_rehash(stored: str) -> bool:
+    """True when a stored hash predates the current argon2 parameters."""
+    try:
+        return bool(_hasher().check_needs_rehash(stored))
+    except Exception:                              # noqa: BLE001
+        return False
+
+
 def verify_admin(token: Optional[str]) -> bool:
     """Constant-time comparison against the configured admin token."""
     if not token:

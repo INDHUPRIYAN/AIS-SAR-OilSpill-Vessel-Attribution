@@ -61,6 +61,28 @@ class Settings:
         # Symmetric key for encrypting stored credentials at rest.
         self.secret_key = os.getenv("SECRET_KEY", "")
 
+        # --- sessions -----------------------------------------------------
+        # Session tokens are signed with their own secret where one is given,
+        # falling back to SECRET_KEY so a working deployment does not need two
+        # variables on day one. They are separable because they protect
+        # different things: rotating the session secret logs everyone out,
+        # rotating the vault key makes every stored credential unreadable.
+        self.jwt_secret = os.getenv("JWT_SECRET") or self.secret_key
+        self.jwt_algorithm = "HS256"
+        self.jwt_ttl_hours = int(os.getenv("JWT_TTL_HOURS", "8"))
+        self.session_cookie = os.getenv("SESSION_COOKIE", "oceantrace_session")
+        # Secure cookies require HTTPS, which the dev server does not speak.
+        # Default follows DEBUG rather than being hardcoded off, so a
+        # production deployment does not silently ship a non-Secure cookie.
+        secure_env = os.getenv("SESSION_COOKIE_SECURE")
+        self.session_cookie_secure = (
+            secure_env.lower() == "true" if secure_env is not None else not self.debug)
+
+        # First-run administrator. Absent by default: a checkout with no
+        # credentials set gets NO account rather than a well-known one.
+        self.admin_email = os.getenv("OT_ADMIN_EMAIL", "")
+        self.admin_password = os.getenv("OT_ADMIN_PASSWORD", "")
+
         self.health_interval_seconds = int(os.getenv("HEALTH_INTERVAL", "60"))
         self.health_enabled = os.getenv("HEALTH_ENABLED", "true").lower() == "true"
 

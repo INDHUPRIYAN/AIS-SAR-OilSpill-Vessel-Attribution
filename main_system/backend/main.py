@@ -26,6 +26,7 @@ from sqlalchemy import text as sa_text  # noqa: E402
 from backend.api.analytics import router as analytics_router  # noqa: E402
 from backend.api.replay import router as replay_router  # noqa: E402
 from backend.api.investigation_page import router as invpage_router  # noqa: E402
+from backend.api.auth import bootstrap_admin, router as auth_router  # noqa: E402
 from backend.api.routes import router  # noqa: E402
 from backend.api.scenes import router as scenes_router  # noqa: E402
 from backend.api.scheduler_routes import router as scheduler_router  # noqa: E402
@@ -60,6 +61,12 @@ def _health_loop() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    # First-run administrator, only when both env vars are set and the
+    # user table is empty. A checkout with neither gets no account at all
+    # rather than a well-known one.
+    note = bootstrap_admin()
+    if note:
+        print(f"[auth] {note}")
     if settings.admin_token_is_ephemeral:
         # Printed once, never logged again. Without this a fresh checkout would
         # either have no admin auth or a guessable default -- both worse.
@@ -122,6 +129,7 @@ app.include_router(replay_router, prefix="/api")
 app.include_router(invpage_router, prefix="/api")
 app.include_router(scheduler_router, prefix="/api")
 app.include_router(scenes_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
 
 
 @app.get("/health")

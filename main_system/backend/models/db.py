@@ -243,6 +243,38 @@ class AuditLog(Base):
 
 
 # --------------------------------------------------------------------------
+# identity
+# --------------------------------------------------------------------------
+
+# The five roles from the production spec. Kept as a plain tuple rather than a
+# DB enum: SQLite does not enforce enums anyway, and a CHECK constraint would
+# have to be rewritten to add a role, which is exactly the kind of migration
+# this schema is trying to avoid.
+ROLES = ("admin", "investigator", "analyst", "reviewer", "auditor")
+
+
+class User(Base):
+    """An operator of the system.
+
+    `password_hash` is nullable on purpose: the schema already accommodates an
+    OIDC account that never has a local password, so adding SSO later needs no
+    migration. A null hash cannot log in by password -- `verify_password`
+    returns False rather than raising.
+    """
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=True)
+    display_name = Column(String(120))
+    role = Column(String(32), nullable=False, default="investigator")
+    active = Column(Boolean, nullable=False, default=True)
+    created_utc = Column(DateTime(timezone=True), default=utcnow)
+    last_login_utc = Column(DateTime(timezone=True), nullable=True)
+
+
+# --------------------------------------------------------------------------
 # engine / session
 # --------------------------------------------------------------------------
 
