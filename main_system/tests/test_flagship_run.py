@@ -121,3 +121,75 @@ def test_the_scene_is_real_sentinel1_not_a_mock(manifest):
     stages = {s["name"]: s for s in manifest["stages"]}
     assert stages["detect"]["data_source"] == "real"
     assert manifest["scene_id"].startswith("S1")
+
+
+# --------------------------------------------------------------------------
+# drift: the origin cloud is what attribution is scored against
+# --------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def origin_cloud() -> dict:
+    path = _run_dir() / "origin_cloud.geojson"
+    if not path.exists():
+        pytest.fail("the flagship has no origin cloud: drift did not run")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_the_hindcast_actually_ran(manifest):
+    stages = {s["name"]: s for s in manifest["stages"]}
+    hindcast = stages["drift_hindcast"]
+    assert hindcast["status"] in ("ok", "fallback"), \
+        f"drift_hindcast is {hindcast['status']}: {hindcast.get('detail')}"
+    assert hindcast["data_source"] != "synthetic"
+
+
+def test_the_origin_window_is_stated(origin_cloud):
+    """Attribution asks 'was this vessel here, then'. Without a window the
+    second half of that question has no answer."""
+    md = origin_cloud["metadata"]
+    assert md.get("origin_window_start_utc"), "no origin window start"
+    assert md.get("origin_window_end_utc"), "no origin window end"
+    from datetime import datetime
+
+    start = datetime.fromisoformat(md["origin_window_start_utc"].replace("Z", "+00:00"))
+    end = datetime.fromisoformat(md["origin_window_end_utc"].replace("Z", "+00:00"))
+    assert start <= end
+
+
+def test_uncertainty_is_measured_not_zeroed(origin_cloud):
+    """A cloud whose ellipses are all zero-width claims the origin is known
+    exactly. Backward drift under diffusion never justifies that, and P04
+    made `_require_axes` raise rather than zero-fill for this reason."""
+    ellipses = [f for f in origin_cloud["features"]
+                if f["properties"].get("feature_type") == "ellipse"]
+    assert ellipses, "the cloud carries no uncertainty ellipses"
+    axes = [f["properties"].get("semi_major_m") or 0.0 for f in ellipses]
+    assert all(a is not None for a in axes)
+    # Step 0 is the release point and is legitimately a point; every cloud
+    # after it has spread.
+    assert max(axes) > 0.0, "every uncertainty ellipse is zero-width"
+    assert sum(1 for a in axes if a > 0.0) >= len(axes) - 1
+
+
+def test_the_forcing_is_named_and_real(origin_cloud):
+    """`forcing` records what actually drove the particles. A mock or absent
+    provider here would make the origin -- and everything ranked against it --
+    a statement about nothing."""
+    forcing = origin_cloud["metadata"].get("forcing") or {}
+    assert forcing, "the cloud does not say what forced it"
+    assert forcing.get("engine"), "no drift engine recorded"
+
+    named = [forcing.get("currents"), forcing.get("wind")]
+    present = [f for f in named if f]
+    assert present, "neither currents nor wind were recorded"
+    for block in present:
+        text = json.dumps(block).lower()
+        assert "mock" not in text and "synthetic" not in text, \
+            f"the flagship drifted on non-real forcing: {block}"
+
+
+def test_the_forecast_artefact_exists(manifest):
+    stages = {s["name"]: s for s in manifest["stages"]}
+    assert stages["drift_forecast"]["status"] in ("ok", "fallback"), \
+        f"drift_forecast is {stages['drift_forecast']['status']}"
+    assert (_run_dir() / "forecast.geojson").exists()
