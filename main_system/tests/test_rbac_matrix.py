@@ -39,10 +39,23 @@ ELEVATED = {
     ("POST", "/api/aois/{aoi_id}/poll"): {"investigator", "analyst", "admin"},
     ("POST", "/api/apis/{provider}/test"): {"analyst", "admin"},
     ("POST", "/api/apis/test-all"): {"analyst", "admin"},
+    ("POST", "/api/incidents"): {"investigator", "analyst", "admin"},
+    ("POST", "/api/incidents/from_run/{run_id}"): {"investigator", "analyst", "admin"},
     ("GET", "/api/keys"): {"admin"},
     ("PUT", "/api/keys"): {"admin"},
     ("GET", "/api/keys/audit"): {"admin"},
     ("POST", "/api/keys/{provider}/test"): {"admin"},
+}
+
+
+# Routes whose permission depends on the VALUE being written, not just the
+# caller's role, so a route-level guard cannot express it. Each one is covered
+# by its own lifecycle test instead; listing them here is a declaration that
+# the omission is deliberate rather than forgotten.
+VALUE_GUARDED = {
+    # An investigator may move a case to `investigating`, but only a reviewer
+    # may conclude it as `attributed`/`closed`. See test_incidents.py.
+    ("PATCH", "/api/incidents/{incident_id}"),
 }
 
 
@@ -228,7 +241,7 @@ def test_elevated_list_covers_every_mutating_route(env):
         for method in sorted(methods - {"HEAD", "OPTIONS", "GET"}):
             if path in PUBLIC:
                 continue
-            if (method, path) in ELEVATED:
+            if (method, path) in ELEVATED or (method, path) in VALUE_GUARDED:
                 continue
             if declared_roles(route) is None:
                 unclassified.append(f"{method} {path}")

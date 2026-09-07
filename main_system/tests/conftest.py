@@ -21,6 +21,32 @@ TEST_ADMIN_EMAIL = "test-admin@example.invalid"
 TEST_ADMIN_PASSWORD = "suite-fixture-password"
 
 
+def _refuse_live_database() -> None:
+    """Stop a test account from ever reaching the production database.
+
+    This already happened once: two suites use the real DATA_ROOT on purpose
+    (they read real artefacts), and when PROMPT-07 made every route require a
+    session, the seeding below quietly created `test-admin@example.invalid`
+    with a known password in `data/oceantrace.db`. Chasing which module did it
+    fixes one case; refusing outright fixes the class.
+    """
+    from pathlib import Path
+
+    from backend.core.config import get_settings
+
+    url = get_settings().database_url
+    if not url.startswith("sqlite"):
+        return
+    resolved = Path(url.split("///", 1)[1]).resolve()
+    canonical = (Path(__file__).resolve().parents[2] / "data" / "oceantrace.db").resolve()
+    if resolved == canonical:
+        raise RuntimeError(
+            f"refusing to seed a test account into the live database "
+            f"({resolved}). Point DATABASE_URL at a temp file in this "
+            f"module's fixture; DATA_ROOT may stay real if the test needs "
+            f"real artefacts.")
+
+
 def seed_admin(email: str = TEST_ADMIN_EMAIL,
                password: str = TEST_ADMIN_PASSWORD,
                role: str = "admin") -> None:
@@ -28,6 +54,7 @@ def seed_admin(email: str = TEST_ADMIN_EMAIL,
     from backend.core import security
     from backend.models.db import SessionLocal, User, init_db
 
+    _refuse_live_database()
     init_db()
     with SessionLocal() as db:
         if db.query(User).filter(User.email == email).one_or_none() is None:

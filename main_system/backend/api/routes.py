@@ -73,6 +73,7 @@ class InvestigationCreate(BaseModel):
     scene_path: Optional[str] = None
     scene_meta_path: Optional[str] = None
     notes: Optional[str] = None
+    incident_id: Optional[str] = None
 
 
 class RunRequest(BaseModel):
@@ -145,9 +146,15 @@ require_admin.allowed_roles = frozenset({"admin"})
              dependencies=[Depends(require_role("investigator", "analyst"))])
 def create_investigation(request: Request, body: InvestigationCreate,
                          db: Session = Depends(get_db)):
+    if body.incident_id:
+        from backend.models.db import Incident
+
+        if db.get(Incident, body.incident_id) is None:
+            raise HTTPException(400, f"no incident {body.incident_id}")
     inv = Investigation(
         id=f"inv-{uuid.uuid4().hex[:10]}", name=body.name,
-        scene_path=body.scene_path, notes=body.notes)
+        scene_path=body.scene_path, notes=body.notes,
+        incident_id=body.incident_id)
     if body.scene_meta_path:
         meta_path = Path(body.scene_meta_path)
         if not meta_path.is_absolute():
@@ -257,8 +264,10 @@ def start_run(request: Request, investigation_id: str, body: RunRequest,
         raise HTTPException(404, "investigation not found")
 
     run_id = f"{investigation_id}-{datetime.now(timezone.utc):%H%M%S}"
+    # Stamped now, not joined later: re-filing the investigation under a
+    # different case must not rewrite what a sealed run was evidence for.
     db.add(Run(id=run_id, investigation_id=investigation_id, status="pending",
-               scene_id=inv.scene_id))
+               scene_id=inv.scene_id, incident_id=inv.incident_id))
     audit_service.record(db, "run.start", request=request, resource=run_id,
                          detail=json.dumps({"investigation": investigation_id,
                                             "engine": body.engine}),

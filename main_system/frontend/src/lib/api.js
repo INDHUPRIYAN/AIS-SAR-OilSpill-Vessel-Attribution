@@ -60,6 +60,19 @@ export const api = {
 
   localScenes: () => request("/api/scenes/local"),
 
+  listIncidents: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== ""),
+    ).toString();
+    return request(`/api/incidents${q ? `?${q}` : ""}`);
+  },
+  getIncident: (id) => request(`/api/incidents/${id}`),
+  createIncident: (body) => request("/api/incidents", { method: "POST", body }),
+  patchIncident: (id, body) =>
+    request(`/api/incidents/${id}`, { method: "PATCH", body }),
+  promoteRun: (runId) =>
+    request(`/api/incidents/from_run/${runId}`, { method: "POST" }),
+
   listInvestigations: () => request("/api/investigations"),
   createInvestigation: (body) =>
     request("/api/investigations", { method: "POST", body }),

@@ -15,6 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import About from "./pages/About";
 import Report from "./pages/Report";
+import Incidents from "./pages/Incidents";
 import SignIn from "./pages/SignIn";
 import { Dot } from "./components/ui";
 import { api, useApi } from "./lib/api";
@@ -81,6 +82,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/incident" replace />} />
           <Route path="/incident" element={<Incident />} />
+          <Route path="/incidents" element={<Incidents />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/about" element={<About />} />

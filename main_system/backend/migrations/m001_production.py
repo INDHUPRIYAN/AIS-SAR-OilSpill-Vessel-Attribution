@@ -141,7 +141,10 @@ def migrate(allow_empty: bool = False, check_only: bool = False) -> dict:
             f"row counts DECREASED, which an additive migration must never do: "
             f"{lost}. The pre-migration backup is at {report.get('backup')}.")
 
-    added = [t for t in INTRODUCES if t in after and t not in before]
+    # Every table that appeared, not just the ones this file happened to
+    # anticipate -- reporting "none" while the counts show a new table is the
+    # kind of small dishonesty that erodes trust in the whole report.
+    added = sorted(set(after) - set(before))
     report["tables_added"] = added
     report["verified_no_row_loss"] = True
 

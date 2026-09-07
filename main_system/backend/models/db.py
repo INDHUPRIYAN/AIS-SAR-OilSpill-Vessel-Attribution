@@ -43,9 +43,15 @@ class Investigation(Base):
     bbox = Column(String(200))
     created_utc = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     notes = Column(Text)
+    # Nullable: investigations predate incidents, and one can legitimately be
+    # started before anyone decides it belongs to a case.
+    incident_id = Column(String(32), ForeignKey("incidents.id"), nullable=True,
+                         index=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     runs = relationship("Run", back_populates="investigation",
                         cascade="all, delete-orphan")
+    incident = relationship("Incident", back_populates="investigations")
 
 
 class Run(Base):
@@ -71,6 +77,12 @@ class Run(Base):
     detect_engine = Column(String(32))
     manifest_path = Column(Text)
     error = Column(Text)
+
+    # Stamped from the investigation when the run is created rather than joined
+    # at read time: an investigation can be re-filed under a different incident
+    # later, and a sealed run must keep saying which case it was evidence for.
+    incident_id = Column(String(32), ForeignKey("incidents.id"), nullable=True,
+                         index=True)
 
     investigation = relationship("Investigation", back_populates="runs")
 
@@ -264,6 +276,46 @@ class AuditLog(Base):
     # rather than pretending those rows were covered.
     prev_hash = Column(String(64), nullable=True)
     row_hash = Column(String(64), nullable=True, index=True)
+
+
+# --------------------------------------------------------------------------
+# incidents
+# --------------------------------------------------------------------------
+
+# A spill event may be examined by several runs across several scenes, so the
+# incident -- not the run -- is the unit of accountability. Runs stay immutable
+# evidence; the incident is the mutable case file they attach to.
+INCIDENT_STATUSES = ("open", "investigating", "attributed", "closed", "archived")
+
+# Moving to these says the case is concluded, so they are reviewer/admin only
+# (master plan section 8). Kept next to the vocabulary rather than in the route,
+# so the rule is visible wherever the statuses are.
+INCIDENT_REVIEWER_STATUSES = ("attributed", "closed")
+
+
+class Incident(Base):
+    """One spill event, and everything concluded about it.
+
+    `geometry_json` holds GeoJSON rather than a lat/lon pair because an
+    incident is an area of interest, not a point -- and because the promote
+    action seeds it from a slick's own footprint.
+    """
+
+    __tablename__ = "incidents"
+
+    id = Column(String(32), primary_key=True)         # INC-2026-001
+    title = Column(String(200), nullable=False)
+    geometry_json = Column(Text, nullable=True)
+    detected_utc = Column(DateTime(timezone=True), nullable=True)
+    status = Column(String(24), nullable=False, default="open", index=True)
+    assignee_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    region = Column(String(120), nullable=True, index=True)
+    notes = Column(Text, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_utc = Column(DateTime(timezone=True), default=utcnow)
+    updated_utc = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    investigations = relationship("Investigation", back_populates="incident")
 
 
 # --------------------------------------------------------------------------
