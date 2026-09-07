@@ -1,7 +1,7 @@
-# pytest -q (OT_SKIP_NETWORK_TESTS=1), whole workspace, after P14
+# pytest -q (OT_SKIP_NETWORK_TESTS=1), whole workspace, after the two-day flagship
 # 865 passed, 5 skipped, 0 failed  (total 870)
-# The skips are network-dependent provider tests; a provider outage is
-# not a code defect and must not fail the suite.
+# Skips are the network-dependent provider tests; a provider outage is not
+# a code defect and must not fail the suite.
 
 ........................................................................ [  8%]
 ........................................................................ [ 16%]
