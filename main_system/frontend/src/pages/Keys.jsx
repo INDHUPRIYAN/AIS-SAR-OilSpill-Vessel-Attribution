@@ -14,58 +14,26 @@ import { motion } from "framer-motion";
 import { KeyRound, Lock, LockOpen, Save, ShieldCheck, History, AlertTriangle } from "lucide-react";
 
 import { Badge, Card, Spinner } from "../components/ui";
-import { api, fmt, getAdminToken, setAdminToken, useApi } from "../lib/api";
+import { api, fmt, useApi } from "../lib/api";
+import { useSession } from "../lib/session";
 
 export default function Keys() {
-  const [token, setToken] = useState(getAdminToken());
-  const [authed, setAuthed] = useState(Boolean(getAdminToken()));
-
-  if (!authed) return <TokenGate token={token} setToken={setToken} onOk={() => setAuthed(true)} />;
-  return <KeyManager onLogout={() => { setAdminToken(""); setAuthed(false); }} />;
-}
-
-function TokenGate({ token, setToken, onOk }) {
-  const [error, setError] = useState(null);
-  const [busy, setBusy] = useState(false);
-
-  async function submit(e) {
-    e.preventDefault();
-    setBusy(true); setError(null);
-    setAdminToken(token);
-    try { await api.listKeys(); onOk(); }
-    catch (err) {
-      setError(err.status === 401 ? "Token rejected." : err.message);
-      setAdminToken("");
-    } finally { setBusy(false); }
+  // Authority now comes from the session, not a shared token this page had to
+  // hold in localStorage. A non-admin sees why rather than a failed request.
+  const { user, signOut } = useSession();
+  if (user?.role !== "admin") {
+    return (
+      <div className="page">
+        <Card title="Credential management">
+          <div className="tiny muted" style={{ lineHeight: 1.6 }}>
+            Credentials are administrator-only. You are signed in as{" "}
+            <strong>{user?.email}</strong> ({user?.role}).
+          </div>
+        </Card>
+      </div>
+    );
   }
-
-  return (
-    <div className="page" style={{ display: "grid", placeItems: "center" }}>
-      <motion.form initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-        onSubmit={submit} className="card" style={{ width: 400 }}>
-        <div className="card-head">
-          <KeyRound size={14} color="var(--accent)" />
-          <span className="card-title">Admin authentication</span>
-        </div>
-        <div className="card-body">
-          <p className="tiny muted" style={{ marginTop: 0, lineHeight: 1.55 }}>
-            Key management requires the admin token. It is set as{" "}
-            <span className="mono">ADMIN_TOKEN</span> in <span className="mono">.env</span>,
-            or printed once at server startup if unset.
-          </p>
-          <input type="password" value={token} placeholder="X-Admin-Token"
-            onChange={(e) => setToken(e.target.value)} autoFocus />
-          {error && (
-            <div className="tiny" style={{ color: "var(--danger)", marginTop: 8 }}>{error}</div>
-          )}
-          <button className="btn btn-primary" type="submit" disabled={busy || !token}
-            style={{ width: "100%", justifyContent: "center", marginTop: 12 }}>
-            {busy ? <Spinner /> : <ShieldCheck size={13} />} Authenticate
-          </button>
-        </div>
-      </motion.form>
-    </div>
-  );
+  return <KeyManager onLogout={signOut} />;
 }
 
 function KeyManager({ onLogout }) {

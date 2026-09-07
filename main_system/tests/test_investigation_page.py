@@ -57,9 +57,14 @@ def make_status(sources=None, engines=None):
 
 
 @pytest.fixture()
-def client():
+def client(sign_in_helper):
     init_db()
-    return TestClient(app)
+    # Every /api route needs a session since PROMPT-07. https:// because the
+    # session cookie is Secure and an http client silently drops it, which
+    # would make the next request look anonymous.
+    c = TestClient(app, base_url="https://testserver")
+    sign_in_helper(c)
+    return c
 
 
 @pytest.fixture()

@@ -39,7 +39,7 @@ SUPERSEDED_EPOCH = 29
 
 
 @pytest.fixture(scope="module")
-def client():
+def client(sign_in_helper):
     """App built against the real repo data root.
 
     Other suites redirect DATA_ROOT to a tmp dir at import time; pinning it
@@ -55,7 +55,9 @@ def client():
     sys.path.insert(0, str(REPO_ROOT / "main_system"))
     from backend.main import app
 
-    with TestClient(app) as c:
+    with TestClient(app, base_url="https://testserver") as c:
+        # Every /api route needs a session since PROMPT-07.
+        sign_in_helper(c)
         yield c
 
 

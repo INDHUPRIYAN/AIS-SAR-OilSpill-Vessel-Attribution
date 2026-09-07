@@ -13,6 +13,15 @@ const proxy = {
 
 export default defineConfig({
   plugins: [react()],
+  // Vitest arrives here (not with the 3D work) because the session layer is
+  // the first frontend logic worth testing on its own: it decides whether a
+  // user sees the app or the sign-in form.
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./tests-unit/setup.js'],
+    include: ['tests-unit/**/*.test.{js,jsx}'],
+  },
   preview: {
     port: Number(process.env.PREVIEW_PORT) || 5174,
     proxy,

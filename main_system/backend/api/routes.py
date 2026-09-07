@@ -25,11 +25,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from backend.core.authz import require_role
 from backend.core.config import PROVIDER_BY_NAME, PROVIDERS, get_settings
 from backend.core.security import (encryption_available, encrypt, is_encrypted,
                                    last_four, mask, resolve_credential,
@@ -99,10 +100,39 @@ class KeyUpdate(BaseModel):
     value: str = Field(min_length=1)
 
 
-def require_admin(x_admin_token: Optional[str] = Header(default=None)) -> str:
-    if not verify_admin(x_admin_token):
-        raise HTTPException(status_code=401, detail="admin token required")
-    return "admin"
+def require_admin(request: Request,
+                  x_admin_token: Optional[str] = Header(default=None),
+                  db: Session = Depends(get_db)) -> str:
+    """Admin authority, from the session first and the legacy header second.
+
+    The shared `X-Admin-Token` is being retired: it identifies nobody, so an
+    audit row it produces can only ever say "admin", and the frontend had to
+    keep it in `localStorage` where any scripting bug could read it (AD-06).
+    A signed-in admin now satisfies this guard and the audit gets a real name.
+
+    The header still works for one release, and only when
+    `OT_ALLOW_LEGACY_ADMIN_TOKEN=true` says so explicitly -- a deprecation
+    that cannot be turned off is not a deprecation. Returns the actor's email
+    so callers record who acted, not what role acted.
+    """
+    from backend.core.authz import optional_user
+
+    user = optional_user(request, db)
+    if user is not None:
+        if user.role != "admin":
+            raise HTTPException(403, f"role '{user.role}' may not manage credentials")
+        return user.email
+
+    if settings.allow_legacy_admin_token and verify_admin(x_admin_token):
+        return "legacy-admin-token"
+
+    raise HTTPException(status_code=401, detail="admin session required")
+
+
+# Same marker `require_role` sets, so the route-table audit sees this guard
+# too. Without it these routes read as "no role guard declared", which is
+# indistinguishable from having forgotten one.
+require_admin.allowed_roles = frozenset({"admin"})
 
 
 # --------------------------------------------------------------------------
@@ -110,7 +140,8 @@ def require_admin(x_admin_token: Optional[str] = Header(default=None)) -> str:
 # --------------------------------------------------------------------------
 
 
-@router.post("/investigations")
+@router.post("/investigations",
+             dependencies=[Depends(require_role("investigator", "analyst"))])
 def create_investigation(body: InvestigationCreate, db: Session = Depends(get_db)):
     inv = Investigation(
         id=f"inv-{uuid.uuid4().hex[:10]}", name=body.name,
@@ -210,7 +241,8 @@ def _execute_run(run_id: str, investigation_id: Optional[str],
             _running.discard(run_id)
 
 
-@router.post("/investigations/{investigation_id}/run")
+@router.post("/investigations/{investigation_id}/run",
+             dependencies=[Depends(require_role("investigator", "analyst"))])
 def start_run(investigation_id: str, body: RunRequest, db: Session = Depends(get_db)):
     inv = db.get(Investigation, investigation_id)
     if inv is None:
@@ -471,7 +503,8 @@ def verify_run_artefacts(run_id: str):
     return provenance.verify_run(_resolve_run_dir(run_id))
 
 
-@router.post("/runs/{run_id}/decisions", status_code=201)
+@router.post("/runs/{run_id}/decisions", status_code=201,
+             dependencies=[Depends(require_role("investigator", "analyst"))])
 def record_decision(run_id: str, body: DecisionCreate,
                     db: Session = Depends(get_db)):
     """STAGE 9 -- record what a human concluded. Standing Rule 8.
@@ -599,14 +632,16 @@ def api_status(db: Session = Depends(get_db)):
     return {"generated_utc": utcnow(), "providers": out}
 
 
-@router.post("/apis/{provider}/test")
+@router.post("/apis/{provider}/test",
+             dependencies=[Depends(require_role("analyst"))])
 def test_provider(provider: str, db: Session = Depends(get_db)):
     if provider not in PROVIDER_BY_NAME:
         raise HTTPException(404, "unknown provider")
     return health.probe(db, provider)
 
 
-@router.post("/apis/test-all")
+@router.post("/apis/test-all",
+             dependencies=[Depends(require_role("analyst"))])
 def test_all(db: Session = Depends(get_db)):
     return {"results": health.probe_all(db)}
 

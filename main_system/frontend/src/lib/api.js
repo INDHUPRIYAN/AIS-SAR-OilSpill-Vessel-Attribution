@@ -1,26 +1,38 @@
 /* Thin client over the OceanTrace REST API.
  *
- * Everything goes through Vite's dev proxy, so requests are same-origin and
- * the admin token never crosses an origin boundary.
+ * Everything goes through Vite's dev proxy, so requests are same-origin.
+ *
+ * Authentication is an HttpOnly session cookie set by /api/auth/login. This
+ * file deliberately cannot read it: the shared admin token used to live in
+ * localStorage, where any scripting bug on the page could lift it and where
+ * it identified nobody (audit AD-06). `credentials: "include"` is what sends
+ * the cookie; there is no token for JavaScript to hold.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const ADMIN_KEY = "oceantrace.adminToken";
+// Raised when the session is missing or expired, so the shell can show the
+// sign-in screen instead of rendering a page full of failed panels.
+export class Unauthenticated extends Error {
+  constructor(message = "authentication required") {
+    super(message);
+    this.name = "Unauthenticated";
+    this.status = 401;
+  }
+}
 
-export const getAdminToken = () => localStorage.getItem(ADMIN_KEY) || "";
-export const setAdminToken = (t) => localStorage.setItem(ADMIN_KEY, t || "");
-
-async function request(path, { method = "GET", body, admin = false } = {}) {
+async function request(path, { method = "GET", body } = {}) {
   const headers = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
-  if (admin) headers["X-Admin-Token"] = getAdminToken();
 
   const res = await fetch(path, {
     method,
     headers,
+    credentials: "include",
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+
+  if (res.status === 401) throw new Unauthenticated();
 
   if (!res.ok) {
     let detail = `HTTP ${res.status}`;
@@ -39,6 +51,12 @@ async function request(path, { method = "GET", body, admin = false } = {}) {
 
 export const api = {
   health: () => request("/health"),
+
+  // The session is the cookie; these just drive it.
+  login: (email, password) =>
+    request("/api/auth/login", { method: "POST", body: { email, password } }),
+  logout: () => request("/api/auth/logout", { method: "POST" }),
+  me: () => request("/api/auth/me"),
 
   localScenes: () => request("/api/scenes/local"),
 
@@ -68,10 +86,10 @@ export const api = {
   testAll: () => request("/api/apis/test-all", { method: "POST" }),
   providerCalls: (p) => request(`/api/apis/${p}/calls`),
 
-  listKeys: () => request("/api/keys", { admin: true }),
-  setKey: (body) => request("/api/keys", { method: "PUT", body, admin: true }),
-  testKey: (p) => request(`/api/keys/${p}/test`, { method: "POST", admin: true }),
-  keyAudit: () => request("/api/keys/audit", { admin: true }),
+  listKeys: () => request("/api/keys"),
+  setKey: (body) => request("/api/keys", { method: "PUT", body }),
+  testKey: (p) => request(`/api/keys/${p}/test`, { method: "POST" }),
+  keyAudit: () => request("/api/keys/audit"),
 };
 
 /* ------------------------------------------------------------------ hooks */

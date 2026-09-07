@@ -24,7 +24,7 @@ sys.path.insert(0, str(REPO_ROOT / "main_system"))
 
 
 @pytest.fixture(scope="module")
-def client():
+def client(sign_in_helper):
     os.environ["DATA_ROOT"] = str(REPO_ROOT / "data")
     for name in [m for m in list(sys.modules) if m.startswith("backend")]:
         del sys.modules[name]
@@ -33,7 +33,8 @@ def client():
 
     from backend.main import app
 
-    with TestClient(app) as c:
+    with TestClient(app, base_url="https://testserver") as c:
+        sign_in_helper(c)
         yield c
 
 

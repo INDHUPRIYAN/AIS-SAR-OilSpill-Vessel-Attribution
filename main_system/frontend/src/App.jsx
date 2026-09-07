@@ -15,14 +15,16 @@ import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import About from "./pages/About";
 import Report from "./pages/Report";
+import SignIn from "./pages/SignIn";
 import { Dot } from "./components/ui";
 import { api, useApi } from "./lib/api";
+import { SessionProvider, useSession } from "./lib/session";
 import "./incident.css";
 import "./workspace.css";
 
 const THEME_KEY = "oceantrace.theme";
 
-export default function App() {
+function App() {
   // A quiet health pulse in the top bar. A judge should be able to see the
   // system is alive without navigating anywhere.
   const { data: status } = useApi(() => api.apiStatus(), [], { interval: 20000 });
@@ -89,5 +91,25 @@ export default function App() {
         </Routes>
       </main>
     </div>
+  );
+}
+
+/* The whole app sits behind a session. Rendering the shell for a signed-out
+ * user would show a frame full of failed panels, since every /api route now
+ * requires authentication -- the sign-in form is the honest state. */
+function Gate({ children }) {
+  const { user, checking } = useSession();
+  if (checking) return null;          // brief: avoids flashing the form on reload
+  if (!user) return <SignIn />;
+  return children;
+}
+
+export default function AppWithSession() {
+  return (
+    <SessionProvider>
+      <Gate>
+        <App />
+      </Gate>
+    </SessionProvider>
   );
 }

@@ -1,0 +1,64 @@
+...............                                                          [100%]
+============================== warnings summary ===============================
+main_system/tests/test_rbac_matrix.py::test_the_walker_sees_the_whole_api
+  C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+
+ROUTE x ROLE MATRIX  (generated from the live route table)
+======================================================================================
+METHOD  PATH                                                ACCESS
+--------------------------------------------------------------------------------------
+GET     /                                                   PUBLIC
+GET     /api/aois                                           any authenticated
+POST    /api/aois/poll                                      admin,analyst,investigator
+GET     /api/aois/{aoi_id}                                  any authenticated
+POST    /api/aois/{aoi_id}/poll                             admin,analyst,investigator
+GET     /api/apis/status                                    any authenticated
+POST    /api/apis/test-all                                  admin,analyst
+GET     /api/apis/{provider}/calls                          any authenticated
+POST    /api/apis/{provider}/test                           admin,analyst
+GET     /api/attribution/weights                            any authenticated
+POST    /api/auth/login                                     PUBLIC
+POST    /api/auth/logout                                    PUBLIC
+GET     /api/auth/me                                        any authenticated
+GET     /api/auth/roles                                     any authenticated
+GET     /api/decisions                                      any authenticated
+GET     /api/investigations                                 any authenticated
+POST    /api/investigations                                 admin,analyst,investigator
+GET     /api/investigations/{investigation_id}              any authenticated
+GET     /api/investigations/{investigation_id}/layers/{layer}any authenticated
+POST    /api/investigations/{investigation_id}/replay       admin,analyst,investigator
+POST    /api/investigations/{investigation_id}/run          admin,analyst,investigator
+GET     /api/investigations/{investigation_id}/status       any authenticated
+GET     /api/investigations/{investigation_id}/suspects     any authenticated
+GET     /api/keys                                           admin
+PUT     /api/keys                                           admin
+GET     /api/keys/audit                                     admin
+POST    /api/keys/{provider}/test                           admin
+GET     /api/layers/{run_id}/{layer}                        any authenticated
+GET     /api/metrics                                        any authenticated
+GET     /api/replay/runs                                    any authenticated
+GET     /api/runs                                           any authenticated
+GET     /api/runs/{run_id}                                  any authenticated
+GET     /api/runs/{run_id}/decisions                        any authenticated
+POST    /api/runs/{run_id}/decisions                        admin,analyst,investigator
+GET     /api/runs/{run_id}/export                           any authenticated
+GET     /api/runs/{run_id}/forcing_field                    any authenticated
+GET     /api/runs/{run_id}/mask_png                         any authenticated
+GET     /api/runs/{run_id}/scene_png                        any authenticated
+GET     /api/runs/{run_id}/verify                           any authenticated
+GET     /api/runs/{run_id}/vessels_geojson                  any authenticated
+GET     /api/scenes/local                                   any authenticated
+GET     /api/scenes/local/{scene_id}                        any authenticated
+GET     /docs                                               PUBLIC
+GET     /docs/oauth2-redirect                               PUBLIC
+GET     /health                                             PUBLIC
+GET     /healthz                                            PUBLIC
+GET     /openapi.json                                       PUBLIC
+GET     /readyz                                             PUBLIC
+GET     /redoc                                              PUBLIC
+--------------------------------------------------------------------------------------
+49 routes  ·  10 public  ·  12 role-restricted

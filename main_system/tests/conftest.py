@@ -1,0 +1,72 @@
+"""Shared helpers for the main-system API tests.
+
+Since PROMPT-07 every `/api/*` route requires a session, so a test that wants
+to exercise a handler has to sign in first. `authenticated_client` does that:
+it seeds one admin account in whatever database the caller's fixture set up,
+then logs in and returns the client with the session cookie held.
+
+Deliberately no test-only bypass. An escape hatch that skips the guard would
+mean the suite exercises a configuration nobody deploys, which is exactly the
+class of bug PROMPT-03 was about -- tests passing against an environment the
+real system never runs in.
+
+Note the https base URL: the session cookie is `Secure`, and a client on
+http:// silently discards it, so the request that follows looks anonymous.
+"""
+from __future__ import annotations
+
+import pytest
+
+TEST_ADMIN_EMAIL = "test-admin@example.invalid"
+TEST_ADMIN_PASSWORD = "suite-fixture-password"
+
+
+def seed_admin(email: str = TEST_ADMIN_EMAIL,
+               password: str = TEST_ADMIN_PASSWORD,
+               role: str = "admin") -> None:
+    """Ensure one account exists in the currently-configured database."""
+    from backend.core import security
+    from backend.models.db import SessionLocal, User, init_db
+
+    init_db()
+    with SessionLocal() as db:
+        if db.query(User).filter(User.email == email).one_or_none() is None:
+            db.add(User(email=email, password_hash=security.hash_password(password),
+                        display_name="Suite Admin", role=role, active=True))
+            db.commit()
+
+
+def sign_in(client, email: str = TEST_ADMIN_EMAIL,
+            password: str = TEST_ADMIN_PASSWORD) -> None:
+    """Log `client` in, seeding the account if it is not there yet."""
+    seed_admin(email, password)
+    r = client.post("/api/auth/login", json={"email": email, "password": password})
+    assert r.status_code == 200, f"fixture login failed: {r.status_code} {r.text[:200]}"
+
+
+def authenticated_client(app, role: str = "admin", base_url: str = "https://testserver"):
+    """A TestClient with a live session. Use as a context manager."""
+    from fastapi.testclient import TestClient
+
+    email = f"test-{role}@example.invalid"
+    client = TestClient(app, base_url=base_url)
+    seed_admin(email, TEST_ADMIN_PASSWORD, role=role)
+    r = client.post("/api/auth/login",
+                    json={"email": email, "password": TEST_ADMIN_PASSWORD})
+    assert r.status_code == 200, f"fixture login failed: {r.status_code} {r.text[:200]}"
+    return client
+
+
+# Exposed as fixtures rather than imported by name: `pytest.ini` uses importlib
+# mode and several module roots ship their own `conftest.py`, so a bare
+# `from conftest import sign_in` resolves to whichever one loaded first.
+# Fixtures are looked up per-directory, so they cannot collide.
+
+@pytest.fixture(scope="session")
+def sign_in_helper():
+    return sign_in
+
+
+@pytest.fixture(scope="session")
+def seed_admin_helper():
+    return seed_admin

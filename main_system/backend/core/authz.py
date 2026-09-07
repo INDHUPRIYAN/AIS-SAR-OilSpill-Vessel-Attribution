@@ -135,6 +135,35 @@ def current_user(user: Optional[User] = Depends(optional_user)) -> User:
     return user
 
 
+def authenticated(request: Request,
+                  user: Optional[User] = Depends(optional_user)) -> Optional[User]:
+    """Router-level gate: a session, or the deprecated admin token.
+
+    This is what `main.py` applies to whole routers. It exists rather than
+    using `current_user` directly because the shared `X-Admin-Token` is being
+    retired over one release: a blanket session requirement would cut it off
+    immediately, which is a breaking change dressed up as a deprecation.
+
+    The token is only honoured when `OT_ALLOW_LEGACY_ADMIN_TOKEN=true`, it is
+    off by default, and it still cannot reach anything past the admin routes'
+    own `require_admin` check. Returns None for a token-authenticated caller
+    because there is no user to return -- which is precisely the reason the
+    token is going away: an audit row it produces can name nobody.
+    """
+    if user is not None:
+        return user
+
+    if settings.allow_legacy_admin_token:
+        from backend.core.security import verify_admin
+
+        if verify_admin(request.headers.get("x-admin-token")):
+            return None
+
+    raise HTTPException(
+        status_code=401, detail="authentication required",
+        headers={"WWW-Authenticate": "Cookie"})
+
+
 def require_role(*roles: str):
     """Dependency asserting the caller holds one of `roles`.
 
@@ -157,4 +186,31 @@ def require_role(*roles: str):
                 detail=f"role '{user.role}' may not perform this action")
         return user
 
+    # Declared on the guard so the route table can be audited without calling
+    # the handlers behind it. Some of those handlers start pipeline runs; a
+    # test that probed them live would be starting real work to find out who
+    # was allowed to start real work.
+    _guard.allowed_roles = frozenset(allowed)
     return _guard
+
+
+def declared_roles(route) -> Optional[frozenset]:
+    """Roles a mounted route permits, read from its dependency tree.
+
+    None means the route carries no role guard, i.e. any authenticated user
+    may call it. Walks the whole tree because guards can be attached at the
+    router or the route.
+    """
+    dependant = getattr(route, "dependant", None)
+    if dependant is None:
+        return None
+
+    found = None
+    stack = [dependant]
+    while stack:
+        node = stack.pop()
+        roles = getattr(getattr(node, "call", None), "allowed_roles", None)
+        if roles is not None:
+            found = roles if found is None else (found & roles)
+        stack.extend(getattr(node, "dependencies", []))
+    return found

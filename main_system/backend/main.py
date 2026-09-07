@@ -19,7 +19,8 @@ for p in (REPO_ROOT, REPO_ROOT / "main_system"):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
-from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi import Depends, FastAPI, HTTPException  # noqa: E402
+from backend.core.authz import authenticated  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from sqlalchemy import text as sa_text  # noqa: E402
 
@@ -113,22 +114,39 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# The UI is served from a different origin during development.
+# The UI is served from a different origin during development. Origins are
+# configurable (CORS_ORIGINS) because the session cookie rides on these
+# requests: a deployment on a real hostname must be able to allow itself
+# without a code change, and a wildcard is rejected outright since it is
+# invalid alongside allow_credentials.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8501", "http://127.0.0.1:8501",
-                   "http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(router, prefix="/api")
-app.include_router(analytics_router, prefix="/api")
-app.include_router(replay_router, prefix="/api")
-app.include_router(invpage_router, prefix="/api")
-app.include_router(scheduler_router, prefix="/api")
-app.include_router(scenes_router, prefix="/api")
+# Authentication is applied HERE, once, to whole routers -- not decorated onto
+# individual routes. The audit found per-route guards get missed, and a route
+# that forgets its dependency looks exactly like one that never needed it. A
+# router-level dependency cannot be forgotten by a route that does not exist
+# yet, so new endpoints are guarded by default and have to opt out on purpose.
+#
+# Authorisation (which role may do what) is necessarily finer-grained and sits
+# on the routes that need elevation. `test_route_role_matrix` enumerates every
+# mounted route and asserts the result, so an omission fails the suite rather
+# than shipping.
+_authenticated = [Depends(authenticated)]
+
+app.include_router(router, prefix="/api", dependencies=_authenticated)
+app.include_router(analytics_router, prefix="/api", dependencies=_authenticated)
+app.include_router(replay_router, prefix="/api", dependencies=_authenticated)
+app.include_router(invpage_router, prefix="/api", dependencies=_authenticated)
+app.include_router(scheduler_router, prefix="/api", dependencies=_authenticated)
+app.include_router(scenes_router, prefix="/api", dependencies=_authenticated)
+# Public by necessity: /auth/login is how a session is obtained. The routes in
+# here that need a session (/auth/me, /auth/roles) declare it themselves.
 app.include_router(auth_router, prefix="/api")
 
 
@@ -160,7 +178,8 @@ def root():
             "runs": "/api/runs",
             "layers": "/api/layers/{run_id}/{layer}",
             "monitoring": "/api/apis/status",
-            "keys": "/api/keys  (X-Admin-Token required)",
+            "auth": "/api/auth/login",
+            "keys": "/api/keys  (admin session required)",
         },
     }
 

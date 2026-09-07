@@ -17,7 +17,7 @@ import pytest
 
 
 @pytest.fixture(scope="module")
-def client(tmp_path_factory):
+def client(tmp_path_factory, sign_in_helper):
     # Settings are built at module import, so DATA_ROOT has to be redirected
     # and any already-imported `backend` module dropped, before the app is
     # constructed -- otherwise the test writes into the real data/ directory.
@@ -29,16 +29,22 @@ def client(tmp_path_factory):
 
     from fastapi.testclient import TestClient
 
+    from backend.api.auth import router as auth_router
     from backend.api.routes import router
+    from backend.core.authz import authenticated
     from backend.models.db import init_db
     from backend.services.pipeline import provenance
 
     init_db()
 
-    from fastapi import FastAPI
+    from fastapi import Depends, FastAPI
 
     app = FastAPI()
-    app.include_router(router, prefix="/api")
+    # Mounted exactly as main.py does it: the blanket auth dependency plus
+    # the public auth router. A slimmer ad-hoc app would let these tests
+    # pass against a configuration that is never deployed.
+    app.include_router(router, prefix="/api", dependencies=[Depends(authenticated)])
+    app.include_router(auth_router, prefix="/api")
 
     # A completed run on disk, sealed with artefact hashes, plus its DB row.
     run_dir = root / "runs" / "inv-t1"
@@ -62,7 +68,11 @@ def client(tmp_path_factory):
         db.add(Run(id="inv-t1", investigation_id="inv-t", status="complete"))
         db.commit()
 
-    yield TestClient(app), run_dir, manifest
+    # Every /api route needs a session since PROMPT-07. https:// because the
+    # session cookie is Secure and an http client would silently drop it.
+    client = TestClient(app, base_url="https://testserver")
+    sign_in_helper(client)
+    yield client, run_dir, manifest
 
 
 # --------------------------------------------------------------------------

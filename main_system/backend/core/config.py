@@ -57,6 +57,11 @@ class Settings:
         # fresh checkout is never silently protected by a well-known password.
         self.admin_token = os.getenv("ADMIN_TOKEN") or self._ephemeral_token()
         self.admin_token_is_ephemeral = not os.getenv("ADMIN_TOKEN")
+        # The shared admin header is superseded by real sessions. It keeps
+        # working for one release, but only when a deployment opts in --
+        # a deprecation nobody can switch off is not a deprecation.
+        self.allow_legacy_admin_token = (
+            os.getenv("OT_ALLOW_LEGACY_ADMIN_TOKEN", "false").lower() == "true")
 
         # Symmetric key for encrypting stored credentials at rest.
         self.secret_key = os.getenv("SECRET_KEY", "")
@@ -82,6 +87,17 @@ class Settings:
         # credentials set gets NO account rather than a well-known one.
         self.admin_email = os.getenv("OT_ADMIN_EMAIL", "")
         self.admin_password = os.getenv("OT_ADMIN_PASSWORD", "")
+
+        # Browser origins allowed to call the API with credentials. The dev
+        # ports are the default; a deployment sets CORS_ORIGINS. Never "*":
+        # a wildcard is invalid with allow_credentials and would silently
+        # disable the cookie the whole session model depends on.
+        self.cors_origins = [
+            o.strip() for o in os.getenv(
+                "CORS_ORIGINS",
+                "http://localhost:5173,http://127.0.0.1:5173,"
+                "http://localhost:8501,http://127.0.0.1:8501").split(",")
+            if o.strip() and o.strip() != "*"]
 
         self.health_interval_seconds = int(os.getenv("HEALTH_INTERVAL", "60"))
         self.health_enabled = os.getenv("HEALTH_ENABLED", "true").lower() == "true"

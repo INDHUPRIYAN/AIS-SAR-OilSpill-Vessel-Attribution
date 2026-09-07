@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Optional
 
+from backend.core.authz import require_role
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -123,7 +124,8 @@ def get_aoi_detail(aoi_id: str, db: Session = Depends(get_db)):
     return _merge(aoi, db.get(AoiWatch, aoi_id))
 
 
-@router.post("/aois/poll")
+@router.post("/aois/poll",
+             dependencies=[Depends(require_role("investigator", "analyst"))])
 def poll_now(dry_run: bool = Query(
         False, description="search and report, but open no investigations")):
     """Force one sweep over every enabled AOI, ignoring poll_minutes.
@@ -135,7 +137,8 @@ def poll_now(dry_run: bool = Query(
     return build_watcher().tick(dry_run=dry_run).to_dict()
 
 
-@router.post("/aois/{aoi_id}/poll")
+@router.post("/aois/{aoi_id}/poll",
+             dependencies=[Depends(require_role("investigator", "analyst"))])
 def poll_one(aoi_id: str):
     """Force a sweep of a single AOI, ignoring its poll_minutes and enabled flag.
 

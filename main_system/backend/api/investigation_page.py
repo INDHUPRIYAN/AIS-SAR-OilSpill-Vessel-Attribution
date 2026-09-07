@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 from typing import Optional
 
+from backend.core.authz import require_role
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -159,7 +160,8 @@ def investigation_suspects(investigation_id: str, db: Session = Depends(get_db))
     return investigation_layer(investigation_id, "suspects", db)
 
 
-@router.post("/investigations/{investigation_id}/replay")
+@router.post("/investigations/{investigation_id}/replay",
+             dependencies=[Depends(require_role("investigator", "analyst"))])
 def replay_run(investigation_id: str, db: Session = Depends(get_db)):
     """Replay mode: point the UI at the newest COMPLETE run's files on disk.
 
