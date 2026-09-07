@@ -55,6 +55,16 @@ def _run_dir(run_id: str) -> Path:
     return d
 
 
+def _stored_bbox(inv):
+    """The bbox recorded on the investigation itself, if any."""
+    if not inv.bbox:
+        return None
+    try:
+        return json.loads(inv.bbox)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
 @router.get("/investigations/{investigation_id}")
 def get_investigation(investigation_id: str, db: Session = Depends(get_db)):
     inv = db.get(Investigation, investigation_id)
@@ -75,7 +85,13 @@ def get_investigation(investigation_id: str, db: Session = Depends(get_db)):
         "latest_run_id": run.id if run else None,
         "run_status": run.status if run else None,
         "acquired_utc": meta.get("acquired_utc"),
-        "bbox": meta.get("bbox"),
+        # The scene's own footprint once a run exists; until then, the AOI the
+        # investigation was created for. An investigation opened from a drawn
+        # area has a footprint from the start, and returning null for it made
+        # the map unable to show where the case actually is.
+        "bbox": meta.get("bbox") or _stored_bbox(inv),
+        "bbox_source": ("scene" if meta.get("bbox")
+                        else "aoi" if _stored_bbox(inv) else None),
         "scene_source": meta.get("source"),
         "provider_used": meta.get("provider_used"),
     }

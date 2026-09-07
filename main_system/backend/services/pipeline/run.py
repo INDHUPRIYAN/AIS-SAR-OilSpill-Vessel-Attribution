@@ -30,6 +30,7 @@ import json
 import re
 import shutil
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -995,6 +996,46 @@ def resolve_vessels(out_dir: Path) -> Optional[Path]:
 ERROR_CLASS_RE = re.compile(r"\b([A-Z][A-Z_]{3,})\b")
 
 
+class RunCancelled(Exception):
+    """A cancel was requested and honoured between stages.
+
+    Not an error: the run did what it was asked. It is a distinct exception so
+    the caller can tell "the operator stopped this" from "the pipeline broke",
+    which are different rows in the runs table and different things to show.
+    """
+
+
+# run_id -> a callable returning True when this run should stop. A registry
+# rather than a parameter threaded through eight `flush_status` call sites:
+# the check has to happen at every stage boundary, and an argument that must be
+# passed in eight places is an argument that will eventually be forgotten in one.
+_cancel_checks: Dict[str, Any] = {}
+_cancel_lock = threading.Lock()
+
+
+def set_cancel_check(run_id: str, fn) -> None:
+    with _cancel_lock:
+        _cancel_checks[run_id] = fn
+
+
+def clear_cancel_check(run_id: str) -> None:
+    with _cancel_lock:
+        _cancel_checks.pop(run_id, None)
+
+
+def _cancel_requested(run_id: str) -> bool:
+    with _cancel_lock:
+        fn = _cancel_checks.get(run_id)
+    if fn is None:
+        return False
+    try:
+        return bool(fn())
+    except Exception:                                  # noqa: BLE001
+        # A broken cancel check must not stop a healthy run. Failing open here
+        # is the safe direction: the worst case is a run that finishes.
+        return False
+
+
 def flush_status(out_dir: Path, run_id: str, scene_id: str, stages,
                  running: str = None) -> None:
     """Write status.json after every stage so the UI can render each layer the
@@ -1032,6 +1073,13 @@ def flush_status(out_dir: Path, run_id: str, scene_id: str, stages,
     tmp = out_dir / "status.json.tmp"
     tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     tmp.replace(out_dir / "status.json")
+
+    # Checked AFTER the write, so a cancelled run still publishes the stage it
+    # completed. Between stages only: killing a worker mid-write would leave a
+    # half-finished GeoTIFF that a later run could mistake for a real artefact.
+    if _cancel_requested(run_id):
+        raise RunCancelled(f"run {run_id} cancelled after "
+                           f"{sum(1 for s in stages if s.status)} stage(s)")
 
 
 def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,

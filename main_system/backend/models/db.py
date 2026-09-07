@@ -196,6 +196,84 @@ class AoiWatch(Base):
     investigations_opened = Column(Integer, default=0)
 
 
+class Aoi(Base):
+    """The definition of one watched area (design v2 SS21).
+
+    Definitions used to live only in ``config/aois.yaml``. That is fine for a
+    fixed deployment and wrong for an operator who wants to draw a box on a map:
+    a UI cannot edit a file the server reads at import time, and two operators
+    editing the same YAML have no way to merge. The table is now the source of
+    truth and the YAML is migrated in once, so existing deployments keep their
+    AOIs and nothing has to be re-registered by hand.
+
+    ``AoiWatch`` still holds the mutable poll state, keyed by the same id. The
+    split is deliberate: deleting an AOI definition must not silently reset a
+    watch high-water mark that another AOI could later inherit by reusing the id.
+    """
+
+    __tablename__ = "aois"
+
+    id = Column(String(64), primary_key=True)
+    name = Column(String(200), nullable=False)
+    # [lon_min, lat_min, lon_max, lat_max] as JSON text. LONGITUDE FIRST, per
+    # the frozen convention in aois.yaml.
+    bbox_json = Column(Text, nullable=False)
+    # Optional GeoJSON Polygon. The bbox is what the scene search uses; the
+    # polygon is what the operator actually drew, kept so the map can show the
+    # shape rather than its bounding box. Absent for YAML-migrated rows, which
+    # only ever had a bbox -- absent, not a fabricated rectangle.
+    geometry_json = Column(Text)
+    ais_region = Column(String(64))
+    poll_minutes = Column(Integer, default=60, nullable=False)
+    lookback_hours = Column(Integer, default=24, nullable=False)
+    auto_run = Column(Boolean, default=True, nullable=False)
+    enabled = Column(Boolean, default=True, nullable=False)
+    notes = Column(Text, default="")
+    source = Column(String(16), default="api")      # api | yaml
+    created_utc = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_utc = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+
+class Job(Base):
+    """One cancellable execution of the pipeline.
+
+    A run used to be started by handing a daemon thread to `threading.Thread`
+    and forgetting about it: nothing could report progress, and nothing could
+    stop it. An operator who launched a run against the wrong scene had to wait
+    out a full pipeline -- minutes on a real Sentinel-1 frame -- or restart the
+    server, which is how you lose the other runs in flight.
+
+    Cancellation is COOPERATIVE and checked between stages, never by killing a
+    thread mid-write. A half-written GeoTIFF that survives into a sealed run is
+    a far worse outcome than a run that takes ten more seconds to stop.
+    """
+
+    __tablename__ = "jobs"
+
+    id = Column(String(64), primary_key=True)
+    run_id = Column(String(64), ForeignKey("runs.id"), index=True, nullable=False)
+    investigation_id = Column(String(64), ForeignKey("investigations.id"),
+                              nullable=True, index=True)
+    # pending | running | cancelling | cancelled | complete | failed
+    status = Column(String(16), default="pending", nullable=False, index=True)
+    # Name of the stage currently executing, straight from status.json. Not a
+    # percentage: the stages have wildly different durations and a made-up
+    # percentage would be a worse answer than the truth.
+    current_stage = Column(String(32))
+    stages_done = Column(Integer, default=0)
+    stages_total = Column(Integer, default=5)
+    created_utc = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    started_utc = Column(DateTime(timezone=True))
+    finished_utc = Column(DateTime(timezone=True))
+    cancel_requested_utc = Column(DateTime(timezone=True))
+    cancelled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    error = Column(Text)
+    # What this job was launched with, so `/runs/{id}/rerun` can reproduce it
+    # exactly rather than guessing from the manifest.
+    inputs_json = Column(Text)
+
+
 class ApiProvider(Base):
     """Current health of one external dependency."""
 

@@ -19,6 +19,7 @@ from __future__ import annotations
 import io
 import json
 import re
+import secrets
 import threading
 import uuid
 import zipfile
@@ -28,7 +29,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from backend.core.authz import require_role
@@ -37,9 +38,10 @@ from backend.core.security import (encryption_available, encrypt, is_encrypted,
                                    last_four, mask, resolve_credential,
                                    verify_admin)
 from backend.models.db import (VERDICTS, ApiCall, ApiKey, ApiProvider,
-                               AuditLog, Decision, Investigation, Run, get_db,
-                               utcnow)
+                               AuditLog, Decision, Investigation, Job, Run,
+                               get_db, utcnow)
 from backend.services import audit as audit_service
+from backend.services import jobs as jobs_service
 from backend.services.pipeline import provenance
 from backend.services.providers import health
 
@@ -79,11 +81,43 @@ LAYER_FILES = {
 
 
 class InvestigationCreate(BaseModel):
+    """What the New Investigation wizard sends.
+
+    The scene can be named three ways and they are checked in this order:
+    an explicit `scene_meta_path`, a `scene_product_id` the server resolves
+    against the local catalogue, or an `aoi_id` + window for a search-first
+    flow. Only the first two produce a runnable investigation today -- a
+    product that has never been downloaded has no raster, and the response says
+    so rather than creating something that fails at run time.
+    """
+
     name: str = Field(min_length=1, max_length=200)
     scene_path: Optional[str] = None
     scene_meta_path: Optional[str] = None
     notes: Optional[str] = None
     incident_id: Optional[str] = None
+
+    # PROMPT 13 additions
+    aoi_id: Optional[str] = Field(
+        default=None, description="a registered AOI this investigation covers")
+    aoi: Optional[dict] = Field(
+        default=None, description="an ad-hoc GeoJSON Polygon, validated the "
+                                  "same way a registered AOI is")
+    window_start_utc: Optional[datetime] = None
+    window_end_utc: Optional[datetime] = None
+    scene_product_id: Optional[str] = Field(
+        default=None, description="a product id from /api/scenes/search; "
+                                  "resolved to a cached scene on the server")
+
+    @field_validator("window_end_utc")
+    @classmethod
+    def _window_ordered(cls, end, info):
+        start = info.data.get("window_start_utc")
+        if start is not None and end is not None and end <= start:
+            raise ValueError(
+                "window_end_utc must be after window_start_utc; an empty or "
+                "reversed window would search nothing and report it as no data")
+        return end
 
 
 class RunRequest(BaseModel):
@@ -152,6 +186,43 @@ require_admin.allowed_roles = frozenset({"admin"})
 # --------------------------------------------------------------------------
 
 
+def _resolve_product(product_id: str) -> Optional[str]:
+    """Find a downloaded scene's scene_meta.json by product id.
+
+    Looks in the curated catalogue first, then at scene directories on disk.
+    Returns None when the product is not held locally -- the caller turns that
+    into a 404 that says a catalogue hit is not a downloaded file.
+    """
+    catalogue = REPO_ROOT / "main_system" / "config" / "scene_catalog.json"
+    if catalogue.exists():
+        try:
+            entries = json.loads(catalogue.read_text(encoding="utf-8"))
+            for entry in (entries if isinstance(entries, list)
+                          else entries.get("scenes", [])):
+                meta_rel = entry.get("scene_meta_path")
+                if not meta_rel:
+                    continue
+                meta_file = REPO_ROOT / meta_rel
+                if not meta_file.exists():
+                    continue
+                meta = json.loads(meta_file.read_text(encoding="utf-8"))
+                if product_id in (entry.get("id"), meta.get("scene_id")):
+                    return str(meta_file)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    scenes_root = REPO_ROOT / "data" / "scenes"
+    if scenes_root.is_dir():
+        for meta_file in sorted(scenes_root.glob("*/scene_meta.json")):
+            try:
+                meta = json.loads(meta_file.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                continue
+            if meta.get("scene_id") == product_id:
+                return str(meta_file)
+    return None
+
+
 @router.post("/investigations",
              dependencies=[Depends(require_role("investigator", "analyst"))])
 def create_investigation(request: Request, body: InvestigationCreate,
@@ -161,16 +232,50 @@ def create_investigation(request: Request, body: InvestigationCreate,
 
         if db.get(Incident, body.incident_id) is None:
             raise HTTPException(400, f"no incident {body.incident_id}")
+    # An AOI, if named, must exist and must be watchable. Accepting an unknown
+    # id would produce an investigation whose footprint is a dangling reference.
+    aoi_bbox = None
+    if body.aoi_id:
+        from backend.services.scheduler import registry as aoi_registry
+
+        aoi_row = aoi_registry.get_row(db, body.aoi_id)
+        if aoi_row is None:
+            raise HTTPException(400, f"no AOI '{body.aoi_id}' in the registry")
+        aoi_bbox = json.loads(aoi_row.bbox_json)
+    elif body.aoi is not None:
+        from backend.services.scheduler.geometry import (AoiGeometryError,
+                                                         validate_aoi_geometry)
+        try:
+            aoi_bbox = validate_aoi_geometry(body.aoi)["bbox"]
+        except AoiGeometryError as exc:
+            raise HTTPException(422, str(exc))
+
+    scene_meta_path = body.scene_meta_path
+    if not scene_meta_path and body.scene_product_id:
+        # Resolve a catalogue product to a scene the server actually holds. A
+        # product id is a claim that a scene exists somewhere, not that it has
+        # been downloaded -- conflating the two is how a UI offers "run this"
+        # for bytes nobody has.
+        scene_meta_path = _resolve_product(body.scene_product_id)
+        if scene_meta_path is None:
+            raise HTTPException(
+                404,
+                f"product '{body.scene_product_id}' is not in the local scene "
+                "cache. A catalogue hit is not a downloaded scene: fetch it "
+                "first, then create the investigation.")
+
     inv = Investigation(
         id=f"inv-{uuid.uuid4().hex[:10]}", name=body.name,
         scene_path=body.scene_path, notes=body.notes,
         incident_id=body.incident_id)
-    if body.scene_meta_path:
-        meta_path = Path(body.scene_meta_path)
+    if aoi_bbox is not None:
+        inv.bbox = json.dumps(aoi_bbox)
+    if scene_meta_path:
+        meta_path = Path(scene_meta_path)
         if not meta_path.is_absolute():
             meta_path = REPO_ROOT / meta_path
         if not meta_path.exists():
-            raise HTTPException(400, f"scene_meta not found: {body.scene_meta_path}")
+            raise HTTPException(400, f"scene_meta not found: {scene_meta_path}")
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         inv.scene_id = meta.get("scene_id")
         inv.bbox = json.dumps(meta.get("bbox"))
@@ -222,6 +327,15 @@ def _execute_run(run_id: str, investigation_id: Optional[str],
         row.status = "running"
         db.commit()
 
+    from backend.services import jobs as jobs_service
+    from backend.services.pipeline.run import (RunCancelled, clear_cancel_check,
+                                               set_cancel_check)
+
+    job_id = f"job-{run_id}"
+    set_cancel_check(run_id, lambda: jobs_service.is_cancelling(job_id))
+    with SessionLocal() as db:
+        jobs_service.start(db, job_id)
+
     try:
         meta_path = Path(scene_meta) if scene_meta else MOCKS / "scene_meta.json"
         if scene:
@@ -264,6 +378,20 @@ def _execute_run(run_id: str, investigation_id: Optional[str],
                 vessel_index.index_run(db, run_id, settings.runs_root / run_id)
             except Exception as exc:               # noqa: BLE001
                 print(f"[vessel_index] {run_id}: {type(exc).__name__}: {exc}")
+            jobs_service.sync_progress(db, db.get(Job, job_id))                 if db.get(Job, job_id) else None
+            jobs_service.finish(db, job_id, "complete")
+    except RunCancelled as exc:
+        # The operator asked for this. Not a failure, and deliberately not
+        # sealed: `run_pipeline` writes the manifest last, so stopping between
+        # stages leaves the run unsealed by construction.
+        jobs_service.mark_cancelled(run_id)
+        with SessionLocal() as db:
+            row = db.get(Run, run_id)
+            row.status = "cancelled"
+            row.finished_utc = utcnow()
+            row.error = str(exc)[:1000]
+            db.commit()
+            jobs_service.finish(db, job_id, "cancelled")
     except Exception as exc:
         with SessionLocal() as db:
             row = db.get(Run, run_id)
@@ -271,7 +399,10 @@ def _execute_run(run_id: str, investigation_id: Optional[str],
             row.finished_utc = utcnow()
             row.error = f"{type(exc).__name__}: {exc}"[:1000]
             db.commit()
+            jobs_service.finish(db, job_id, "failed",
+                                f"{type(exc).__name__}: {exc}")
     finally:
+        clear_cancel_check(run_id)
         with _run_lock:
             _running.discard(run_id)
 
@@ -289,6 +420,12 @@ def start_run(request: Request, investigation_id: str, body: RunRequest,
     # different case must not rewrite what a sealed run was evidence for.
     db.add(Run(id=run_id, investigation_id=investigation_id, status="pending",
                scene_id=inv.scene_id, incident_id=inv.incident_id))
+    scene_path = body.scene_path or inv.scene_path
+    scene_meta_path = body.scene_meta_path or inv.scene_meta_path
+    jobs_service.create(db, run_id, investigation_id,
+                        {"scene_path": scene_path,
+                         "scene_meta_path": scene_meta_path,
+                         "engine": body.engine})
     audit_service.record(db, "run.start", request=request, resource=run_id,
                          detail=json.dumps({"investigation": investigation_id,
                                             "engine": body.engine}),
@@ -299,11 +436,98 @@ def start_run(request: Request, investigation_id: str, body: RunRequest,
         _running.add(run_id)
     threading.Thread(
         target=_execute_run,
-        args=(run_id, investigation_id, body.scene_path or inv.scene_path,
-              body.scene_meta_path or inv.scene_meta_path, body.engine),
+        args=(run_id, investigation_id, scene_path, scene_meta_path, body.engine),
         daemon=True).start()
 
-    return {"run_id": run_id, "status": "pending"}
+    return {"run_id": run_id, "job_id": f"job-{run_id}", "status": "pending"}
+
+
+# --------------------------------------------------------------------------
+# jobs: progress and cancellation
+# --------------------------------------------------------------------------
+
+
+@router.get("/jobs/{job_id}")
+def get_job(job_id: str, db: Session = Depends(get_db)):
+    job = db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(404, "job not found")
+    if job.status in ("running", "cancelling"):
+        # Progress is read from the run's own status.json rather than stored on
+        # a timer: the file is the truth, and a cached copy would go stale
+        # exactly when someone is watching it.
+        jobs_service.sync_progress(db, job)
+        db.commit()
+    return {"id": job.id, "run_id": job.run_id,
+            "investigation_id": job.investigation_id, "status": job.status,
+            "current_stage": job.current_stage,
+            "stages_done": job.stages_done, "stages_total": job.stages_total,
+            "created_utc": job.created_utc, "started_utc": job.started_utc,
+            "finished_utc": job.finished_utc,
+            "cancel_requested_utc": job.cancel_requested_utc,
+            "error": job.error,
+            "inputs": json.loads(job.inputs_json) if job.inputs_json else None}
+
+
+@router.post("/jobs/{job_id}/cancel",
+             dependencies=[Depends(require_role("investigator", "analyst"))])
+def cancel_job(request: Request, job_id: str, db: Session = Depends(get_db)):
+    """Ask a run to stop at its next stage boundary.
+
+    Cooperative by design. The pipeline finishes the stage it is in, writes that
+    stage's status, and then stops -- so nothing is left half-written, and the
+    run is never sealed.
+    """
+    job = db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(404, "job not found")
+
+    result = jobs_service.request_cancel(db, job_id, getattr(request.state, "user_id", None))
+    if not result.get("ok"):
+        raise HTTPException(409, result.get("reason", "cannot cancel"))
+
+    audit_service.record(db, "run.cancel", request=request, resource=job.run_id,
+                         detail=json.dumps({"job": job_id}))
+    return result
+
+
+@router.post("/runs/{run_id}/rerun",
+             dependencies=[Depends(require_role("investigator", "analyst"))])
+def rerun(request: Request, run_id: str, db: Session = Depends(get_db)):
+    """Launch a NEW run with the inputs the old one was given.
+
+    A new id, always. Re-running into the same id would overwrite the artefacts
+    an investigation was concluded from and rewrite their hashes to match --
+    which `provenance.assert_writable` refuses anyway (SS12).
+    """
+    old = db.get(Run, run_id)
+    if old is None:
+        raise HTTPException(404, "run not found")
+
+    inputs = jobs_service.inputs_for_rerun(db, run_id)
+    new_id = f"{old.investigation_id or 'rerun'}-{datetime.now(timezone.utc):%H%M%S}"
+    if db.get(Run, new_id) is not None:
+        new_id = f"{new_id}-{secrets.token_hex(2)}"
+
+    db.add(Run(id=new_id, investigation_id=old.investigation_id, status="pending",
+               scene_id=old.scene_id, incident_id=old.incident_id))
+    jobs_service.create(db, new_id, old.investigation_id, inputs)
+    audit_service.record(db, "run.rerun", request=request, resource=new_id,
+                         detail=json.dumps({"reran": run_id,
+                                            "inputs_from": inputs.get("source")}),
+                         commit=False)
+    db.commit()
+
+    with _run_lock:
+        _running.add(new_id)
+    threading.Thread(
+        target=_execute_run,
+        args=(new_id, old.investigation_id, inputs.get("scene_path"),
+              inputs.get("scene_meta_path"), inputs.get("engine", "auto")),
+        daemon=True).start()
+
+    return {"run_id": new_id, "job_id": f"job-{new_id}", "status": "pending",
+            "reran": run_id, "inputs": inputs}
 
 
 @router.get("/runs")

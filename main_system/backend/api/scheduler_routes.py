@@ -4,13 +4,18 @@
     /api/aois/{id}         one AOI
     /api/aois/poll         force a sweep now (what the demo presses)
     /api/aois/{id}/poll    force a sweep of one AOI
+    POST/PATCH/DELETE      register, edit and retire an AOI
 
-The registry is a config file, not a database table (§21), so there is no
-create/update/delete here: an AOI is added by editing ``config/aois.yaml`` and
-that file is part of the reproducible record. What the API exposes is the
-*state* of watching -- when each AOI was last polled, what it last saw, and
-whether its provider chain is healthy -- which is what the monitoring page and
-the demo need.
+The registry began as a config file (§21). It is now a table, with
+``config/aois.yaml`` migrated in once on first use and each row recording where
+it came from. The reason is narrow and practical: an operator drawing a box on
+a map cannot edit a YAML file on the server, and two operators editing one file
+cannot merge. The YAML remains a perfectly good way to define AOIs for a fixed
+deployment, and nothing about it was deleted.
+
+Alongside the definitions the API exposes the *state* of watching -- when each
+AOI was last polled, what it last saw, and whether its provider chain is
+healthy -- which is what the monitoring page and the demo need.
 
 ``/aois/poll`` exists mainly for the demo: Sentinel-1's revisit is measured in
 days, so "wait for a pass" is not a thing you can show on stage. Pressing poll
@@ -23,11 +28,17 @@ import json
 from typing import Any, Dict, List, Optional
 
 from backend.core.authz import require_role
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
-from backend.models.db import AoiWatch, get_db
+from pydantic import BaseModel, Field
+
+from backend.models.db import Aoi, AoiWatch, get_db
+from backend.services import audit as audit_service
+from backend.services.scheduler import registry
 from backend.services.scheduler.aoi import AOIConfigError, load_aois
+from backend.services.scheduler.geometry import (AoiGeometryError,
+                                                 validate_aoi_geometry)
 
 router = APIRouter()
 
@@ -94,7 +105,15 @@ def _merge(aoi, state: Optional[AoiWatch]) -> Dict[str, Any]:
     return payload
 
 
-def _registry():
+def _registry(db=None):
+    """Every defined AOI.
+
+    Reads the table when a session is available and falls back to the YAML
+    when it is not, so the watcher -- which runs without a request scope --
+    keeps working exactly as before.
+    """
+    if db is not None:
+        return registry.list_aois(db)
     try:
         return load_aois()
     except AOIConfigError as exc:
@@ -110,18 +129,25 @@ def list_aois(db: Session = Depends(get_db), enabled_only: bool = False):
     Disabled AOIs are listed by default so an operator can see that the off
     switch is set, rather than wondering where an AOI went.
     """
-    aois = _registry()
-    if enabled_only:
-        aois = [a for a in aois if a.enabled]
-    return [_merge(a, db.get(AoiWatch, a.id)) for a in aois]
+    rows = registry.list_rows(db, enabled_only=enabled_only)
+    out = []
+    for row in rows:
+        merged = _merge(registry._to_aoi(row), db.get(AoiWatch, row.id))
+        merged["geometry"] = json.loads(row.geometry_json) if row.geometry_json else None
+        merged["source"] = row.source
+        out.append(merged)
+    return out
 
 
 @router.get("/aois/{aoi_id}")
 def get_aoi_detail(aoi_id: str, db: Session = Depends(get_db)):
-    aoi = next((a for a in _registry() if a.id == aoi_id), None)
-    if aoi is None:
+    row = registry.get_row(db, aoi_id)
+    if row is None:
         raise HTTPException(404, f"no AOI '{aoi_id}' in the registry")
-    return _merge(aoi, db.get(AoiWatch, aoi_id))
+    merged = _merge(registry._to_aoi(row), db.get(AoiWatch, aoi_id))
+    merged["geometry"] = json.loads(row.geometry_json) if row.geometry_json else None
+    merged["source"] = row.source
+    return merged
 
 
 @router.post("/aois/poll",
@@ -160,3 +186,156 @@ def poll_one(aoi_id: str):
     with SessionLocal() as db:
         watcher.poll_aoi(aoi, db, tick=tick)
     return tick.to_dict()
+
+
+# --------------------------------------------------------------------------
+# registering an AOI (PROMPT 13)
+# --------------------------------------------------------------------------
+
+
+class AoiCreate(BaseModel):
+    """A new watched area.
+
+    Either `geometry` (a GeoJSON Polygon, which is what a map draw tool
+    produces) or `bbox` must be given. Geometry wins when both are present and
+    the bbox is derived from it, because a bbox that disagrees with the drawn
+    shape is a bug waiting to be discovered at search time.
+    """
+
+    id: str = Field(min_length=2, max_length=64, pattern=r"^[a-z0-9][a-z0-9\-_]*$")
+    name: str = Field(min_length=1, max_length=200)
+    geometry: Optional[Dict[str, Any]] = None
+    bbox: Optional[List[float]] = None
+    ais_region: Optional[str] = Field(
+        default=None,
+        description="AISStore region partition. Null means no public bulk AIS "
+                    "covers this area and Stage 6 will synthesise and badge it "
+                    "SYNTHETIC -- being explicit here is what stops fabricated "
+                    "traffic being presented as real.")
+    poll_minutes: int = Field(default=60, ge=5, le=10080)
+    lookback_hours: int = Field(default=24, ge=1, le=720)
+    auto_run: bool = True
+    enabled: bool = True
+    notes: str = ""
+
+
+class AoiUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    geometry: Optional[Dict[str, Any]] = None
+    bbox: Optional[List[float]] = None
+    ais_region: Optional[str] = None
+    poll_minutes: Optional[int] = Field(default=None, ge=5, le=10080)
+    lookback_hours: Optional[int] = Field(default=None, ge=1, le=720)
+    auto_run: Optional[bool] = None
+    enabled: Optional[bool] = None
+    notes: Optional[str] = None
+
+
+def _resolve_shape(geometry, bbox) -> Dict[str, Any]:
+    """Validate whichever of geometry/bbox was supplied. 422 on refusal."""
+    if geometry is not None:
+        try:
+            checked = validate_aoi_geometry(geometry)
+        except AoiGeometryError as exc:
+            raise HTTPException(422, str(exc))
+        return {"bbox": checked["bbox"], "geometry": geometry,
+                "sea": checked["sea"]}
+
+    if bbox is None:
+        raise HTTPException(422, "an AOI needs either a GeoJSON `geometry` or a `bbox`")
+    if len(bbox) != 4:
+        raise HTTPException(422, "bbox must be [lon_min, lat_min, lon_max, lat_max]")
+
+    lon_min, lat_min, lon_max, lat_max = (float(v) for v in bbox)
+    if lon_min >= lon_max or lat_min >= lat_max:
+        raise HTTPException(422, "bbox must have min < max on both axes")
+    ring = [(lon_min, lat_min), (lon_max, lat_min), (lon_max, lat_max),
+            (lon_min, lat_max), (lon_min, lat_min)]
+    try:
+        checked = validate_aoi_geometry(
+            {"type": "Polygon", "coordinates": [[list(p) for p in ring]]})
+    except AoiGeometryError as exc:
+        raise HTTPException(422, str(exc))
+    # No geometry stored: the caller gave a bbox and nothing was drawn.
+    return {"bbox": checked["bbox"], "geometry": None, "sea": checked["sea"]}
+
+
+@router.post("/aois", status_code=201,
+             dependencies=[Depends(require_role("admin", "investigator"))])
+def create_aoi(request: Request, body: AoiCreate, db: Session = Depends(get_db)):
+    """Register a new area to watch."""
+    registry.ensure_migrated(db)
+    if db.get(Aoi, body.id) is not None:
+        raise HTTPException(409, f"an AOI with id '{body.id}' already exists")
+
+    shape = _resolve_shape(body.geometry, body.bbox)
+    row = Aoi(id=body.id, name=body.name,
+              bbox_json=json.dumps(shape["bbox"]),
+              geometry_json=json.dumps(shape["geometry"]) if shape["geometry"] else None,
+              ais_region=body.ais_region, poll_minutes=body.poll_minutes,
+              lookback_hours=body.lookback_hours, auto_run=body.auto_run,
+              enabled=body.enabled, notes=body.notes, source="api")
+    db.add(row)
+    audit_service.record(db, "aoi.create", request=request, resource=body.id,
+                         detail=json.dumps({"bbox": shape["bbox"],
+                                            "sea": shape["sea"],
+                                            "ais_region": body.ais_region}),
+                         commit=False)
+    db.commit()
+    payload = registry.row_dict(row)
+    payload["sea_check"] = shape["sea"]
+    return payload
+
+
+@router.patch("/aois/{aoi_id}",
+              dependencies=[Depends(require_role("admin", "investigator"))])
+def update_aoi(request: Request, aoi_id: str, body: AoiUpdate,
+               db: Session = Depends(get_db)):
+    row = registry.get_row(db, aoi_id)
+    if row is None:
+        raise HTTPException(404, f"no AOI '{aoi_id}' in the registry")
+
+    changed: Dict[str, Any] = {}
+    if body.geometry is not None or body.bbox is not None:
+        shape = _resolve_shape(body.geometry, body.bbox)
+        row.bbox_json = json.dumps(shape["bbox"])
+        row.geometry_json = json.dumps(shape["geometry"]) if shape["geometry"] else None
+        changed["bbox"] = shape["bbox"]
+
+    for field in ("name", "ais_region", "poll_minutes", "lookback_hours",
+                  "auto_run", "enabled", "notes"):
+        value = getattr(body, field)
+        if value is not None:
+            setattr(row, field, value)
+            changed[field] = value
+
+    if not changed:
+        raise HTTPException(422, "nothing to update")
+
+    audit_service.record(db, "aoi.update", request=request, resource=aoi_id,
+                         detail=json.dumps(changed, default=str), commit=False)
+    db.commit()
+    return registry.row_dict(row)
+
+
+@router.delete("/aois/{aoi_id}",
+               dependencies=[Depends(require_role("admin", "investigator"))])
+def delete_aoi(request: Request, aoi_id: str, db: Session = Depends(get_db)):
+    """Retire an AOI definition.
+
+    The `AoiWatch` row is deliberately kept. It holds the high-water mark of
+    scenes already handled, and discarding it would turn a delete-then-recreate
+    into a burst of duplicate investigations for scenes the system has already
+    seen.
+    """
+    row = registry.get_row(db, aoi_id)
+    if row is None:
+        raise HTTPException(404, f"no AOI '{aoi_id}' in the registry")
+
+    db.delete(row)
+    audit_service.record(db, "aoi.delete", request=request, resource=aoi_id,
+                         detail=json.dumps({"watch_state": "kept"}), commit=False)
+    db.commit()
+    return {"deleted": aoi_id,
+            "watch_state": "kept -- re-registering this id resumes from the "
+                           "last scene already handled"}
