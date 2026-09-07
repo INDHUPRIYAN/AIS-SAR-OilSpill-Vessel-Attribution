@@ -15,6 +15,7 @@ import {
   GeoJsonLayer, ScatterplotLayer, PathLayer, PolygonLayer, BitmapLayer,
   TextLayer,
 } from "@deck.gl/layers";
+import { TileLayer } from "@deck.gl/geo-layers";
 import { PathStyleExtension } from "@deck.gl/extensions";
 import { Map as MapGL } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -77,7 +78,7 @@ function hatchLines(w, s, e, n, count = 7) {
 }
 
 export default function WorkspaceMap({
-  view, onViewChange, show, layers, timeMs, sceneT0, runId,
+  view, onViewChange, show, layers, timeMs, sceneT0, runId, sarStretch,
   selectedMmsi, onSelect, onHover, maxStep,
 }) {
   const { sceneMeta, slick, origin, forecast, vessels, suspects, detect } = layers;
@@ -134,12 +135,39 @@ export default function WorkspaceMap({
 
   const deck = [];
 
-  /* --------------------------------------------------- SAR scene raster -- */
-  if (show.sar && bbox && runId) {
-    deck.push(new BitmapLayer({
-      id: "ws-sar", image: `/api/runs/${runId}/scene_png`,
-      bounds: [bbox[0], bbox[1], bbox[2], bbox[3]],
-      opacity: 0.85, desaturate: 0,
+  /* --------------------------------------------------- SAR scene raster --
+   *
+   * Tiled, not a single stretched preview. The old BitmapLayer pulled one
+   * downsampled PNG over the whole footprint: fine at zoom 8, useless at zoom
+   * 14, where an analyst is trying to see whether a slick edge follows a
+   * genuine backscatter boundary or the segmenter invented it. Tiles let the
+   * map reach native 10 m resolution.
+   *
+   * `sarStretch` is passed through to the server so what is drawn is what the
+   * segmenter saw -- the default is the frozen training clip range, and the
+   * response headers state the values actually applied.
+   */
+  if (show.sar && runId) {
+    const stretch = sarStretch
+      ? `?db_min=${sarStretch[0]}&db_max=${sarStretch[1]}` : "";
+    deck.push(new TileLayer({
+      id: "ws-sar-tiles",
+      data: `/api/tiles/${runId}/{z}/{x}/{y}.png${stretch}`,
+      tileSize: 256,
+      minZoom: 0,
+      maxZoom: 16,
+      opacity: 0.9,
+      // Cookie auth: the tile endpoint is session-gated like everything else.
+      loadOptions: { fetch: { credentials: "include" } },
+      renderSubLayers: (props) => {
+        const { boundingBox } = props.tile;
+        return new BitmapLayer(props, {
+          data: null,
+          image: props.data,
+          bounds: [boundingBox[0][0], boundingBox[0][1],
+                   boundingBox[1][0], boundingBox[1][1]],
+        });
+      },
     }));
   }
 

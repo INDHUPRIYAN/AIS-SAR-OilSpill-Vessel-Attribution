@@ -129,14 +129,45 @@ def _deployed_segmentation_eval(name: Optional[str]) -> Optional[dict]:
 # Deliberately NOT under /layers/{run_id}/{layer}: that route is a catch-all
 # registered first, so it would swallow this path and 404 on an unknown
 # layer name before this handler was ever reached.
+def _null_if_nan(value, digits: int):
+    """Round a float, or return None when it is not a number.
+
+    Absent beats fabricated: a missing AIS field must serialise as null, never
+    as 0. Real archives are full of these -- heading is optional in the AIS
+    standard and roughly a third of the flagship's rows omit it.
+    """
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if number != number or number in (float("inf"), float("-inf")):
+        return None
+    return round(number, digits)
+
+
 @router.get("/runs/{run_id}/vessels_geojson")
-def vessels_geojson(run_id: str, max_vessels: int = Query(200, le=2000)):
+def vessels_geojson(run_id: str, max_vessels: int = Query(200, le=2000),
+                    bbox: Optional[str] = Query(
+                        None, description="lon_min,lat_min,lon_max,lat_max -- "
+                                          "keep only tracks touching this box"),
+                    zoom: Optional[int] = Query(
+                        None, ge=0, le=22,
+                        description="thin track POINTS at low zoom; vessels are "
+                                    "never dropped by this")):
     """AIS tracks as GeoJSON LineStrings, one per MMSI.
 
     The contract stores vessels as parquet, which a browser cannot read. This
     converts on the way out rather than changing the contract -- parquet is the
     right format for the attribution engine, GeoJSON is the right format for a
     map, and neither should have to compromise for the other.
+
+    **Decimation rule, and what it must never do.** `zoom` thins the number of
+    POINTS along each track, because at zoom 4 a 300-point line and a 20-point
+    line are the same three pixels. It never removes a vessel. A ranked suspect
+    that vanished when the analyst zoomed out would be a map that disagrees
+    with the ranking beside it, and the first casualty of viewport culling is
+    always the thing you were looking for. `bbox` culls whole tracks, but a
+    suspect whose track touches the box is kept in full.
     """
     root = settings.runs_root.resolve()
     run_dir = (root / run_id).resolve()
@@ -191,11 +222,46 @@ def vessels_geojson(run_id: str, max_vessels: int = Query(200, le=2000)):
 
     import pandas as _pd
 
+    box = None
+    if bbox:
+        try:
+            parts = [float(v) for v in bbox.split(",")]
+            if len(parts) != 4:
+                raise ValueError
+            box = (min(parts[0], parts[2]), min(parts[1], parts[3]),
+                   max(parts[0], parts[2]), max(parts[1], parts[3]))
+        except ValueError:
+            raise HTTPException(422, "bbox must be lon_min,lat_min,lon_max,lat_max")
+
+    # Points kept per track at a given zoom. Below zoom 6 a whole track is a
+    # few pixels wide, so the shape is carried by a handful of vertices; by
+    # zoom 11 the full track is worth drawing.
+    stride_for = {0: 24, 4: 12, 6: 6, 8: 3, 10: 2}
+    stride = 1
+    if zoom is not None:
+        for threshold, value in sorted(stride_for.items()):
+            if zoom >= threshold:
+                stride = value
+        stride = 1 if zoom >= 11 else stride
+
     features: List[dict] = []
+    kept, culled = 0, 0
     for mmsi, grp in list(df.groupby("mmsi"))[:max_vessels]:
         coords = [[float(r.lon), float(r.lat)] for r in grp.itertuples()]
         if len(coords) < 2:
             continue
+
+        m_int = int(mmsi)
+        is_ranked = m_int in suspects
+        if box is not None and not is_ranked:
+            # A ranked suspect is never culled by the viewport: the map must
+            # not disagree with the ranking printed beside it.
+            touches = any(box[0] <= c[0] <= box[2] and box[1] <= c[1] <= box[3]
+                          for c in coords)
+            if not touches:
+                culled += 1
+                continue
+        kept += 1
         m = int(mmsi)
         s = suspects.get(m)
 
@@ -203,10 +269,16 @@ def vessels_geojson(run_id: str, max_vessels: int = Query(200, le=2000)):
         # the vessel at any instant, and speed/heading straight from AIS.
         tvals = _pd.to_datetime(grp[tcol], utc=True, errors="coerce")
         times = [int(x.timestamp()) if _pd.notna(x) else None for x in tvals]
-        sog = ([round(float(x), 2) for x in grp["sog_kn"]]
+        # NaN means the vessel did not transmit that field -- AIS sends 511 for
+        # "heading unavailable" and the ingest turns it into NaN. It reaches
+        # JSON as null, which is the true statement; `float('nan')` is not
+        # valid JSON and made this endpoint fail outright on real AIS (29,679
+        # of the flagship's 86,830 rows carry no heading). A zero would have
+        # been worse than the crash: it reads as "pointing due north".
+        sog = ([_null_if_nan(x, 2) for x in grp["sog_kn"]]
                if "sog_kn" in grp else [])
         hdg_col = next((c for c in ("heading_deg", "cog_deg") if c in grp), None)
-        headings = ([round(float(x), 1) for x in grp[hdg_col]] if hdg_col else [])
+        headings = ([_null_if_nan(x, 1) for x in grp[hdg_col]] if hdg_col else [])
 
         # Distance travelled: haversine summed along the real point sequence.
         dist_km = sum(_haversine_km(coords[i][1], coords[i][0],
@@ -215,12 +287,32 @@ def vessels_geojson(run_id: str, max_vessels: int = Query(200, le=2000)):
         good_t = [x for x in times if x is not None]
         dur_h = (good_t[-1] - good_t[0]) / 3600.0 if len(good_t) >= 2 else None
 
+        # Thin the drawn geometry only. `distance_km` and `dur_h` above were
+        # computed from every point, so a decimated track still reports the
+        # distance the vessel actually travelled rather than the length of the
+        # simplified line -- the number and the picture must not disagree.
+        drawn = coords
+        drawn_times = times
+        if stride > 1 and len(coords) > 2 * stride:
+            drawn = coords[::stride]
+            drawn_times = times[::stride]
+            # Always keep the last fix: dropping it moves the end of a track,
+            # which is the point an analyst is usually looking at.
+            if drawn[-1] != coords[-1]:
+                drawn.append(coords[-1])
+                drawn_times.append(times[-1])
+
         features.append({
             "type": "Feature",
-            "geometry": {"type": "LineString", "coordinates": coords},
+            "geometry": {"type": "LineString", "coordinates": drawn},
             "properties": {
                 "mmsi": m,
-                "times_epoch": times,
+                "times_epoch": drawn_times,
+                # Stated so a client can tell a thinned line from a short
+                # track. Silence here would make a decimated map look like a
+                # vessel that only transmitted twice.
+                "points_drawn": len(drawn),
+                "points_total": len(coords),
                 "sog_kn": sog,
                 "headings_deg": headings,
                 "distance_km": round(dist_km, 2),
@@ -249,7 +341,13 @@ def vessels_geojson(run_id: str, max_vessels: int = Query(200, le=2000)):
                          "source_file": src.name,
                          "suspect_coverage": None if not wanted else round(best, 3),
                          "ranked": sum(1 for f in features if f["properties"]["rank"]),
-                         "filtered": sum(1 for f in features if f["properties"]["filtered"])},
+                         "filtered": sum(1 for f in features if f["properties"]["filtered"]),
+                         # What decimation did, so a thinned map is never
+                         # mistaken for a sparse one.
+                         "viewport": {"bbox": box, "zoom": zoom,
+                                      "point_stride": stride,
+                                      "tracks_culled_by_bbox": culled,
+                                      "ranked_never_culled": True}},
             "features": features}
 
 
