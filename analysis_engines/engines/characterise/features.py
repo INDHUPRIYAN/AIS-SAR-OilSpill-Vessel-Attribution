@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+from affine import Affine
 from rasterio.features import shapes as rio_shapes
 from shapely.geometry import mapping, shape
 from shapely.geometry.polygon import orient
@@ -164,8 +165,18 @@ def extract_slicks(
         x, y = frame.to_metres(lons, lats)
         major_m, minor_m, orientation = covariance_ellipse(x, y)
 
-        component = labelled == region.label
-        poly = _polygonise(component, transform, simplify_deg)
+        # Vectorise the region's own bounding box, not the whole scene.
+        # `labelled == region.label` allocates and scans a full-scene boolean
+        # per region, so the cost is O(regions x scene): on a Sentinel-1 IW
+        # GRD frame with a few hundred components that is hundreds of passes
+        # over 433 M pixels and the stage effectively stops finishing. The
+        # geometry is unchanged -- `region.image` is exactly that comparison
+        # cropped to `region.bbox`, and translating the transform by the crop
+        # origin puts every vertex back at the same place on the globe.
+        min_row, min_col = region.bbox[0], region.bbox[1]
+        poly = _polygonise(region.image,
+                           transform * Affine.translation(min_col, min_row),
+                           simplify_deg)
         if poly is None:
             warnings.append(f"component {region.label} could not be polygonised; skipped")
             continue

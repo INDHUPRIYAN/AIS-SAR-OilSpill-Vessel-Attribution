@@ -204,3 +204,100 @@ def test_params_load_from_config_file():
     params = FayParams.from_config(cfg["fay"])
     assert params.assumed_thickness_m == pytest.approx(1.0e-3)
     assert params.damping_factor_bounds == (0.5, 1.6)
+
+
+# --------------------------------------------------------------------------
+# Vectorising cost: O(regions x scene) -> O(sum of region areas)
+# --------------------------------------------------------------------------
+#
+# `extract_slicks` used to build `labelled == region.label` -- a whole-scene
+# boolean -- once per region, then vectorise that. On the demo mask this is
+# invisible. On a real Sentinel-1 IW GRD frame the deployed segmenter returns a
+# few hundred components over 433 M pixels, so the stage made hundreds of
+# full-scene passes and stopped completing in any usable time. Cropping to
+# `region.bbox` and translating the transform by the crop origin is the same
+# geometry at a fraction of the cost; these tests exist to keep it that way.
+
+
+def _blobs(h=400, w=600, n=40, seed=11):
+    """A mask with many small, well-separated components."""
+    rng = np.random.default_rng(seed)
+    mask = np.zeros((h, w), bool)
+    for _ in range(n):
+        r, c = int(rng.integers(5, h - 25)), int(rng.integers(5, w - 25))
+        mask[r:r + int(rng.integers(4, 15)), c:c + int(rng.integers(4, 15))] = True
+    return mask
+
+
+def test_cropped_vectorising_puts_every_vertex_in_the_same_place():
+    """The optimisation is only safe if it is a no-op geometrically."""
+    from affine import Affine
+    from skimage.measure import regionprops
+
+    from engines.characterise.features import _polygonise
+
+    mask = _blobs()
+    transform = Affine(0.0001, 0, -92.0, 0, -0.0001, 29.0)
+    labelled = sk_label(mask, connectivity=2)
+    regions = regionprops(labelled)
+    assert len(regions) > 10, "fixture should produce many components"
+
+    for region in regions:
+        whole_scene = _polygonise(labelled == region.label, transform, 0.0)
+        row0, col0 = region.bbox[0], region.bbox[1]
+        cropped = _polygonise(region.image,
+                              transform * Affine.translation(col0, row0), 0.0)
+        # Exact to well below a millionth of a pixel; the two differ only in
+        # floating-point ordering, not in position.
+        assert whole_scene.equals_exact(cropped, 1e-9), \
+            f"component {region.label} moved when cropped"
+
+
+def test_no_whole_scene_allocation_per_region():
+    """A scene far larger than the slicks in it must not cost per-region time
+    proportional to the scene. Compares like with like: the same components,
+    padded into a canvas 25x the area."""
+    import time
+
+    from affine import Affine
+
+    small = _blobs(h=400, w=600)
+    transform = Affine(0.0001, 0, -92.0, 0, -0.0001, 29.0)
+
+    big = np.zeros((2000, 3000), bool)
+    big[:400, :600] = small
+
+    t0 = time.perf_counter()
+    slicks_small, _ = extract_slicks(small, transform, min_area_km2=0.0)
+    t_small = time.perf_counter() - t0
+
+    t0 = time.perf_counter()
+    slicks_big, _ = extract_slicks(big, transform, min_area_km2=0.0)
+    t_big = time.perf_counter() - t0
+
+    assert len(slicks_big) == len(slicks_small), "fixture changed the components"
+    # With the defect this ratio tracked the 25x area increase. Allow generous
+    # headroom for labelling, which is legitimately O(scene), and for a loaded
+    # CI box -- the failure being guarded against is an order of magnitude.
+    assert t_big < max(t_small * 8, 0.5), (
+        f"{t_big:.2f}s on a 25x larger canvas versus {t_small:.2f}s -- "
+        "per-region whole-scene work is back")
+
+
+def test_geometry_is_unchanged_by_the_surrounding_canvas():
+    """The same components, in a bigger empty scene, must measure the same."""
+    from affine import Affine
+
+    small = _blobs(h=400, w=600)
+    big = np.zeros((2000, 3000), bool)
+    big[:400, :600] = small
+    transform = Affine(0.0001, 0, -92.0, 0, -0.0001, 29.0)
+
+    a, _ = extract_slicks(small, transform, min_area_km2=0.0)
+    b, _ = extract_slicks(big, transform, min_area_km2=0.0)
+
+    for one, two in zip(a, b):
+        assert one.area_km2 == pytest.approx(two.area_km2, rel=1e-12)
+        assert one.perimeter_km == pytest.approx(two.perimeter_km, rel=1e-9)
+        assert one.centroid_lonlat == pytest.approx(two.centroid_lonlat, abs=1e-12)
+        assert one.major_axis_km == pytest.approx(two.major_axis_km, rel=1e-9)
