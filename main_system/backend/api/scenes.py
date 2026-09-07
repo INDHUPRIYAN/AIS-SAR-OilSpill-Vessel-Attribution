@@ -22,16 +22,20 @@ Entries whose metadata or raster is missing are returned with
 `available: false` and a reason rather than filtered out silently: a scene
 that has gone missing is something the operator needs to see.
 
-`GET /api/scenes/search` and scene acquisition arrive in PROMPT-12; this module
-is where they will live.
+`GET /api/scenes/search` (PROMPT-12) wraps the provider chain below. It
+reports which chain member answered rather than merging providers, because
+"CDSE answered" and "both failed" are different situations.
 """
 from __future__ import annotations
 
 import json
+import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
 
 from backend.core.config import get_settings
 
@@ -197,3 +201,144 @@ def local_scene(scene_id: str) -> Dict[str, Any]:
         if entry.get("id") == scene_id:
             return _describe(entry)
     raise HTTPException(404, f"no catalog scene with id {scene_id!r}")
+
+
+# --------------------------------------------------------------------------
+# search  (PROMPT-12)
+#
+# Wraps `SceneRetrievalChain`, which is already proven from the CLI. Nothing
+# about provider selection is reimplemented here: the chain owns CDSE -> ASF
+# -> LocalCache, and this route reports which member actually answered.
+# --------------------------------------------------------------------------
+
+# Sentinel-2 has a real, tested adapter (`scene_service/satellite/s2_adapter.py`,
+# 11 tests, one 809 MB acquisition on record) that is wired into nothing. There
+# is no labelled optical training data, so no honest accuracy claim can be made
+# and the pipeline does not consume it. Returning an empty S2 result would read
+# as "we looked and found none"; returning 501 says what is true.
+# The chain's own order, mirrored so a search can say which members were
+# passed over. Kept beside the route rather than imported: the chain builds
+# its members in __init__ and does not publish the sequence.
+CHAIN_ORDER = ("CDSE", "ASF", "LocalCache")
+
+NOT_DEPLOYED_SOURCES = {
+    "S2": {
+        "status": "NOT_DEPLOYED",
+        "detail": "Sentinel-2 / EO is not deployed. The adapter exists and is "
+                  "tested, but no optical data is wired into the pipeline and "
+                  "no accuracy has been measured for it, so this endpoint will "
+                  "not return EO results.",
+        "adapter": "scene_service/satellite/s2_adapter.py",
+    },
+}
+
+
+def _bbox(raw: str) -> List[float]:
+    parts = [p.strip() for p in raw.split(",")]
+    if len(parts) != 4:
+        raise HTTPException(422, "bbox must be 'min_lon,min_lat,max_lon,max_lat'")
+    try:
+        values = [float(p) for p in parts]
+    except ValueError:
+        raise HTTPException(422, "bbox values must be numbers")
+    if not (-180 <= values[0] <= 180 and -180 <= values[2] <= 180):
+        raise HTTPException(422, "longitude must be between -180 and 180")
+    if not (-90 <= values[1] <= 90 and -90 <= values[3] <= 90):
+        raise HTTPException(422, "latitude must be between -90 and 90")
+    if values[0] >= values[2] or values[1] >= values[3]:
+        raise HTTPException(422, "bbox must be min_lon,min_lat,max_lon,max_lat "
+                                 "with min < max on both axes")
+    return values
+
+
+def _product(scene: Any) -> Dict[str, Any]:
+    """One search hit, normalised for the wire."""
+    bbox = getattr(scene, "bbox", None)
+    if hasattr(bbox, "min_lon"):
+        bbox = [bbox.min_lon, bbox.min_lat, bbox.max_lon, bbox.max_lat]
+    acquired = getattr(scene, "acquisition_time", None)
+    return {
+        "product_id": getattr(scene, "scene_id", None),
+        "platform": getattr(scene, "platform", None),
+        "acquired_utc": acquired,
+        "bbox": bbox,
+        "product_type": getattr(scene, "product_type", None),
+        "polarisation": getattr(scene, "polarisation", None),
+        "orbit_direction": getattr(scene, "orbit_direction", None),
+        "size_bytes": getattr(scene, "file_size_bytes", None),
+        "download_url": getattr(scene, "download_url", None),
+        # Present only for a product already on disk. A search hit is a
+        # catalogue entry, not a file, and conflating the two is how a UI ends
+        # up offering "run this" for something nobody has downloaded.
+        "cached_path": getattr(scene, "file_path", None),
+    }
+
+
+@router.get("/scenes/search")
+def search_scenes(bbox: str = Query(..., description="min_lon,min_lat,max_lon,max_lat"),
+                  start: Optional[datetime] = None,
+                  end: Optional[datetime] = None,
+                  source: str = Query("S1", pattern="^(S1|S2)$"),
+                  product_type: str = Query("GRD", pattern="^(GRD|SLC|OCN)$"),
+                  top: int = Query(10, ge=1, le=50)):
+    """Search the provider chain for candidate scenes.
+
+    Per-provider attempts are reported rather than merged, so a caller can see
+    that CDSE answered and ASF was never needed -- or that both failed, which
+    is a different situation from "no scenes exist over this box".
+    """
+    if source in NOT_DEPLOYED_SOURCES:
+        return JSONResponse(status_code=501, content=NOT_DEPLOYED_SOURCES[source])
+
+    box = _bbox(bbox)
+    attempts: List[Dict[str, Any]] = []
+    try:
+        from satellite.chain import SceneRetrievalChain
+    except ImportError as exc:                     # pragma: no cover - path issue
+        raise HTTPException(503, f"scene service unavailable: {exc}")
+
+    started = time.perf_counter()
+    try:
+        result = SceneRetrievalChain().search_scenes(
+            bbox=box, start_time=start, end_time=end,
+            product_type=product_type, top=top)
+    except Exception as exc:                       # noqa: BLE001
+        # The provider's own words, not a generic 502: an expired credential
+        # and an unreachable host need different fixes.
+        attempts.append({"provider": "chain", "ok": False,
+                         "error_class": type(exc).__name__, "detail": str(exc)[:300]})
+        return {"query": {"bbox": box, "start": start, "end": end,
+                          "source": source, "product_type": product_type},
+                "provider": None, "total": 0, "scenes": [],
+                "attempts": attempts,
+                "elapsed_s": round(time.perf_counter() - started, 3)}
+
+    provider = getattr(result, "provider", None)
+    scenes = list(getattr(result, "scenes", []) or [])
+
+    # The chain tries CDSE, then ASF, then the local cache, and returns only
+    # the member that answered -- earlier failures are logged inside it and
+    # never surface. Rather than report a single provider as though nothing
+    # else was tried, the members ahead of the winner are listed as
+    # `not_reached`, marked `inferred` because that is a deduction from the
+    # chain's order, not something this route observed. Claiming to have seen
+    # a CDSE error we never received would be worse than saying so.
+    for member in CHAIN_ORDER:
+        if member == provider:
+            break
+        attempts.append({"provider": member, "ok": False,
+                         "result": "not_reached", "inferred": True,
+                         "note": "the chain moved past this member; its own "
+                                 "error is in the service log, not here"})
+    attempts.append({"provider": provider or "none", "ok": bool(scenes),
+                     "returned": len(scenes), "inferred": False})
+
+    return {
+        "query": {"bbox": box, "start": start, "end": end,
+                  "source": source, "product_type": product_type},
+        "provider": provider,
+        "total": int(getattr(result, "total_count", len(scenes)) or 0),
+        "scenes": [_product(s) for s in scenes],
+        "attempts": attempts,
+        "elapsed_s": round(time.perf_counter() - started, 3),
+    }
