@@ -38,6 +38,7 @@ from backend.core.security import (encryption_available, encrypt, is_encrypted,
 from backend.models.db import (VERDICTS, ApiCall, ApiKey, ApiProvider,
                                AuditLog, Decision, Investigation, Run, get_db,
                                utcnow)
+from backend.services import audit as audit_service
 from backend.services.pipeline import provenance
 from backend.services.providers import health
 
@@ -142,7 +143,8 @@ require_admin.allowed_roles = frozenset({"admin"})
 
 @router.post("/investigations",
              dependencies=[Depends(require_role("investigator", "analyst"))])
-def create_investigation(body: InvestigationCreate, db: Session = Depends(get_db)):
+def create_investigation(request: Request, body: InvestigationCreate,
+                         db: Session = Depends(get_db)):
     inv = Investigation(
         id=f"inv-{uuid.uuid4().hex[:10]}", name=body.name,
         scene_path=body.scene_path, notes=body.notes)
@@ -171,6 +173,11 @@ def create_investigation(body: InvestigationCreate, db: Session = Depends(get_db
                          f"{meta['file_path']}")
             inv.scene_path = str(raster)
     db.add(inv)
+    audit_service.record(db, "investigation.create", request=request,
+                         resource=inv.id,
+                         detail=json.dumps({"name": inv.name,
+                                            "scene_id": inv.scene_id}),
+                         commit=False)
     db.commit()
     return {"id": inv.id, "name": inv.name, "scene_id": inv.scene_id,
             "created_utc": inv.created_utc}
@@ -243,7 +250,8 @@ def _execute_run(run_id: str, investigation_id: Optional[str],
 
 @router.post("/investigations/{investigation_id}/run",
              dependencies=[Depends(require_role("investigator", "analyst"))])
-def start_run(investigation_id: str, body: RunRequest, db: Session = Depends(get_db)):
+def start_run(request: Request, investigation_id: str, body: RunRequest,
+              db: Session = Depends(get_db)):
     inv = db.get(Investigation, investigation_id)
     if inv is None:
         raise HTTPException(404, "investigation not found")
@@ -251,6 +259,10 @@ def start_run(investigation_id: str, body: RunRequest, db: Session = Depends(get
     run_id = f"{investigation_id}-{datetime.now(timezone.utc):%H%M%S}"
     db.add(Run(id=run_id, investigation_id=investigation_id, status="pending",
                scene_id=inv.scene_id))
+    audit_service.record(db, "run.start", request=request, resource=run_id,
+                         detail=json.dumps({"investigation": investigation_id,
+                                            "engine": body.engine}),
+                         commit=False)
     db.commit()
 
     with _run_lock:
@@ -449,7 +461,7 @@ EXPORT_FILES = [
 
 
 @router.get("/runs/{run_id}/export")
-def export_run(run_id: str):
+def export_run(request: Request, run_id: str, db: Session = Depends(get_db)):
     """Stream a zip of the run's contract artefacts (GeoJSON bundle).
 
     Adds a derived vessels.geojson (same conversion the map uses) so the
@@ -457,6 +469,10 @@ def export_run(run_id: str):
     contract-canonical vessels.parquet is still included untouched.
     """
     run_dir = _resolve_run_dir(run_id)
+    # Leaving with a copy of the artefacts is exactly the kind of action the
+    # record should contain.
+    audit_service.record(db, "data.export", request=request, resource=run_id,
+                         detail="run artefact bundle downloaded")
 
     buf = io.BytesIO()
     added = 0
@@ -505,7 +521,7 @@ def verify_run_artefacts(run_id: str):
 
 @router.post("/runs/{run_id}/decisions", status_code=201,
              dependencies=[Depends(require_role("investigator", "analyst"))])
-def record_decision(run_id: str, body: DecisionCreate,
+def record_decision(request: Request, run_id: str, body: DecisionCreate,
                     db: Session = Depends(get_db)):
     """STAGE 9 -- record what a human concluded. Standing Rule 8.
 
@@ -557,10 +573,16 @@ def record_decision(run_id: str, body: DecisionCreate,
     db.add(decision)
     # The credential audit log is also the investigation audit log: §14 wants
     # one answer to "who ran what, when, and what they concluded".
-    db.add(AuditLog(action=f"decision.{body.verdict}", provider="pipeline",
-                    field=run_id, actor=body.actor,
-                    detail=json.dumps({"mmsi": body.mmsi, "rank": rank,
-                                       "note": (body.note or "")[:200]})))
+    # `body.actor` is no longer trusted for the audit row: an actor a client
+    # can choose is not evidence. It stays on the Decision itself as the
+    # analyst's own label, while the audit names the authenticated account.
+    audit_service.record(
+        db, f"decision.{body.verdict}", request=request, resource=run_id,
+        provider="pipeline", field=run_id,
+        detail=json.dumps({"mmsi": body.mmsi, "rank": rank,
+                           "claimed_actor": body.actor,
+                           "note": (body.note or "")[:200]}),
+        commit=False)
     db.commit()
     return _decision_dict(decision)
 
@@ -687,7 +709,7 @@ def list_keys(db: Session = Depends(get_db), actor: str = Depends(require_admin)
 
 
 @router.put("/keys")
-def set_key(body: KeyUpdate, db: Session = Depends(get_db),
+def set_key(request: Request, body: KeyUpdate, db: Session = Depends(get_db),
             actor: str = Depends(require_admin)):
     if body.provider not in health.CREDENTIAL_FIELDS:
         raise HTTPException(404, "unknown provider")
@@ -698,8 +720,9 @@ def set_key(body: KeyUpdate, db: Session = Depends(get_db),
                   ciphertext=encrypt(body.value),
                   last_four=last_four(body.value), updated_by=actor))
     # The audit log records THAT a field changed, never the value.
-    db.add(AuditLog(action="key.set", provider=body.provider, field=body.field,
-                    actor=actor, detail="credential updated"))
+    audit_service.record(db, "key.set", request=request, provider=body.provider,
+                         field=body.field, resource=body.provider,
+                         actor=actor, detail="credential updated", commit=False)
     row = db.get(ApiProvider, body.provider)
     if row is not None:
         row.has_credentials = health.has_credentials(db, body.provider)

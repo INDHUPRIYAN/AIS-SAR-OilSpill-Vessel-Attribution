@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,7 @@ from backend.core.authz import (SessionConfigError, clear_session_cookie,
                                 current_user, issue_token, set_session_cookie)
 from backend.core.config import get_settings
 from backend.models.db import ROLES, User, get_db, utcnow
+from backend.services import audit as audit_service
 
 router = APIRouter()
 settings = get_settings()
@@ -77,16 +78,25 @@ class UserOut(BaseModel):
 
 
 @router.post("/auth/login")
-def login(body: LoginRequest, response: Response, db: Session = Depends(get_db)):
+def login(request: Request, body: LoginRequest, response: Response,
+          db: Session = Depends(get_db)):
     """Exchange credentials for an HttpOnly session cookie."""
     user = db.query(User).filter(User.email == body.email.lower()).one_or_none()
 
     if user is None or not user.active:
         # Same work, same answer, whether or not the account exists.
         security.verify_password(_dummy_hash(), body.password)
+        audit_service.record(db, "auth.login", request=request,
+                             resource=body.email, actor=body.email,
+                             detail="failed: unknown or inactive account")
         raise HTTPException(401, "invalid email or password")
 
     if not security.verify_password(user.password_hash, body.password):
+        # Recorded because a burst of these is the signal an operator needs;
+        # the reason is kept vague in the RESPONSE, not in the log.
+        audit_service.record(db, "auth.login", request=request,
+                             resource=user.email, actor=user.email,
+                             actor_user_id=user.id, detail="failed: bad password")
         raise HTTPException(401, "invalid email or password")
 
     try:
@@ -102,6 +112,9 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
         user.password_hash = security.hash_password(body.password)
 
     user.last_login_utc = utcnow()
+    audit_service.record(db, "auth.login", request=request, resource=user.email,
+                         actor=user.email, actor_user_id=user.id,
+                         detail=f"signed in as {user.role}", commit=False)
     db.commit()
 
     set_session_cookie(response, token)
@@ -109,13 +122,16 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
 
 
 @router.post("/auth/logout", status_code=204)
-def logout(response: Response) -> Response:
+def logout(request: Request, response: Response,
+           db: Session = Depends(get_db)) -> Response:
     """Drop the session cookie. Safe to call when not signed in.
 
     The injected `response` is mutated and returned; constructing a fresh
     Response here would discard the Set-Cookie header just written to it and
     leave the caller signed in.
     """
+    # Recorded before the cookie is cleared, so the session still names the actor.
+    audit_service.record(db, "auth.logout", request=request, detail="signed out")
     clear_session_cookie(response)
     response.status_code = 204
     return response

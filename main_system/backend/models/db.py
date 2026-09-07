@@ -229,7 +229,21 @@ class ApiKey(Base):
 
 
 class AuditLog(Base):
-    """Who changed which credential, and when. Never records the value."""
+    """Who did what, when, and from where. Never records a credential value.
+
+    Started life as a credential-change log, which is why `provider`/`field`
+    are still here. It now covers every mutating action, and two things make
+    it evidence rather than decoration:
+
+    * `actor_user_id` is taken from the session, never from a request body.
+      An actor a client can choose is an actor nobody can rely on.
+    * `row_hash` chains each row to the one before it, so deleting or editing
+      history breaks the chain at that point instead of leaving no trace.
+
+    The chain is tamper-EVIDENT, not tamper-proof: anyone with write access to
+    the database file can rewrite rows, but not without `/api/audit/verify`
+    noticing. That is the honest claim, and the one worth making.
+    """
 
     __tablename__ = "audit_log"
 
@@ -237,9 +251,19 @@ class AuditLog(Base):
     action = Column(String(64))
     provider = Column(String(64))
     field = Column(String(64))
+    # Free-text actor, kept for the pre-session rows already on disk. New rows
+    # set it from the resolved account, so it agrees with actor_user_id.
     actor = Column(String(64), default="admin")
+    actor_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    resource = Column(String(200), nullable=True, index=True)
+    ip = Column(String(64), nullable=True)
     detail = Column(Text)
     occurred_utc = Column(DateTime(timezone=True), default=utcnow)
+    # sha256(prev_hash || canonical(row)). NULL on the legacy rows written
+    # before chaining existed; verification reports where the chain starts
+    # rather than pretending those rows were covered.
+    prev_hash = Column(String(64), nullable=True)
+    row_hash = Column(String(64), nullable=True, index=True)
 
 
 # --------------------------------------------------------------------------

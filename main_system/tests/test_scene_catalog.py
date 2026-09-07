@@ -31,8 +31,12 @@ TEST_SPLIT = REPO_ROOT / "data" / "processed" / "trujillo" / "test" / "index.jso
 
 
 @pytest.fixture(scope="module")
-def client(sign_in_helper):
+def client(sign_in_helper, tmp_path_factory):
     os.environ["DATA_ROOT"] = str(REPO_ROOT / "data")
+    # Real DATA_ROOT so the endpoint reads the real artefacts, but a
+    # throwaway database: signing in seeds an account, and a test
+    # account with a known password must never land in the live DB.
+    os.environ["DATABASE_URL"] = f"sqlite:///{(tmp_path_factory.mktemp('db') / 't.db').as_posix()}"
     for name in [m for m in list(sys.modules) if m.startswith("backend")]:
         del sys.modules[name]
 

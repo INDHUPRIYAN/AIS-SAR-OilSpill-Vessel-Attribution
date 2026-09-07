@@ -17,17 +17,39 @@ Checklist coverage (from the build spec):
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import sys
+import tempfile
 import time
 import uuid
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
-from backend.core.config import get_settings
-from backend.main import app
-from backend.models.db import Investigation, Run, SessionLocal, init_db, utcnow
+# Self-contained environment, established BEFORE `backend` is imported.
+# Sibling modules purge `backend.*` and repoint DATABASE_URL for their own
+# fixtures; without pinning ours first, this module's settings, engine and app
+# are bound to whichever database happened to exist at collection time, and
+# the failures that follow have nothing to do with what it is testing.
+# DATA_ROOT stays the real one: this module resolves `contracts/mocks` through
+# `settings.data_root.parent`, so moving it would simply hide the fixtures.
+# Only the DATABASE is redirected -- signing in seeds an account, and a test
+# account with a known password must never land in the live database.
+_DB = Path(tempfile.mkdtemp(prefix="invpage_")) / "invpage.db"
+os.environ["DATA_ROOT"] = str(Path(__file__).resolve().parents[2] / "data")
+os.environ["DATABASE_URL"] = f"sqlite:///{_DB.as_posix()}"
+os.environ.setdefault("SECRET_KEY", "i" * 64)
+for _m in [m for m in list(sys.modules) if m.startswith("backend")]:
+    del sys.modules[_m]
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+from backend.core import security  # noqa: E402
+from backend.core.config import get_settings  # noqa: E402
+from backend.main import app  # noqa: E402
+from backend.models.db import (Investigation, Run, SessionLocal,  # noqa: E402
+                               init_db, utcnow)
 
 settings = get_settings()
 REPO = settings.data_root.parent
@@ -57,13 +79,30 @@ def make_status(sources=None, engines=None):
 
 
 @pytest.fixture()
-def client(sign_in_helper):
+def client():
+    """A signed-in client bound to THIS module's app and database.
+
+    Seeding is done through the module-level `SessionLocal` rather than the
+    shared conftest helper. Sibling modules purge `backend.*` mid-session, so
+    the helper's call-time import can resolve to a different module instance
+    -- and therefore a different engine -- than the `app` this fixture uses.
+    Same env, same import, same database.
+    """
     init_db()
-    # Every /api route needs a session since PROMPT-07. https:// because the
-    # session cookie is Secure and an http client silently drops it, which
-    # would make the next request look anonymous.
+    email, password = "invpage@example.invalid", "invpage-fixture-password"
+    with SessionLocal() as db:
+        from backend.models.db import User
+
+        if db.query(User).filter(User.email == email).one_or_none() is None:
+            db.add(User(email=email, password_hash=security.hash_password(password),
+                        role="admin", active=True))
+            db.commit()
+
+    # https:// because the session cookie is Secure and an http client
+    # silently drops it, which would make the next request look anonymous.
     c = TestClient(app, base_url="https://testserver")
-    sign_in_helper(c)
+    r = c.post("/api/auth/login", json={"email": email, "password": password})
+    assert r.status_code == 200, f"fixture login failed: {r.status_code} {r.text[:200]}"
     return c
 
 
