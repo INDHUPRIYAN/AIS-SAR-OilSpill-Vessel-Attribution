@@ -15,13 +15,18 @@ integrator. They have standing authority to build or fix any teammate's module.
 
 **Repo:** `C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution`
 **Branch:** `feat/indhu-detection-pipeline`
-**HEAD:** `6c8bbe3`
+**HEAD:** `9c36aac`
 **Working tree:** clean
 **Python:** repo-root `.venv` (3.10). Run tests with
 `.venv/Scripts/python.exe -m pytest -q`
 
-**Test suite: 957 passed, 5 skipped, 0 failed.** The 5 skips are
-network-dependent provider tests (a provider outage is not a code defect).
+**Test suite: 979 passed, 4 skipped, 0 failed** (`.venv/Scripts/python.exe -m
+pytest`). The skips are network-dependent provider tests — a provider outage is
+not a code defect, and the count moves between 4 and 5 with the network.
+
+**Frontend: 70 passed** (`cd main_system/frontend && npm test`). Note the
+Python suite's `addopts` already carries `-q`; adding another `-q` makes it
+`-qq`, which silently suppresses the final pass/fail count.
 
 ---
 
@@ -140,7 +145,7 @@ All committed, all with `dev_evidence/PNN/README.md` + `pytest_full.txt`.
 | **P17** | `fa5128b` | REACHABLE vs WORKING, tri-state credentials, NOT_DEPLOYED rows, model registry, host health |
 | **P15** | `e509a71` | alert queue, reasoned dismissal, SSE feed, top-bar bell |
 | **P18** | `2d4d781` | SAR tile server, viewport decimation |
-| **P19** | `6c8bbe3` | **PARTIAL** — search endpoint + geodesy utility only |
+| **P19** | `6c8bbe3`, `9c36aac` | ⌘K palette, MAP measure tool, ZULU clock, run-scoped provenance strip, keymap-generated shortcut overlay, reduced motion. 3D globe **dropped per D3** |
 
 ### Key API surface added
 
@@ -204,26 +209,16 @@ Worth reading: each was invisible until real data hit it.
 
 ## 7. WHAT IS NOT DONE
 
-### P19 — Command-center shell (PARTIAL, in progress)
+### P19 — Command-center shell (DONE as of `9c36aac`; listed here for the record)
 
-**Done and committed (`6c8bbe3`):**
-- `main_system/backend/api/search.py` — `GET /api/search`, substring matching,
-  exact→prefix→substring tiers, **no fuzzy matching** (a near-miss on a
-  nine-digit MMSI is not a result). Smoke-tested, registered, working.
-- `main_system/frontend/src/lib/geodesy.js` — haversine distance, bearing,
-  km + nm. Not yet wired to any UI.
+Complete except the 3D globe, which is **dropped whole per D3** rather than
+half-built — recorded in `docs/LIMITATIONS.md`. With no mode switcher, the
+prompt's "mode switch preserves camera/`t`/selection" acceptance test has
+nothing to exercise and is **not** claimed as passing; run-context survival
+across navigation replaces it and is tested.
 
-**Not done:**
-- ⌘K command palette UI consuming `/api/search`
-- MAP-mode draw/measure tools using `geodesy.js`
-- ZULU clock + provenance chips in the top bar
-- reduced-motion + keyboard per UX spec §8.6/§10.7
-- **No tests written for search or geodesy yet** — write these.
-
-**3D globe: DEFER per D3.** The decision memo says the globe is *"optional
-polish, last in, first out… If the schedule tightens, drop 3D entirely; the
-audit and the master plan both name it first to cut, and nothing depends on
-it."* Record it as deferred; do not half-build it.
+Evidence and the full reasoning: `dev_evidence/P19/README.md`, with real-data
+screenshots in `dev_evidence/P19/shots/`.
 
 ### P20 — End-to-end validation & demo freeze (NOT STARTED — highest value)
 
@@ -243,6 +238,32 @@ This is the most important remaining work. Required:
 **Amendment C-10 applies to P15/P20 metrics display:** show **all three**
 numbers labelled — `oil-tile IoU 0.5723 · overall IoU 0.4445 · no-oil tiles
 firing 280/5,248 (5.3%)`.
+
+### BLOCKER FOR P20 — the flagship has no database row
+
+Found while photographing the shell against the live archive. The run
+directory, its artefacts and its manifest are all present and verify; the
+`runs` row is missing:
+
+```
+GET /api/runs/inv-gulf-flagship-20230108-2day          404
+GET /api/search?q=flagship                             0 results
+GET /api/layers/inv-gulf-flagship-20230108-2day/slick  200
+GET /api/runs/inv-gulf-flagship-20230108-2day/verify   200
+GET /api/tiles/inv-gulf-flagship-20230108-2day/info    200
+```
+
+`data/runs/` holds **162** run directories; the database holds **99** rows, and
+**all five Gulf flagship-family runs are among the missing** — systematic, not
+a one-off. So the flagship is reachable as *artefacts* but not as a *record*:
+it cannot be found in ⌘K, does not appear in the runs list, and the top-bar
+provenance strip over it reads `RUN UNREADABLE` (correct behaviour for a run
+the API says does not exist; not what anyone wants in a demo).
+
+Deliberately not fixed in P19: writing a row for the frozen flagship is a
+decision about acceptance evidence, and P20 owns it. **Resolve this first.**
+Note the `users` table is also empty, so nobody can sign in to the live
+database as it stands.
 
 ### Known outstanding, recorded not dropped
 - **Route-level code-splitting** for maplibre/deck bundles (P18). Build warns
@@ -281,8 +302,7 @@ firing 280/5,248 (5.3%)`.
 
 ## 9. Suggested next step
 
-Finish P19's remaining UI (palette, measure tool, clock, chips) **with tests**,
-record the 3D globe as deferred per D3, commit — then move to **P20**, which is
-the deliverable that matters most for SIH.
+**P20**, which is the deliverable that matters most for SIH — starting with the
+flagship's missing database row (§7).
 
 Do not re-run or modify the flagship. Use it as evidence.
