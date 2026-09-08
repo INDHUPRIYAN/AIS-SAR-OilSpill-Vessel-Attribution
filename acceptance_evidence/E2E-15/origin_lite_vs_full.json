@@ -1,0 +1,20 @@
+{
+ "full_ms_samples": [
+  120,
+  109,
+  108,
+  117,
+  100
+ ],
+ "lite_ms_samples": [
+  68,
+  64,
+  269,
+  71,
+  69
+ ],
+ "full_ms_median": 109,
+ "lite_ms_median": 69,
+ "full_bytes": 1591733,
+ "lite_bytes": 432337
+}

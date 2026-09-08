@@ -75,7 +75,8 @@ def _start_run_for_investigation(investigation_id: str, aoi, scene) -> Optional[
 
     with SessionLocal() as db:
         db.add(Run(id=run_id, investigation_id=investigation_id,
-                   status="pending", scene_id=scene_id))
+                   status="pending", scene_id=scene_id,
+                   registry_source="api"))
         db.commit()
 
     with _run_lock:

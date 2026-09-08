@@ -1,0 +1,15 @@
+{
+ "id": "rep-2a20853b08",
+ "run_id": "inv-gulf-flagship-20230108-2day",
+ "investigation_id": null,
+ "version": 1,
+ "status": "published",
+ "title": "Investigation report \u2014 S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
+ "artefact_digest": "fd42e078f836611043fd088e1e0abc490064b05404f887c2a69571ab65f94a84",
+ "created_utc": "2026-09-08T07:35:55.044492",
+ "updated_utc": "2026-09-08T07:35:55.135140+00:00",
+ "submitted_utc": "2026-09-08T07:35:55.092129",
+ "published_utc": "2026-09-08T07:35:55.131919+00:00",
+ "review_note": "E2E-10 reviewer approval",
+ "immutable": true
+}

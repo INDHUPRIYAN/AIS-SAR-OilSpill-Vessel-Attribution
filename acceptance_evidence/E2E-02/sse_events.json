@@ -1,0 +1,642 @@
+[
+ {
+  "t": 0.0,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "detect",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "detect_response.json",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 0.0,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "characterise",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "slick.geojson",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 0.0,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "drift_hindcast",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "origin_cloud.geojson",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 0.0,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "drift_forecast",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "forecast.geojson",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 0.0,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "attribution",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "suspects.json",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 0.0,
+  "event": "status",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "run_status": null,
+   "stages_done": 0,
+   "stages_total": 5
+  }
+ },
+ {
+  "t": 159.4,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "detect",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "engine=ml, 0 oil + 78 look-alike candidate(s), confidence 0.6565",
+   "warnings": [
+    "screen: 7 oil candidate(s) over 1728 tile(s), best 0.40",
+    "ml inference 78.4s",
+    "screen rejected 78/78 segmented region(s) as look-alike",
+    "every candidate was rejected as a look-alike by the screening model; downstream drift still runs on the full mask, so treat this origin and its suspects as unconfirmed"
+   ],
+   "error_class": null,
+   "output": "detect_response.json",
+   "seconds": 159.13
+  }
+ },
+ {
+  "t": 159.4,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "characterise",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "slick.geojson",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 159.4,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "drift_hindcast",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "origin_cloud.geojson",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 159.4,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "drift_forecast",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "forecast.geojson",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 159.4,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "attribution",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "suspects.json",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 159.4,
+  "event": "status",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "run_status": null,
+   "stages_done": 1,
+   "stages_total": 5
+  }
+ },
+ {
+  "t": 189.3,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "detect",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "engine=ml, 0 oil + 78 look-alike candidate(s), confidence 0.6565",
+   "warnings": [
+    "screen: 7 oil candidate(s) over 1728 tile(s), best 0.40",
+    "ml inference 78.4s",
+    "screen rejected 78/78 segmented region(s) as look-alike",
+    "every candidate was rejected as a look-alike by the screening model; downstream drift still runs on the full mask, so treat this origin and its suspects as unconfirmed"
+   ],
+   "error_class": null,
+   "output": "detect_response.json",
+   "seconds": 159.13
+  }
+ },
+ {
+  "t": 189.3,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "characterise",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "Engine A: 18 slick(s)",
+   "warnings": [
+    "Engine A ran on a 5711x11737 px window around the detections (margin 1500 px) instead of the full 28072x21162 scene; geometry is georeferenced identically"
+   ],
+   "error_class": null,
+   "output": "slick.geojson",
+   "seconds": 30.0
+  }
+ },
+ {
+  "t": 189.3,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "drift_hindcast",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "origin_cloud.geojson",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 189.3,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "drift_forecast",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "forecast.geojson",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 189.3,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "attribution",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "suspects.json",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 189.3,
+  "event": "status",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "run_status": null,
+   "stages_done": 2,
+   "stages_total": 5
+  }
+ },
+ {
+  "t": 200.1,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "detect",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "engine=ml, 0 oil + 78 look-alike candidate(s), confidence 0.6565",
+   "warnings": [
+    "screen: 7 oil candidate(s) over 1728 tile(s), best 0.40",
+    "ml inference 78.4s",
+    "screen rejected 78/78 segmented region(s) as look-alike",
+    "every candidate was rejected as a look-alike by the screening model; downstream drift still runs on the full mask, so treat this origin and its suspects as unconfirmed"
+   ],
+   "error_class": null,
+   "output": "detect_response.json",
+   "seconds": 159.13
+  }
+ },
+ {
+  "t": 200.1,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "characterise",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "Engine A: 18 slick(s)",
+   "warnings": [
+    "Engine A ran on a 5711x11737 px window around the detections (margin 1500 px) instead of the full 28072x21162 scene; geometry is georeferenced identically"
+   ],
+   "error_class": null,
+   "output": "slick.geojson",
+   "seconds": 30.0
+  }
+ },
+ {
+  "t": 200.1,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "drift_hindcast",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "Engine B [euler] hindcast 24h, currents+wind",
+   "warnings": [],
+   "error_class": null,
+   "output": "origin_cloud.geojson",
+   "seconds": 4.73
+  }
+ },
+ {
+  "t": 200.1,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "drift_forecast",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "forecast.geojson",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 200.1,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "attribution",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "suspects.json",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 200.1,
+  "event": "status",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "run_status": null,
+   "stages_done": 3,
+   "stages_total": 5
+  }
+ },
+ {
+  "t": 203.1,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "detect",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "engine=ml, 0 oil + 78 look-alike candidate(s), confidence 0.6565",
+   "warnings": [
+    "screen: 7 oil candidate(s) over 1728 tile(s), best 0.40",
+    "ml inference 78.4s",
+    "screen rejected 78/78 segmented region(s) as look-alike",
+    "every candidate was rejected as a look-alike by the screening model; downstream drift still runs on the full mask, so treat this origin and its suspects as unconfirmed"
+   ],
+   "error_class": null,
+   "output": "detect_response.json",
+   "seconds": 159.13
+  }
+ },
+ {
+  "t": 203.1,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "characterise",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "Engine A: 18 slick(s)",
+   "warnings": [
+    "Engine A ran on a 5711x11737 px window around the detections (margin 1500 px) instead of the full 28072x21162 scene; geometry is georeferenced identically"
+   ],
+   "error_class": null,
+   "output": "slick.geojson",
+   "seconds": 30.0
+  }
+ },
+ {
+  "t": 203.1,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "drift_hindcast",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "Engine B [euler] hindcast 24h, currents+wind",
+   "warnings": [],
+   "error_class": null,
+   "output": "origin_cloud.geojson",
+   "seconds": 4.73
+  }
+ },
+ {
+  "t": 203.1,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "drift_forecast",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "Engine B [euler] forecast 24h, currents+wind",
+   "warnings": [],
+   "error_class": null,
+   "output": "forecast.geojson",
+   "seconds": 2.87
+  }
+ },
+ {
+  "t": 203.1,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "attribution",
+   "status": "pending",
+   "ok": false,
+   "engine_used": null,
+   "source": "unknown",
+   "data_source": "unknown",
+   "detail": "",
+   "warnings": [],
+   "error_class": null,
+   "output": "suspects.json",
+   "seconds": 0.0
+  }
+ },
+ {
+  "t": 203.1,
+  "event": "status",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "run_status": null,
+   "stages_done": 4,
+   "stages_total": 5
+  }
+ },
+ {
+  "t": 223.9,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "detect",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "engine=ml, 0 oil + 78 look-alike candidate(s), confidence 0.6565",
+   "warnings": [
+    "screen: 7 oil candidate(s) over 1728 tile(s), best 0.40",
+    "ml inference 78.4s",
+    "screen rejected 78/78 segmented region(s) as look-alike",
+    "every candidate was rejected as a look-alike by the screening model; downstream drift still runs on the full mask, so treat this origin and its suspects as unconfirmed"
+   ],
+   "error_class": null,
+   "output": "detect_response.json",
+   "seconds": 159.13
+  }
+ },
+ {
+  "t": 223.9,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "characterise",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "Engine A: 18 slick(s)",
+   "warnings": [
+    "Engine A ran on a 5711x11737 px window around the detections (margin 1500 px) instead of the full 28072x21162 scene; geometry is georeferenced identically"
+   ],
+   "error_class": null,
+   "output": "slick.geojson",
+   "seconds": 30.0
+  }
+ },
+ {
+  "t": 223.9,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "drift_hindcast",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "Engine B [euler] hindcast 24h, currents+wind",
+   "warnings": [],
+   "error_class": null,
+   "output": "origin_cloud.geojson",
+   "seconds": 4.73
+  }
+ },
+ {
+  "t": 223.9,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "drift_forecast",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "Engine B [euler] forecast 24h, currents+wind",
+   "warnings": [],
+   "error_class": null,
+   "output": "forecast.geojson",
+   "seconds": 2.87
+  }
+ },
+ {
+  "t": 223.9,
+  "event": "stage",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "stage": "attribution",
+   "status": "ok",
+   "ok": true,
+   "engine_used": "primary",
+   "source": "real",
+   "data_source": "unknown",
+   "detail": "Engine C: 1 suspect(s), top MMSI 237717848 score 0.64",
+   "warnings": [
+    "mc_gulf_2023_01_01.parquet (real) does not cover the computed origin window",
+    "vessels.parquet (synthetic) does not cover the computed origin window",
+    "vessels.parquet (synthetic) does not cover the computed origin window",
+    "generating AIS for this origin instead",
+    "synthesised AIS around the computed origin (13.373, 80.428) -- flagged SYNTHETIC",
+    "AIS index: 43 vessels/3507 rows -> 3 vessels/153 rows (query 71.7 ms vs full scan 6.5 ms; ingest 136.2 ms)"
+   ],
+   "error_class": null,
+   "output": "suspects.json",
+   "seconds": 2.65
+  }
+ },
+ {
+  "t": 223.9,
+  "event": "status",
+  "data": {
+   "run_id": "inv-559113eeb5-074435",
+   "run_status": null,
+   "stages_done": 5,
+   "stages_total": 5
+  }
+ }
+]

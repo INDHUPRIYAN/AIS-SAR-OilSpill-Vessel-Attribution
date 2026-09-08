@@ -1,0 +1,8 @@
+{
+ "ok": false,
+ "checked": 0,
+ "run_id": "inv-f3ec39f2a2-074125",
+ "problems": [
+  "no manifest at manifest.json; run never completed"
+ ]
+}

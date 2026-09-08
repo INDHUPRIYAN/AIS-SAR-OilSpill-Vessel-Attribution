@@ -1,0 +1,112 @@
+{
+ "id": "E2E-11",
+ "title": "Runs reconcile",
+ "pass_condition": "DB == replay == disk counts (or UI states which); filters/sort/pagination correct against brute force",
+ "status": "PASS",
+ "executed_utc": "2026-09-08T08:10:47.161471+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "every sealed run on disk has a DB row",
+   "ok": true,
+   "measured": [],
+   "expected": []
+  },
+  {
+   "check": "every row marked complete has a sealed directory",
+   "ok": true,
+   "measured": [],
+   "expected": []
+  },
+  {
+   "check": "no row claims running/pending without a live job",
+   "ok": true,
+   "measured": [],
+   "expected": []
+  },
+  {
+   "check": "no sealed run is still marked in flight",
+   "ok": true,
+   "measured": [],
+   "expected": []
+  },
+  {
+   "check": "sealed count == rows marked complete or failed",
+   "ok": true,
+   "measured": [
+    106,
+    106
+   ],
+   "expected": null
+  },
+  {
+   "check": "flagship family (5) all registered and reconciled",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "replay list is a subset of the registry",
+   "ok": true,
+   "measured": 0,
+   "expected": 0
+  },
+  {
+   "check": "/api/runs total == non-archived rows",
+   "ok": true,
+   "measured": [
+    110,
+    110
+   ],
+   "expected": null
+  },
+  {
+   "check": "pagination has no overlap and no gap",
+   "ok": true,
+   "measured": [
+    110,
+    110,
+    110
+   ],
+   "expected": null
+  },
+  {
+   "check": "sort order is monotone desc across pages",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "paged listing == brute-force set",
+   "ok": true,
+   "measured": 0,
+   "expected": 0
+  },
+  {
+   "check": "status=complete filter == brute force",
+   "ok": true,
+   "measured": [
+    99,
+    99
+   ],
+   "expected": null
+  },
+  {
+   "check": "q=gulf filter == brute force",
+   "ok": true,
+   "measured": [
+    8,
+    8
+   ],
+   "expected": null
+  }
+ ],
+ "notes": [
+  "50 directories have no manifest (never sealed: cancelled/aborted) and are correctly absent from the registry.",
+  "0 rows are archived and hidden from the default listing by design (archived=true shows them)."
+ ],
+ "blocked_reason": null,
+ "captures": [
+  "counts.json"
+ ]
+}

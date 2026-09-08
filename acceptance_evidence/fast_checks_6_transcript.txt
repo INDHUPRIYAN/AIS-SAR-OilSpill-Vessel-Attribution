@@ -1,0 +1,25 @@
+
+== E2E-12
+    [ok ] dry-run poll answers: 200
+    [ok ] dry-run errors == []: []
+    [ok ] dry-run opened nothing: []
+    [MISS] dry-run reports what it WOULD open (new scenes named): 0
+    [ok ] ack -> acknowledged: (200, 'acknowledged')
+    [MISS] assign to a real user: (200, None)
+    [ok ] alert links an investigation or scene: {'investigation_id': 'aoi-danish-straits-20260906T170108', 'scene_id': 'S1D_IW_GRDH_1SDV_20260906T170108_20260906T170133_004460_00844F_D310'}
+    note: SSE delivery: /api/events/alerts is driven in-suite (test_alerts.py::test_sse_sends_the_current_queue_on_connect); consuming a live SSE stream from this harness is deliberately avoided (an SSE endpoint never ends).
+  => E2E-12 PARTIAL
+
+{
+ "E2E-01": "PASS",
+ "E2E-04": "PASS",
+ "E2E-05": "PARTIAL",
+ "E2E-06": "PASS",
+ "E2E-07": "PASS",
+ "E2E-08": "PASS",
+ "E2E-09": "PASS",
+ "E2E-10": "PASS",
+ "E2E-11": "PASS",
+ "E2E-12": "PARTIAL",
+ "E2E-13": "PASS"
+}

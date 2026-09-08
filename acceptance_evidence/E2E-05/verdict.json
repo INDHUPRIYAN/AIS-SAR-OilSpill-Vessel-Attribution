@@ -1,0 +1,72 @@
+{
+ "id": "E2E-05",
+ "title": "Synthetic honesty",
+ "pass_condition": "synthetic run: SYNTHETIC badge visible on card, map, every vessel row, report + annex",
+ "status": "PARTIAL",
+ "executed_utc": "2026-09-08T07:35:54.025627+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "run is the Bali scene",
+   "ok": true,
+   "measured": "S1A_IW_GRDH_BALI",
+   "expected": null
+  },
+  {
+   "check": "manifest either records synthetic AIS or records nothing (never claims real)",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "every vessel row on the map carries source == synthetic",
+   "ok": true,
+   "measured": [
+    "synthetic"
+   ],
+   "expected": [
+    "synthetic"
+   ]
+  },
+  {
+   "check": "suspects.source == synthetic",
+   "ok": true,
+   "measured": "synthetic",
+   "expected": "synthetic"
+  },
+  {
+   "check": "report composes for the synthetic run",
+   "ok": true,
+   "measured": 201,
+   "expected": 201
+  },
+  {
+   "check": "report body says SYNTHETIC",
+   "ok": true,
+   "measured": 22,
+   "expected": null
+  },
+  {
+   "check": "report has a provenance annex",
+   "ok": true,
+   "measured": true,
+   "expected": null
+  },
+  {
+   "check": "annex records the synthetic stages",
+   "ok": false,
+   "measured": 0,
+   "expected": null
+  }
+ ],
+ "notes": [
+  "This manifest predates the `ais` block, so the top-bar chip reads AIS UNRECORDED rather than SYNTHETIC -- the honest label for an absent record. The synthetic label reaches the map, every vessel row and the report through vessels_geojson.source and suspects.source, checked below.",
+  "Map + top-bar gold SYNTHETIC chips: acceptance_evidence/E2E-05/ui-*.png"
+ ],
+ "blocked_reason": null,
+ "captures": [
+  "run.json",
+  "vessels_geojson_sources.json",
+  "report.json"
+ ]
+}

@@ -1,0 +1,21 @@
+# guilt-language gate — master plan §15
+# pattern: culprit|guilty|polluter|offender|perpetrator  (case-insensitive) over UI + API + report sources
+
+main_system/frontend/src/components/IntelPanel.jsx:5: * predicted / highest attribution likelihood. Never "confirmed culprit".
+main_system/frontend/src/pages/About.jsx:28:    "No public dataset links a SAR slick to a confirmed culprit vessel. Accuracy is measured on a 50-scenario synthetic benchmark with a planted culprit, wh
+main_system/frontend/src/pages/Analytics.jsx:101:              where the culprit leaves little behavioural evidence.
+main_system/backend/api/analytics.py:503:            "note": "Synthetic benchmark with a planted culprit. No real-world "
+main_system/backend/api/routes.py:134:    was sound and worth pursuing -- never whether a named operator is guilty.
+Binary file main_system/backend/api/__pycache__/analytics.cpython-310.pyc matches
+Binary file main_system/backend/api/__pycache__/routes.cpython-310.pyc matches
+analysis_engines/engines/attribution/README.md:70:50 seeded scenarios, one known culprit each — see [`benchmark/`](../../benchmark/):
+analysis_engines/engines/attribution/README.md:76:| Culprit lost to the gates | 0 / 50 |
+analysis_engines/engines/attribution/tracks.py:35:    "length_m", "width_m", "draft_m", "status", "source", "culprit",
+analysis_engines/engines/attribution/tracks.py:42:    "status": None, "source": "unknown", "culprit": False,
+analysis_engines/engines/attribution/tracks.py:58:    culprit: bool
+analysis_engines/engines/attribution/tracks.py:233:                culprit=bool(first.get("culprit")),
+Binary file analysis_engines/engines/attribution/__pycache__/tracks.cpython-310.pyc matches
+
+# (lines above, if any, are hits that are not explicit negations)
+# negations/ policy statements found:
+3

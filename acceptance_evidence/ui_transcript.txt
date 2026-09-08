@@ -1,0 +1,40 @@
+[E2E-01] captured ui-signin-form.png
+signed in as operator (admin)
+[E2E-04] captured ui-flagship-workspace.png
+[E2E-04] captured ui-flagship-topbar.png
+[E2E-04] title: inv-gulf-flagship-20230108-2day
+[E2E-04] unfiled badge: UNFILED RUN
+[E2E-04] chips: inv-gulf-flagship-20230108-2day | AIS | REAL | STAGES | 5/5 REAL | INDEX | RECONCILED | ENGINE | ML | ⌗ FD42E078
+[E2E-04] scene source badge: SCENE REAL
+[E2E-04] overall: COMPLETE
+[E2E-04] AIS chip title: a real AIS archive holds reports inside the computed origin window
+[E2E-04] index chip title: This registry row was rebuilt from the run's sealed manifest after the run finished, not recorded by the API as it happened. The artefacts and their digest are unchanged; fields the API alone could have known (investigation, incident) are absent rather than guessed.
+[E2E-04] captured ui-flagship-suspects.png
+[E2E-04] suspects panel: Spill | Suspects | 4 | Attribution likelihood — investigative support, not proof of guilt. | score = Σ weight × factor | proximity 0.30 | temporal 0.20 | trajectory 0.20 | behaviour 0.10 | ais gap 0.15 | vessel prior 0.05 | #1 | MMSI 367653160 | 367653160 · other | 0.67 | #2 | MMSI 367668740 | 367668740 · other | 0.64 | #3 | MMSI 367357000 | 367357000 · other | 0.63 | #4 | MMSI 367630990 | 367630990 · other | 0.50 | Filtered out (28 of 32 considered)
+[E2E-04] captured ui-palette-flagship.png
+[E2E-04] palette rows: 4 · first: RUN | inv-gulf-flagship-20230108 | failed · 4/5 real · S1A_IW_GRDH_1SDV_20230108T001008_2
+[E2E-04] dashboard mentions flagship: true
+[E2E-04] captured ui-runs-list.png
+[E2E-05] captured ui-synthetic-workspace.png
+[E2E-05] captured ui-synthetic-topbar.png
+[E2E-05] chips: inv-gulf-rehearsal-20230108 | AIS | REAL | STAGES | 2/5 REAL | SYNTHETIC | 3 STAGES | INDEX | RECONCILED | ENGINE | ML | ⌗ 54D6B30D
+[E2E-05] layer badges: SYNTHETIC · SYNTHETIC · SYNTHETIC AIS · SYNTHETIC · SENSOR · SENSOR · SENSOR · SYNTHETIC · SYNTHETIC · SYNTHETIC · SYNTHETIC · SENSOR
+[E2E-05] captured ui-synthetic-suspects.png
+[E2E-05] suspects panel: Spill | Suspects | 5 | Attribution likelihood — investigative support, not proof of guilt. | score = Σ weight × factor | proximity 0.25 | temporal 0.20 | trajectory 0.20 | behaviour 0.15 | ais gap 0.15 | vessel prior 0.05 | #1 | MV DEMO ALPHA | 419000631 · tanker | 0.88 | #2 | MV DEMO BRAVO | 419001000 · tanker | 0.39 | #3 | MV DEMO CHARLIE | 419001037 · cargo | 0.31 | #4 | MV DEMO DELTA | 419001074 · bulk | 0.19 | #5 | MV DEMO ECHO | 419001111 · fishing | 0.11 | Filtered out (8 of 20 considered
+[E2E-06] captured ui-flagship-spill-panel.png
+[E2E-06] spill panel: Spill | Suspects | 4 | Area | 6.83 km² | Perimeter | 31.91 km | Centroid | 27.8087, -90.1882 | Major axis | 8.85 km | Minor axis | 1.19 km | Orientation | 173.5° | Damping ratio | 1.4 dB | Age estimate | 23.7 h · LOW confidence | Detection confidence | 68.8% | Engine | ML | Source | REAL
+[E2E-07] captured ui-analytics.png
+[E2E-07] analytics shows unet-r34-fullcorpus-e48: true · 0.5723: true · 0.4445: true · EXPERIMENTAL: true · YOLOv8: false
+[E2E-07] captured ui-catalog-models.png
+[E2E-07] catalog shows NOT DEPLOYED: true · sha256 shown: false
+[E2E-10] captured ui-report.png
+[E2E-10] report mentions digest prefix: true · "Rank": false · guilt words: false · LOW confidence: false
+[E2E-12] captured ui-alerts.png
+[E2E-12] alerts page: OceanTrace | Incident Replay | Investigations | Workspace | Analytics | Monitoring | Data & Models | 3 | Alerts | Keys | About | CONTEXT | NO RUN | ⌘K | 4/12 APIs | 08:14:03Z | ALERTS (3) | show dismissed | SEVERITY	ALERT	AGE	STATUS	ACTIONS | INFO	 | New Sentinel-1 pass over Danish Straits (Kattegat / Great Belt) | Acquired 2026-09-06T17:00
+[E2E-02] captured ui-monitoring-providers.png
+[E2E-02] monitoring shows REACHABLE/WORKING split: true / true · NOT DEPLOYED rows: true
+[E2E-14] captured ui-cancelled.png
+[E2E-14] overall: CANCELLED · chips: inv-f3ec39f2a2-074125 | AIS | UNRECORDED | STAGES | NO MANIFEST
+[E2E-02] captured ui-journey-workspace.png
+[E2E-02] overall: RUNNING · chips: INC-2026-002 ▸ inv-9480a327d1-081049 | AIS | UNRECORDED | STAGES | NO MANIFEST
+[E2E-03] captured ui-ui-run-topbar.png

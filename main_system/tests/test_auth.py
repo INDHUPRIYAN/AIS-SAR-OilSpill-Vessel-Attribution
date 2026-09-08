@@ -287,9 +287,18 @@ def test_admin_satisfies_every_role_guard(app_env):
 # --------------------------------------------------------------------------
 
 def test_bootstrap_does_nothing_without_credentials(app_env):
-    from backend.api.auth import bootstrap_admin
+    """The suite must not depend on the developer's own .env: a demo laptop
+    legitimately carries OT_ADMIN_EMAIL/PASSWORD (that is the documented
+    production setup), and this test is about the code path with neither."""
+    from backend.api import auth as auth_mod
 
-    assert bootstrap_admin() is None, "a checkout with no env vars gets no account"
+    saved = (auth_mod.settings.admin_email, auth_mod.settings.admin_password)
+    auth_mod.settings.admin_email = ""
+    auth_mod.settings.admin_password = ""
+    try:
+        assert auth_mod.bootstrap_admin() is None, "a checkout with no env vars gets no account"
+    finally:
+        auth_mod.settings.admin_email, auth_mod.settings.admin_password = saved
 
 
 def test_bootstrap_never_overwrites_an_existing_account(app_env):

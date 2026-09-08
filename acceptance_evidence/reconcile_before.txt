@@ -1,0 +1,9 @@
+=== BEFORE RECONCILIATION ===
+flagship run_id        : inv-gulf-flagship-20230108-2day
+artefact_digest        : fd42e078f836611043fd088e1e0abc490064b05404f887c2a69571ab65f94a84
+immutable              : True
+manifest sha256        : 7e64a6655c4e418b7398295f0fb271152566f3d1f95b447558df19606e88dd44
+verify ok              : True  (8 artefacts checked)
+verify problems        : []
+db rows                : 99
+flagship row present   : False

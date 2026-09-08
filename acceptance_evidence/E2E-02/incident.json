@@ -1,0 +1,14 @@
+{
+ "id": "INC-2026-002",
+ "title": "E2E-02 acceptance journey",
+ "geometry": null,
+ "detected_utc": null,
+ "status": "open",
+ "region": "Bay of Bengal",
+ "assignee_id": null,
+ "notes": null,
+ "created_utc": "2026-09-08T08:10:43.607443+00:00",
+ "updated_utc": "2026-09-08T08:10:43.607443+00:00",
+ "investigations": 0,
+ "runs": 0
+}

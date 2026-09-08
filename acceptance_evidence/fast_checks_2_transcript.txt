@@ -1,0 +1,68 @@
+
+== E2E-05
+    [ok ] run is the Bali scene: 'S1A_IW_GRDH_BALI'
+    [ok ] manifest either records synthetic AIS or records nothing (never claims real): None
+    note: This manifest predates the `ais` block, so the top-bar chip reads AIS UNRECORDED rather than SYNTHETIC -- the honest label for an absent record. The synthetic label reaches the map, every vessel row and the report through vessels_geojson.source and suspects.source, checked below.
+    [ok ] every vessel row on the map carries source == synthetic: ['synthetic']
+    [ok ] suspects.source == synthetic: 'synthetic'
+    [ok ] report composes for the synthetic run: 201
+    [ok ] report body says SYNTHETIC: 22
+    [ok ] report has a provenance annex: True
+    [MISS] annex records the synthetic stages: 0
+    note: Map + top-bar gold SYNTHETIC chips: acceptance_evidence/E2E-05/ui-*.png
+  => E2E-05 PARTIAL
+
+== E2E-07
+    [ok ] segmentation identity is unet-r34-fullcorpus-e48: None
+    [ok ] oil-tile IoU 0.5723 present: None
+    [ok ] overall IoU 0.4445 present (C-10: all three numbers): None
+    [ok ] no-oil tile firing 280/5248 present (C-10): None
+    [ok ] nothing named YOLOv8: None
+    [ok ] segment model listed with a sha256: 'a4aac81f3ddd54ce05859c0fc4faada7b196288ed64a54293ab96488c5804a44'
+    [ok ] drift residual listed as EXPERIMENTAL: None
+    [ok ] Sentinel-2 / EO listed NOT_DEPLOYED in the catalogue: None
+    [ok ] S2 search answers 501, not an empty list: None
+    note: Analytics page render: acceptance_evidence/E2E-07/ui-analytics.png
+  => E2E-07 PASS
+
+== E2E-10
+    [ok ] analyst composes draft (201): 201
+    [ok ] starts as draft: 'draft'
+    [ok ] report digest == flagship digest prefix: 'fd42e078f8366110'
+    [ok ] annex lists 8 artefact hashes: 8
+    [ok ] annex hashes == manifest hashes == /verify checked count: (8, 8)
+    [ok ] analyst submits -> in_review: (200, 'in_review')
+    [ok ] analyst cannot publish (403): 403
+    [ok ] reviewer publishes -> published: (200, 'published')
+    [ok ] published report is immutable (second publish 409): 409
+    [ok ] export.json answers: 200
+    [ok ] export is stamped with digest + version: None
+    [ok ] export.csv answers: 200
+    [ok ] revise creates version 2 (201): (201, 2)
+    [ok ] version 2 is a new draft with the same digest: None
+  => E2E-10 PASS
+
+== E2E-12
+    [ok ] dry-run poll answers: 200
+    [ok ] dry-run errors == []: []
+    [ok ] dry-run opened nothing: []
+    [ok ] dry-run reports what it WOULD open (new scenes named): 7
+    [ok ] live poll on danish-straits answers: (200, '{"started_utc":"2026-09-08T07:36:03.068076+00:00","polled":["danish-straits"],"skipped":[],"disabled":[],"new_scenes":[{')
+    [ok ] live poll errors == []: []
+    note: live poll opened 3 investigation(s): ['aoi-danish-straits-20260906T170043', 'aoi-danish-straits-20260906T170108', 'aoi-danish-straits-20260907T053940']
+    [ok ] ack -> acknowledged: (200, 'acknowledged')
+    BLOCKED: KeyError: 'user'
+  => E2E-12 BLOCKED
+
+{
+ "E2E-01": "PASS",
+ "E2E-04": "PASS",
+ "E2E-05": "PARTIAL",
+ "E2E-06": "PASS",
+ "E2E-07": "PASS",
+ "E2E-08": "PASS",
+ "E2E-09": "PASS",
+ "E2E-10": "PASS",
+ "E2E-12": "BLOCKED",
+ "E2E-13": "PARTIAL"
+}

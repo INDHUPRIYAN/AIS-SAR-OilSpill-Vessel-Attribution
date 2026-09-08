@@ -1,0 +1,84 @@
+{
+ "id": "E2E-08",
+ "title": "Attribution integrity",
+ "pass_condition": "weights sum validated; sum(w_i * s_i) == totals; comparison view matches suspects.json; zero-candidate scenario renders honest empty",
+ "status": "PASS",
+ "executed_utc": "2026-09-08T07:32:26.847806+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "weights sum to 1.0",
+   "ok": true,
+   "measured": 1.0,
+   "expected": 1.0
+  },
+  {
+   "check": "sum(w_i*s_i) reproduces every total_score (<= 0.001)",
+   "ok": true,
+   "measured": 0.00015,
+   "expected": "<= 0.001"
+  },
+  {
+   "check": "ranks are in descending score order",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "funnel endpoint answers",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "funnel considered == 32",
+   "ok": true,
+   "measured": 32,
+   "expected": 32
+  },
+  {
+   "check": "funnel ranked == 4 and filtered == 28",
+   "ok": true,
+   "measured": {
+    "ranked": null,
+    "filtered_out": 28
+   },
+   "expected": [
+    4,
+    28
+   ]
+  },
+  {
+   "check": "served suspects layer == suspects.json on disk",
+   "ok": true,
+   "measured": [
+    367653160,
+    367668740,
+    367357000,
+    367630990
+   ],
+   "expected": null
+  },
+  {
+   "check": "no guilt language in suspects artefact",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "zero-candidate behaviour covered by passing tests (no sealed zero-suspect run exists to replay)",
+   "ok": true,
+   "measured": "exit 0",
+   "expected": "exit 0"
+  }
+ ],
+ "notes": [
+  "A live zero-candidate scenario was not manufactured for the archive (standing rule 11)."
+ ],
+ "blocked_reason": null,
+ "captures": [
+  "recomputed_totals.json",
+  "funnel.json",
+  "zero_candidate_tests.txt"
+ ]
+}

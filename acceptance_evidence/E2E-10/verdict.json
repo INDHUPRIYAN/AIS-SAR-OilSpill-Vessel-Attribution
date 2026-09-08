@@ -1,0 +1,115 @@
+{
+ "id": "E2E-10",
+ "title": "Report lifecycle",
+ "pass_condition": "draft -> submit -> approve(reviewer) -> published immutable; annex lists 8 artefact hashes == /verify; export stamped; version 2 on edit",
+ "status": "PASS",
+ "executed_utc": "2026-09-08T07:35:55.448965+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "analyst composes draft (201)",
+   "ok": true,
+   "measured": 201,
+   "expected": 201
+  },
+  {
+   "check": "starts as draft",
+   "ok": true,
+   "measured": "draft",
+   "expected": null
+  },
+  {
+   "check": "report digest == flagship digest prefix",
+   "ok": true,
+   "measured": "fd42e078f8366110",
+   "expected": null
+  },
+  {
+   "check": "annex lists 8 artefact hashes",
+   "ok": true,
+   "measured": 8,
+   "expected": 8
+  },
+  {
+   "check": "annex hashes == manifest hashes == /verify checked count",
+   "ok": true,
+   "measured": [
+    8,
+    8
+   ],
+   "expected": null
+  },
+  {
+   "check": "analyst submits -> in_review",
+   "ok": true,
+   "measured": [
+    200,
+    "in_review"
+   ],
+   "expected": null
+  },
+  {
+   "check": "analyst cannot publish (403)",
+   "ok": true,
+   "measured": 403,
+   "expected": 403
+  },
+  {
+   "check": "reviewer publishes -> published",
+   "ok": true,
+   "measured": [
+    200,
+    "published"
+   ],
+   "expected": null
+  },
+  {
+   "check": "published report is immutable (second publish 409)",
+   "ok": true,
+   "measured": 409,
+   "expected": 409
+  },
+  {
+   "check": "export.json answers",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "export is stamped with digest + version",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "export.csv answers",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "revise creates version 2 (201)",
+   "ok": true,
+   "measured": [
+    201,
+    2
+   ],
+   "expected": null
+  },
+  {
+   "check": "version 2 is a new draft with the same digest",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  }
+ ],
+ "notes": [],
+ "blocked_reason": null,
+ "captures": [
+  "report_v1.json",
+  "report_published.json",
+  "export.json",
+  "export.csv",
+  "report_v2.json"
+ ]
+}

@@ -1,0 +1,135 @@
+{
+ "id": "E2E-02",
+ "title": "Investigator journey",
+ "pass_condition": "login -> create incident -> AOI + window -> scene search (live CDSE) -> pick -> run -> SSE 5 stages -> workspace layers -> manifest v2 has git SHA + model hashes",
+ "status": "PASS",
+ "executed_utc": "2026-09-08T08:26:05.691928+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "incident created (from capture)",
+   "ok": true,
+   "measured": "INC-2026-002",
+   "expected": null
+  },
+  {
+   "check": "live CDSE search returned products",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "S2 search -> 501 NOT DEPLOYED (never an empty list)",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "run exists and is complete",
+   "ok": true,
+   "measured": "complete",
+   "expected": "complete"
+  },
+  {
+   "check": "registry row stamped api",
+   "ok": true,
+   "measured": "api",
+   "expected": "api"
+  },
+  {
+   "check": "SSE showed all 5 stages",
+   "ok": true,
+   "measured": [
+    "attribution",
+    "characterise",
+    "detect",
+    "drift_forecast",
+    "drift_hindcast"
+   ],
+   "expected": null
+  },
+  {
+   "check": "job completed",
+   "ok": true,
+   "measured": "complete",
+   "expected": "complete"
+  },
+  {
+   "check": "manifest has code_git_sha",
+   "ok": true,
+   "measured": "393246b5526f7f607a093d382878ecb821ff4645+dirty",
+   "expected": null
+  },
+  {
+   "check": "manifest has model sha256 for segment + screen",
+   "ok": true,
+   "measured": [
+    [
+     "screen",
+     "9a6ff8df0d2b"
+    ],
+    [
+     "segment",
+     "a4aac81f3ddd"
+    ]
+   ],
+   "expected": null
+  },
+  {
+   "check": "manifest sealed + verifies",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "layer scene_meta renders (200)",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "layer slick renders (200)",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "layer origin_cloud renders (200)",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "layer forecast renders (200)",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "layer suspects renders (200)",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "vessels_geojson renders",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "run filed under the incident",
+   "ok": true,
+   "measured": "INC-2026-002",
+   "expected": "INC-2026-002"
+  }
+ ],
+ "notes": [
+  "Re-scored against the completed run inv-9480a327d1-081049 started by an earlier invocation of this harness (its live captures in this directory are reused); no new pipeline was launched."
+ ],
+ "blocked_reason": null,
+ "captures": [
+  "run.json",
+  "job_final.json"
+ ]
+}

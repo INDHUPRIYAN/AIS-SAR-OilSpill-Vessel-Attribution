@@ -169,6 +169,17 @@ export function ProvenanceChips() {
             .join(" · ")} />
       ))}
 
+      {/* How this index row came to exist. A row rebuilt from a sealed
+        * manifest after the fact is not the same kind of record as one the API
+        * watched being made, and the difference is exactly the sort of thing
+        * that should be visible rather than inferred. The artefacts are the
+        * evidence either way -- this describes the index entry, not the run. */}
+      {run.registry_source === "reconciled" && (
+        <Chip tone="ghost" label="index" value="RECONCILED"
+          testid="chip-registry-source"
+          title="This registry row was rebuilt from the run's sealed manifest after the run finished, not recorded by the API as it happened. The artefacts and their digest are unchanged; fields the API alone could have known (investigation, incident) are absent rather than guessed." />
+      )}
+
       {run.detect_engine && (
         <Chip tone="neutral" label="engine" value={run.detect_engine}
           testid="chip-engine"

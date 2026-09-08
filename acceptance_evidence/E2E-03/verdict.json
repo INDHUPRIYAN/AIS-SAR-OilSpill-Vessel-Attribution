@@ -1,0 +1,50 @@
+{
+ "id": "E2E-03",
+ "title": "UI never mock-runs",
+ "pass_condition": "UI-launched run manifest: stages_real == stages_total, stages_mock == 0",
+ "status": "PASS",
+ "executed_utc": "2026-09-08T08:26:05.701587+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "stages_real == stages_total",
+   "ok": true,
+   "measured": [
+    5,
+    5
+   ],
+   "expected": null
+  },
+  {
+   "check": "stages_mock == 0",
+   "ok": true,
+   "measured": 0,
+   "expected": 0
+  },
+  {
+   "check": "no stage source is synthetic/mock",
+   "ok": true,
+   "measured": [
+    "real",
+    "real",
+    "real",
+    "real",
+    "real"
+   ],
+   "expected": null
+  },
+  {
+   "check": "AIS provenance recorded (not silently real)",
+   "ok": true,
+   "measured": "synthetic",
+   "expected": null
+  }
+ ],
+ "notes": [
+  "AIS for this scene: synthetic -- the badge, not the claim, is what E2E-03 protects."
+ ],
+ "blocked_reason": null,
+ "captures": [
+  "manifest_summary.json"
+ ]
+}

@@ -1,0 +1,26 @@
+[
+ {
+  "mmsi": 367653160,
+  "rank": 1,
+  "total": 0.6691,
+  "recomputed": 0.6691
+ },
+ {
+  "mmsi": 367668740,
+  "rank": 2,
+  "total": 0.6405,
+  "recomputed": 0.6405
+ },
+ {
+  "mmsi": 367357000,
+  "rank": 3,
+  "total": 0.633,
+  "recomputed": 0.6328
+ },
+ {
+  "mmsi": 367630990,
+  "rank": 4,
+  "total": 0.4978,
+  "recomputed": 0.4977
+ }
+]

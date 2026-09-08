@@ -1,0 +1,178 @@
+{
+ "id": "E2E-01",
+ "title": "Anonymous access",
+ "pass_condition": "every /api/* (except auth/health) -> 401; route x role matrix captured",
+ "status": "PASS",
+ "executed_utc": "2026-09-08T07:32:09.368945+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "anonymous GET /api/runs -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/runs/inv-gulf-flagship-20230108-2day -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/search?q=inv -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/investigations -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/incidents -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/vessels -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/vessels/367653160 -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/alerts -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/aois -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/reports -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/audit -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/audit/verify -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/metrics -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/models -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/catalog -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/system/health -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/apis/status -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/keys -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/layers/inv-gulf-flagship-20230108-2day/slick -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/tiles/inv-gulf-flagship-20230108-2day/info -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/runs/inv-gulf-flagship-20230108-2day/verify -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/scenes/local -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/jobs/job-x -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "anonymous GET /api/alerts/summary -> 401",
+   "ok": true,
+   "measured": 401,
+   "expected": 401
+  },
+  {
+   "check": "public /health reachable",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "public / reachable",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "route x role matrix suite passes",
+   "ok": true,
+   "measured": "exit 0",
+   "expected": "exit 0"
+  }
+ ],
+ "notes": [],
+ "blocked_reason": null,
+ "captures": [
+  "anonymous_probes.json",
+  "rbac_matrix_pytest.txt"
+ ]
+}

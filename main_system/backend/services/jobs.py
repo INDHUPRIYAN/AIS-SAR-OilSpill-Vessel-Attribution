@@ -176,6 +176,45 @@ def finish(db, job_id: str, status: str, error: Optional[str] = None) -> None:
     _clear(job_id)
 
 
+RESTART_REASON = ("server restarted while this run was in flight; it was left "
+                  "unsealed (no manifest) and did not complete")
+
+
+def sweep_dead_runs(db) -> Dict[str, Any]:
+    """At boot, stop dead runs from claiming to be alive.
+
+    A pipeline runs in a thread of this process. If the process dies -- P20
+    acceptance produced exactly that, a segmentation fault under concurrent
+    runs -- every row that said `running` or `pending` keeps saying so forever,
+    and the UI shows work in progress that no longer exists. At startup nothing
+    is running by definition, so any such row is dead. It becomes `failed` with
+    a reason that says what happened, and its job with it.
+
+    Rows that already have a sealed manifest are left alone and reported: the
+    run finished and the process died before the row was updated, and
+    `backfill_runs --refresh` is the tool that reconciles that case.
+    """
+    from backend.models.db import Run
+
+    root = Path(_settings().runs_root)
+    swept, sealed_but_unmarked = [], []
+    for row in db.query(Run).filter(Run.status.in_(("running", "pending"))).all():
+        if (root / row.id / "manifest.json").is_file():
+            sealed_but_unmarked.append(row.id)
+            continue
+        row.status = "failed"
+        row.finished_utc = row.finished_utc or utcnow()
+        row.error = RESTART_REASON
+        job = db.get(Job, f"job-{row.id}")
+        if job is not None and job.status not in FINISHED:
+            job.status = "failed"
+            job.error = RESTART_REASON
+            job.finished_utc = job.finished_utc or utcnow()
+        swept.append(row.id)
+    db.commit()
+    return {"swept": swept, "sealed_but_unmarked": sealed_but_unmarked}
+
+
 def start(db, job_id: str) -> None:
     job = db.get(Job, job_id)
     if job is None:

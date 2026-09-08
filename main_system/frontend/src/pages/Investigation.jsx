@@ -121,7 +121,12 @@ export default function Investigation() {
     const tick = async () => {
       const mine = ++statusSeq.current;
       try {
-        const st = await api.invStatus(invId, replayRunId);
+        // Status for THE RUN ON SCREEN, not the investigation's latest. With
+        // only the replay id passed, a deep-linked run got its title and
+        // chips from the URL and its layers from whichever run the selected
+        // investigation last produced -- the flagship's header over the
+        // Chennai scene's slick (found by the P20 screenshot set).
+        const st = await api.invStatus(invId, runId);
         if (!alive || mine !== statusSeq.current) return;
         setStatus(st);
         for (const s of st.stages || []) {
@@ -139,7 +144,7 @@ export default function Investigation() {
     tick();
     const id = setInterval(tick, running ? 2000 : 10000);
     return () => { alive = false; clearInterval(id); };
-  }, [invId, running, fetchLayer, replayRunId]);
+  }, [invId, running, fetchLayer, runId]);
 
   /* full (re)load when the active run changes */
   useEffect(() => {
@@ -198,10 +203,28 @@ export default function Investigation() {
     }
   }, [layers.vessels]);
 
+  /* The run's own registry row. Needed because the page can be showing a run
+   * that belongs to no investigation at all (a CLI run, reconciled into the
+   * registry afterwards) -- and in that case the investigation dropdown's
+   * selection is NOT this run's investigation, so naming it in the header
+   * would attribute the run to a case it was never filed under. */
+  const { data: runRow } = useApi(
+    () => (runId ? api.getRun(runId) : Promise.resolve(null)), [runId]);
+  const runIsUnfiled = Boolean(runId && runRow && !runRow.investigation_id);
+  const runBelongsElsewhere = Boolean(
+    runId && runRow && runRow.investigation_id && invId
+    && runRow.investigation_id !== invId);
+  const headerNamesTheRun = runIsUnfiled || runBelongsElsewhere;
+
+  const stageList = status?.stages ?? [];
   const overall = !invId ? "NEW"
+    // A cancelled run has stages that read `cancelled`; before this it showed
+    // COMPLETE because "some stages ran and none failed" was the only test.
+    : (status?.state === "cancelled" || runRow?.status === "cancelled"
+       || stageList.some((s) => s.status === "cancelled")) ? "CANCELLED"
     : status?.state === "running" ? "RUNNING"
-    : (status?.stages ?? []).some((s) => s.status === "failed") ? "FAILED-PARTIAL"
-    : (status?.stages ?? []).length ? "COMPLETE" : "NEW";
+    : stageList.some((s) => s.status === "failed") ? "FAILED-PARTIAL"
+    : stageList.length ? "COMPLETE" : "NEW";
 
   const { data: health } = useApi(() => api.apiStatus(), [], { interval: 30000 });
   const providers = health?.providers ?? [];
@@ -349,11 +372,20 @@ export default function Investigation() {
       <div className="map-overlay ws-header panel" data-testid="ws-header">
         <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <span className="ws-title">{inv?.name ?? "Investigation"}</span>
+            <span className="ws-title" data-testid="ws-title">
+              {headerNamesTheRun ? runId : (inv?.name ?? "Investigation")}
+            </span>
+            {runIsUnfiled && (
+              <span className="badge badge-neutral" data-testid="unfiled-run"
+                title="This run is not filed under an investigation. It was produced outside the API (a CLI run) and its registry row was reconciled from its sealed manifest, which records the scene and the stages but not which case it was opened for.">
+                UNFILED RUN
+              </span>
+            )}
             <span className={`badge ${
               overall === "COMPLETE" ? "badge-ok" :
               overall === "RUNNING" ? "badge-warn" :
-              overall === "FAILED-PARTIAL" ? "badge-danger" : "badge-neutral"}`}
+              overall === "FAILED-PARTIAL" ? "badge-danger" :
+              overall === "CANCELLED" ? "badge-warn" : "badge-neutral"}`}
               data-testid="overall-status">{overall}</span>
           </div>
           <div className="tiny muted mono" data-testid="scene-line">

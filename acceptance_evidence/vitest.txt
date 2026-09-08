@@ -1,0 +1,24 @@
+
+ RUN  v2.1.9 C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/main_system/frontend
+
+ ✓ tests-unit/geodesy.test.js (15 tests) 10ms
+ ✓ tests-unit/runEvents.test.jsx (5 tests) 90ms
+ ✓ tests-unit/session.test.jsx (6 tests) 108ms
+stderr | tests-unit/topbar.test.jsx > provenance chips > shows one ghost chip when no run is open
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ tests-unit/measureTool.test.jsx (10 tests) 275ms
+stderr | tests-unit/commandPalette.test.jsx > opening and closing > opens on ⌘K and on Ctrl+K
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ tests-unit/topbar.test.jsx (17 tests) 312ms
+ ✓ tests-unit/commandPalette.test.jsx (19 tests) 1835ms
+   ✓ entity search > debounces: typing an MMSI is one request, not nine 483ms
+
+ Test Files  6 passed (6)
+      Tests  72 passed (72)
+   Start at  13:12:18
+   Duration  6.40s (transform 848ms, setup 3.04s, collect 3.36s, tests 2.63s, environment 15.23s, prepare 1.72s)
+

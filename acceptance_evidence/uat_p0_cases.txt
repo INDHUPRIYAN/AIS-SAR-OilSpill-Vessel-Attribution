@@ -1,0 +1,41 @@
+OT-A-01 | Discover and document the real investigator entry point
+OT-A-02 | System finds the oil without being told where it is
+OT-A-04 | Negative test: manual spill specification must not be required or silently used
+OT-B-01 | Real Sentinel-1 .SAFE scene ingestion
+OT-B-04 | Georeferencing sanity (pixel → world)
+OT-B-05 | EO / optical imagery compliance (dedicated)
+OT-C-01 | Two-stage automated detection executes (YOLO screen → U-Net segmentation)
+OT-C-02 | Segmentation mask → georeferenced boundary consistency
+OT-C-05 | Anti-fabrication: detection output depends on the input
+OT-D-01 | Slick boundary artifact validity
+OT-D-02 | Geometric properties: completeness and internal consistency
+OT-E-01 | Oceanographic current data acquisition (CMEMS → HYCOM → StaticCache)
+OT-E-02 | Meteorological wind data acquisition (ERA5 → Open-Meteo → StaticCache)
+OT-E-03 | Forcing actually reaches the drift engine (no silent zeros)
+OT-F-01 | Backward particle propagation executes
+OT-F-02 | Origin cloud artifact (`origin_cloud.geojson`)
+OT-F-03 | Origin location plausibility
+OT-F-04 | Origin TIME window is produced (point AND time, per SIH)
+OT-F-06 | DEDICATED: "Hindcasting Machine Learning Model" presence
+OT-G-01 | Forward drift prediction executes and produces `forecast.geojson`
+OT-H-01 | Synthetic AIS supports the workflow end-to-end (explicitly permitted by SIH)
+OT-H-02 | `vessels.parquet`: cleaned, interpolated positions/tracks
+OT-H-05 | Traffic around the origin: `query_cloud()` with 25 km buffer
+OT-H-06 | Real historic AIS execution (adapter claims vs reality)
+OT-I-01 | Three-gate filter executes with per-gate counts
+OT-I-02 | Excluded vessels remain explainable (`filter_reason`)
+OT-J-01 | Multi-factor scoring produces `suspects.json` with full structure
+OT-J-02 | Weight configuration integrity (0.30/0.20/0.20/0.15/0.10/0.05)
+OT-J-03 | Proximity factor behaves monotonically
+OT-J-06 | AIS gap / blackout factor
+OT-J-07 | Seeded-scenario benchmark: verify the 86% top-1 / 100% top-3 claim
+OT-K-01 | UI launches and loads a completed investigation
+OT-K-02 | Full layer narrative renders coherently
+OT-K-03 | Time slider synchronizes vessels and drift
+OT-K-04 | SuspectsPanel: ranking, factor bars, weights, evidence, map linkage
+OT-L-01 | Real vs synthetic labeling in the primary demo (real Sentinel-1 + synthetic AIS)
+OT-M-01 | Full investigation UAT: one user input → ranked suspects on a map
+OT-M-02 | Live-regeneration proof (defeat the 103-canned-runs risk)
+OT-N-01 | Compliance verdict: EO / optical imagery (R3)
+OT-N-02 | Compliance verdict: Hindcasting ML model (R9)
+OT-N-03 | Compliance verdict: Real historic AIS execution (R10-real)

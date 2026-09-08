@@ -122,8 +122,15 @@ def investigation_status(investigation_id: str, run: Optional[str] = None,
             except Exception:
                 continue
             stages = payload.get("stages", [])
-            state = payload.get("state") or (
-                "complete" if run.status == "complete" else run.status)
+            # The registry row is the authority once a run has ended. status.json
+            # is written by the pipeline as it goes and is never rewritten when a
+            # run is cancelled mid-flight (the point of cancelling is that the
+            # writer stops), so its `state` stays "running" forever and the UI
+            # showed a cancelled run as COMPLETE -- found by the P20 screenshots.
+            if run.status in ("cancelled", "failed", "complete"):
+                state = run.status
+            else:
+                state = payload.get("state") or run.status
             # Which layer files exist right now -- drives incremental render
             # and the disabled toggles for not-yet-produced layers.
             present = {name: (d / fn).exists() for name, fn in LAYER_FILES.items()}

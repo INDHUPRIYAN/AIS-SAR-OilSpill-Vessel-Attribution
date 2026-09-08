@@ -1,0 +1,42 @@
+
+== E2E-11
+    [ok ] every sealed run on disk has a DB row: []
+    [ok ] every row marked complete has a sealed directory: []
+    [ok ] no row claims running/pending without a live job: []
+    [ok ] no sealed run is still marked in flight: []
+    [ok ] sealed count == rows marked complete or failed: (106, 106)
+    [ok ] flagship family (5) all registered and reconciled: None
+    note: 50 directories have no manifest (never sealed: cancelled/aborted) and are correctly absent from the registry.
+    [ok ] replay list is a subset of the registry: 0
+    [ok ] /api/runs total == non-archived rows: (110, 110)
+    [ok ] pagination has no overlap and no gap: (110, 110, 110)
+    [ok ] sort order is monotone desc across pages: None
+    [ok ] paged listing == brute-force set: 0
+    note: 0 rows are archived and hidden from the default listing by design (archived=true shows them).
+    [ok ] status=complete filter == brute force: (99, 99)
+    [ok ] q=gulf filter == brute force: (8, 8)
+  => E2E-11 PASS
+
+== E2E-13
+    [ok ] >= 10 distinct event types recorded: 13
+    note: recorded action types: ['alert.ack', 'aoi.create', 'aoi.delete', 'auth.login', 'decision.inconclusive', 'incident.create', 'investigation.create', 'report.create', 'report.publish', 'report.revise', 'report.submit', 'run.cancel', 'run.start']
+    [ok ] every event has an actor: 85
+    [ok ] every session-originated event records an IP: (73, 0)
+    note: 12 event(s) carry no IP because no request produced them (actors: ['auditor', 'test-admin@example.invalid']) -- pipeline/scheduler/CLI actions, recorded as such.
+    [ok ] /api/audit/verify ok on the live chain: {'ok': True, 'checked': 84, 'total': 85, 'unchained': 1, 'broken_at': None, 'note': '1 legacy row(s) predate hash chaining and are not covered'}
+    [ok ] tampered copy fails verification: False
+  => E2E-13 PASS
+
+{
+ "E2E-01": "PASS",
+ "E2E-04": "PASS",
+ "E2E-05": "PARTIAL",
+ "E2E-06": "PASS",
+ "E2E-07": "PASS",
+ "E2E-08": "PASS",
+ "E2E-09": "PASS",
+ "E2E-10": "PASS",
+ "E2E-11": "PASS",
+ "E2E-12": "BLOCKED",
+ "E2E-13": "PASS"
+}

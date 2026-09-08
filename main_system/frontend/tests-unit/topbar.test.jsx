@@ -164,6 +164,22 @@ describe("provenance chips", () => {
     expect(chip).toHaveAttribute("title", expect.stringContaining("attribution"));
   });
 
+  it("says when the registry row was reconciled rather than observed", async () => {
+    // The flagship's own situation. The artefacts are untouched evidence; the
+    // ROW describing them was rebuilt afterwards, and a reader should not have
+    // to infer which kind of record they are looking at.
+    renderChips("r", async () => ok({ ...FLAGSHIP, registry_source: "reconciled" }));
+    const chip = await screen.findByTestId("chip-registry-source");
+    expect(chip).toHaveTextContent("RECONCILED");
+    expect(chip).toHaveAttribute("title", expect.stringContaining("digest are unchanged"));
+  });
+
+  it("shows no such chip for a run the API watched happen", async () => {
+    renderChips("r", async () => ok({ ...FLAGSHIP, registry_source: "api" }));
+    await screen.findByTestId("chip-ais");
+    expect(screen.queryByTestId("chip-registry-source")).not.toBeInTheDocument();
+  });
+
   it("shows the artefact digest, truncated, for the run it describes", async () => {
     renderChips("r", async () => ok(FLAGSHIP));
     expect(await screen.findByTestId("chip-digest")).toHaveTextContent("fd42e078");

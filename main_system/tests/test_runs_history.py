@@ -332,3 +332,4 @@ def test_normalise_carries_gate_identities():
     assert row["filter_reason"] == "outside time window"
     assert row["failed_gates"] == ["outside time window"]
     assert row["reason"].startswith("Filtered out:")
+

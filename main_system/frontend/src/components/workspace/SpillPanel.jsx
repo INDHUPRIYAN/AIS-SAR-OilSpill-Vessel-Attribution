@@ -24,7 +24,10 @@ export default function SpillPanel({ slick, detect }) {
     ["Minor axis", `${num((p.minor_axis_m ?? 0) / 1000)} km`, "minor"],
     ["Orientation", `${num(p.orientation_deg, 1)}°`, "orientation"],
     ["Damping ratio", p.damping_ratio == null ? "—" : `${num(p.damping_ratio, 1)} dB`, "damping"],
-    ["Age estimate", p.age_hours_estimate == null ? "—" : `${num(p.age_hours_estimate, 1)} h`, "age"],
+    // Standing rule 7: slick age always shows LOW confidence. The estimate is
+    // a damping-ratio heuristic with no ground truth behind it, and a bare
+    // "6.9 h" reads as a measurement.
+    ["Age estimate", p.age_hours_estimate == null ? "—" : `${num(p.age_hours_estimate, 1)} h · LOW confidence`, "age"],
     ["Detection confidence", `${num((p.confidence ?? 0) * 100, 1)}%`, "confidence"],
   ];
   return (

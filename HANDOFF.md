@@ -15,12 +15,12 @@ integrator. They have standing authority to build or fix any teammate's module.
 
 **Repo:** `C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution`
 **Branch:** `feat/indhu-detection-pipeline`
-**HEAD:** `9c36aac`
+**HEAD:** see `git log -1`; release candidate tag `v1.0.0-rc1`
 **Working tree:** clean
 **Python:** repo-root `.venv` (3.10). Run tests with
 `.venv/Scripts/python.exe -m pytest -q`
 
-**Test suite: 979 passed, 4 skipped, 0 failed** (`.venv/Scripts/python.exe -m
+**Test suite: 1006 passed, 4 skipped, 0 failed** (`.venv/Scripts/python.exe -m
 pytest`). The skips are network-dependent provider tests — a provider outage is
 not a code defect, and the count moves between 4 and 5 with the network.
 
@@ -220,7 +220,7 @@ across navigation replaces it and is tested.
 Evidence and the full reasoning: `dev_evidence/P19/README.md`, with real-data
 screenshots in `dev_evidence/P19/shots/`.
 
-### P20 — End-to-end validation & demo freeze (NOT STARTED — highest value)
+### P20 — End-to-end validation & demo freeze (DONE — see `ACCEPTANCE_REPORT.md`, `DEMO_RUNBOOK.md`, `acceptance_evidence/`)
 
 This is the most important remaining work. Required:
 - Execute master plan §14 **E2E-01…15** in order, capturing evidence under
@@ -239,7 +239,7 @@ This is the most important remaining work. Required:
 numbers labelled — `oil-tile IoU 0.5723 · overall IoU 0.4445 · no-oil tiles
 firing 280/5,248 (5.3%)`.
 
-### BLOCKER FOR P20 — the flagship has no database row
+### RESOLVED in P20 — the flagship had no database row (kept for the record)
 
 Found while photographing the shell against the live archive. The run
 directory, its artefacts and its manifest are all present and verify; the
@@ -260,10 +260,12 @@ it cannot be found in ⌘K, does not appear in the runs list, and the top-bar
 provenance strip over it reads `RUN UNREADABLE` (correct behaviour for a run
 the API says does not exist; not what anyone wants in a demo).
 
-Deliberately not fixed in P19: writing a row for the frozen flagship is a
-decision about acceptance evidence, and P20 owns it. **Resolve this first.**
-Note the `users` table is also empty, so nobody can sign in to the live
-database as it stands.
+Resolved in P20 by running the existing `backend.backfill_runs` reconciliation
+(cause: the five Gulf runs were CLI-produced after the tool's last execution).
+Artefacts and digest untouched and verified before/after; the row is stamped
+`registry_source = reconciled`; vessels indexed. Operator/analyst/reviewer
+accounts now exist (credentials in the gitignored `.env`). Full account:
+`ACCEPTANCE_REPORT.md` §2 and §5.
 
 ### Known outstanding, recorded not dropped
 - **Route-level code-splitting** for maplibre/deck bundles (P18). Build warns
@@ -302,7 +304,9 @@ database as it stands.
 
 ## 9. Suggested next step
 
-**P20**, which is the deliverable that matters most for SIH — starting with the
-flagship's missing database row (§7).
+P00–P20 are complete. Rehearse from `DEMO_RUNBOOK.md`. The items in
+`ACCEPTANCE_REPORT.md` §6 ("recorded, not fixed") are the honest backlog:
+pipeline duration vs the 60 s figure, HDF5 thread-safety (mitigated by the
+concurrency gate, not fixed), scheduler-started runs without a jobs row.
 
 Do not re-run or modify the flagship. Use it as evidence.

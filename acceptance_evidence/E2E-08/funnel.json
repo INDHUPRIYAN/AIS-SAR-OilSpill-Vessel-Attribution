@@ -1,0 +1,23 @@
+{
+ "run_id": "inv-gulf-flagship-20230108-2day",
+ "found": 441,
+ "found_note": null,
+ "indexed": 32,
+ "after_spatial": 4,
+ "after_temporal": 4,
+ "after_trajectory": 4,
+ "candidates": 4,
+ "filtered": 28,
+ "reasons_histogram": {
+  "outside origin region": 28
+ },
+ "exclusive_by_gate": {
+  "after_spatial": 28,
+  "after_temporal": 3,
+  "after_trajectory": 21
+ },
+ "unclassified": 0,
+ "gates_are_sequential": false,
+ "note": "Gates are evaluated together; a vessel may fail several. The cumulative counts show one ordering of a single evaluation.",
+ "source": "real"
+}

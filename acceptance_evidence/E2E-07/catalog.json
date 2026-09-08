@@ -1,0 +1,368 @@
+{
+ "providers": [
+  {
+   "name": "CDSE",
+   "purpose": "Sentinel-1 scene search + download",
+   "kind": "satellite",
+   "owner": "Pavitra",
+   "chain": [
+    "CDSE",
+    "ASF",
+    "LocalCache"
+   ],
+   "deployment": "DEPLOYED",
+   "status": "WORKING",
+   "probe": "functional",
+   "probe_proves": "the Sentinel-1 catalogue answers a real product query",
+   "credentials": "configured",
+   "coverage": {
+    "dataset": "SENTINEL-1 GRD (IW)",
+    "bbox": [
+     -180,
+     -90,
+     180,
+     90
+    ],
+    "temporal": "2014-10-03 .. present",
+    "resolution": "10 m",
+    "note": "global"
+   },
+   "last_success_utc": "2026-09-08T07:34:52.994341",
+   "last_error_class": "NONE",
+   "latency_ms": 1836
+  },
+  {
+   "name": "ASF",
+   "purpose": "Sentinel-1 fallback via ASF Vertex",
+   "kind": "satellite",
+   "owner": "Pavitra",
+   "chain": [
+    "CDSE",
+    "ASF",
+    "LocalCache"
+   ],
+   "deployment": "DEPLOYED",
+   "status": "REACHABLE",
+   "probe": "reachability",
+   "probe_proves": null,
+   "credentials": "configured",
+   "coverage": {
+    "dataset": "SENTINEL-1 GRD (IW)",
+    "bbox": [
+     -180,
+     -90,
+     180,
+     90
+    ],
+    "temporal": "2014-10-03 .. present",
+    "resolution": "10 m",
+    "note": "global; NASA Earthdata mirror"
+   },
+   "last_success_utc": "2026-09-08T07:34:57.784358",
+   "last_error_class": "NONE",
+   "latency_ms": 4781
+  },
+  {
+   "name": "LocalCache",
+   "purpose": "Pre-downloaded scenes (guaranteed path)",
+   "kind": "satellite",
+   "owner": "Pavitra",
+   "chain": [
+    "CDSE",
+    "ASF",
+    "LocalCache"
+   ],
+   "deployment": "DEPLOYED",
+   "status": "WORKING",
+   "probe": "none",
+   "probe_proves": null,
+   "credentials": "n_a",
+   "coverage": {
+    "dataset": "downloaded scenes on this host",
+    "bbox": null,
+    "temporal": "whatever has been fetched",
+    "resolution": "10 m",
+    "note": "see /api/scenes/local"
+   },
+   "last_success_utc": "2026-09-08T07:34:57.796883",
+   "last_error_class": "NONE",
+   "latency_ms": null
+  },
+  {
+   "name": "CMEMS",
+   "purpose": "Ocean currents (GLORYS multiyear)",
+   "kind": "currents",
+   "owner": "Keerthana",
+   "chain": [
+    "CMEMS",
+    "HYCOM",
+    "StaticCache"
+   ],
+   "deployment": "DEPLOYED",
+   "status": "REACHABLE",
+   "probe": "functional",
+   "probe_proves": "the currents dataset the chain requests is published",
+   "credentials": "configured",
+   "coverage": {
+    "dataset": "GLORYS / Analysis-Forecast surface currents",
+    "bbox": [
+     -180,
+     -80,
+     180,
+     90
+    ],
+    "temporal": "1993 .. present",
+    "resolution": "1/12 deg, daily means",
+    "note": "daily means: no tidal or sub-daily structure"
+   },
+   "last_success_utc": "2026-09-08T07:34:59.643181",
+   "last_error_class": "NONE",
+   "latency_ms": 533
+  },
+  {
+   "name": "HYCOM",
+   "purpose": "Ocean currents fallback via OPeNDAP",
+   "kind": "currents",
+   "owner": "Keerthana",
+   "chain": [
+    "CMEMS",
+    "HYCOM",
+    "StaticCache"
+   ],
+   "deployment": "DEPLOYED",
+   "status": "REACHABLE",
+   "probe": "reachability",
+   "probe_proves": null,
+   "credentials": "n_a",
+   "coverage": {
+    "dataset": "GOFS 3.1 surface currents",
+    "bbox": [
+     -180,
+     -80,
+     180,
+     90
+    ],
+    "temporal": "1994 .. present",
+    "resolution": "1/12 deg",
+    "note": "OPeNDAP; used when CMEMS is unavailable"
+   },
+   "last_success_utc": "2026-09-08T07:35:00.984650",
+   "last_error_class": "NONE",
+   "latency_ms": 1325
+  },
+  {
+   "name": "ERA5",
+   "purpose": "Historical 10 m wind for drift",
+   "kind": "wind",
+   "owner": "Keerthana",
+   "chain": [
+    "ERA5",
+    "OpenMeteo",
+    "StaticCache"
+   ],
+   "deployment": "DEPLOYED",
+   "status": "REACHABLE",
+   "probe": "reachability",
+   "probe_proves": null,
+   "credentials": "configured",
+   "coverage": {
+    "dataset": "ERA5 single-levels 10 m wind",
+    "bbox": [
+     -180,
+     -90,
+     180,
+     90
+    ],
+    "temporal": "1940 .. present (~5 day lag)",
+    "resolution": "0.25 deg, hourly",
+    "note": "CDS queue can be slow"
+   },
+   "last_success_utc": "2026-09-08T07:35:01.766585",
+   "last_error_class": "NONE",
+   "latency_ms": 765
+  },
+  {
+   "name": "OpenMeteo",
+   "purpose": "Wind fallback, no key required",
+   "kind": "wind",
+   "owner": "Keerthana",
+   "chain": [
+    "ERA5",
+    "OpenMeteo",
+    "StaticCache"
+   ],
+   "deployment": "DEPLOYED",
+   "status": "REACHABLE",
+   "probe": "reachability",
+   "probe_proves": null,
+   "credentials": "n_a",
+   "coverage": {
+    "dataset": "ERA5-derived 10 m wind (point API)",
+    "bbox": [
+     -180,
+     -90,
+     180,
+     90
+    ],
+    "temporal": "1940 .. present",
+    "resolution": "hourly; sampled per point",
+    "note": "point API -- the adapter samples bbox corners, so the field is spatially coarse"
+   },
+   "last_success_utc": "2026-09-08T07:35:03.250349",
+   "last_error_class": "NONE",
+   "latency_ms": 1468
+  },
+  {
+   "name": "DMA",
+   "purpose": "Real AIS, Danish Maritime Authority archive",
+   "kind": "ais",
+   "owner": "Krishnan",
+   "chain": [
+    "DMA",
+    "MarineCadastre",
+    "SyntheticGenerator"
+   ],
+   "deployment": "DEPLOYED",
+   "status": "REACHABLE",
+   "probe": "reachability",
+   "probe_proves": null,
+   "credentials": "n_a",
+   "coverage": {
+    "dataset": "Danish Maritime Authority AIS archive",
+    "bbox": [
+     3.0,
+     53.0,
+     17.0,
+     59.0
+    ],
+    "temporal": "2006 .. present",
+    "resolution": "1 s .. 1 min reports",
+    "note": "Danish/Baltic waters ONLY; adapter not yet exercised on a real archive"
+   },
+   "last_success_utc": "2026-09-08T07:35:35.236483",
+   "last_error_class": "NONE",
+   "latency_ms": 31971
+  },
+  {
+   "name": "MarineCadastre",
+   "purpose": "Real AIS, US waters",
+   "kind": "ais",
+   "owner": "Krishnan",
+   "chain": [
+    "DMA",
+    "MarineCadastre",
+    "SyntheticGenerator"
+   ],
+   "deployment": "DEPLOYED",
+   "status": "WORKING",
+   "probe": "functional",
+   "probe_proves": "a real daily AIS archive is downloadable",
+   "credentials": "n_a",
+   "coverage": {
+    "dataset": "NOAA AISDataHandler daily archives",
+    "bbox": [
+     -180,
+     0,
+     -60,
+     75
+    ],
+    "temporal": "2009 .. present",
+    "resolution": "1 min reports",
+    "note": "US waters ONLY; exercised end to end by the flagship run"
+   },
+   "last_success_utc": "2026-09-08T07:35:37.390090",
+   "last_error_class": "NONE",
+   "latency_ms": 2130
+  },
+  {
+   "name": "SyntheticGenerator",
+   "purpose": "Synthetic AIS with known culprit",
+   "kind": "ais",
+   "owner": "Krishnan",
+   "chain": [
+    "DMA",
+    "MarineCadastre",
+    "SyntheticGenerator"
+   ],
+   "deployment": "DEPLOYED",
+   "status": "WORKING",
+   "probe": "none",
+   "probe_proves": null,
+   "credentials": "n_a",
+   "coverage": {
+    "dataset": "generated around a run's own origin",
+    "bbox": null,
+    "temporal": "any",
+    "resolution": "configurable",
+    "note": "every row is flagged SYNTHETIC"
+   },
+   "last_success_utc": "2026-09-08T07:35:37.396839",
+   "last_error_class": "NONE",
+   "latency_ms": null
+  },
+  {
+   "name": "Sentinel2",
+   "purpose": "Optical confirmation of SAR detections",
+   "kind": "optical",
+   "owner": "Pavitra",
+   "chain": [],
+   "deployment": "NOT_DEPLOYED",
+   "status": "NOT_DEPLOYED",
+   "probe": "none",
+   "probe_proves": null,
+   "credentials": "n_a",
+   "coverage": {
+    "dataset": "Sentinel-2 L2A (adapter only)",
+    "bbox": [
+     -180,
+     -90,
+     180,
+     90
+    ],
+    "temporal": "n/a -- not deployed",
+    "resolution": "10 m",
+    "note": "NOT DEPLOYED"
+   },
+   "last_success_utc": null,
+   "last_error_class": "NONE",
+   "latency_ms": null,
+   "reason": "The adapter exists and is unit-tested (scene_service/satellite/s2_adapter.py) but no optical data is wired into the pipeline and no accuracy has been measured for it. /api/scenes/search?source=S2 returns 501 rather than an empty list, because an empty list would read as 'we looked and found none'."
+  },
+  {
+   "name": "AISStream",
+   "purpose": "Live AIS over WebSocket",
+   "kind": "ais",
+   "owner": "Krishnan",
+   "chain": [],
+   "deployment": "NOT_DEPLOYED",
+   "status": "NOT_DEPLOYED",
+   "probe": "none",
+   "probe_proves": null,
+   "credentials": "n_a",
+   "coverage": {
+    "dataset": "live AIS WebSocket (not consumed)",
+    "bbox": null,
+    "temporal": "live only",
+    "resolution": "n/a",
+    "note": "NOT DEPLOYED"
+   },
+   "last_success_utc": null,
+   "last_error_class": "NONE",
+   "latency_ms": null,
+   "reason": "Live AIS is stream-only: it cannot answer questions about a scene acquired in the past, which is every question this system asks. Nothing in the pipeline consumes it and no key field is offered."
+  }
+ ],
+ "vocabulary": {
+  "WORKING": "an authenticated or functional probe succeeded",
+  "REACHABLE": "the host answered an unauthenticated request; this does not prove it will serve us data",
+  "DEGRADED": "reachable and refusing us, or failing intermittently",
+  "UNCONFIGURED": "credentials are required and absent",
+  "FAILED": "unreachable",
+  "NOT_DEPLOYED": "the adapter exists but nothing consumes it"
+ },
+ "credentials_vocabulary": {
+  "configured": "every field of an accepted credential set is present",
+  "missing": "this provider needs credentials and some are absent",
+  "n_a": "this provider takes no credentials -- there is nothing to configure, so neither a tick nor a cross would be true"
+ }
+}

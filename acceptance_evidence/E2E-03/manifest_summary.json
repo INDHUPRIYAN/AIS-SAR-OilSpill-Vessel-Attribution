@@ -1,0 +1,116 @@
+{
+ "stages": [
+  {
+   "stage": "detect",
+   "owner": "Indhu",
+   "status": "ok",
+   "engine_used": "ml",
+   "data_source": "sensor",
+   "output": "detect_response.json",
+   "contract": "detect",
+   "source": "real",
+   "detail": "engine=ml, 0 oil + 78 look-alike candidate(s), confidence 0.6565",
+   "seconds": 238.1,
+   "warnings": [
+    "screen: 7 oil candidate(s) over 1728 tile(s), best 0.40",
+    "ml inference 116.7s",
+    "screen rejected 78/78 segmented region(s) as look-alike",
+    "every candidate was rejected as a look-alike by the screening model; downstream drift still runs on the full mask, so treat this origin and its suspects as unconfirmed"
+   ],
+   "idempotency_key": "d9fdd0cd216efe5918d05871413864b2191bf17be5c2c231374fa62894b38038"
+  },
+  {
+   "stage": "characterise",
+   "owner": "Nandha",
+   "status": "ok",
+   "engine_used": "primary",
+   "data_source": "sensor",
+   "output": "slick.geojson",
+   "contract": "slick",
+   "source": "real",
+   "detail": "Engine A: 18 slick(s)",
+   "seconds": 33.09,
+   "warnings": [
+    "Engine A ran on a 5711x11737 px window around the detections (margin 1500 px) instead of the full 28072x21162 scene; geometry is georeferenced identically"
+   ],
+   "idempotency_key": "dd1cdfaefca318d1c9ace0726d681e4b40e71bab010ec77a955f4a5bfe28f5ee"
+  },
+  {
+   "stage": "drift_hindcast",
+   "owner": "Nandha",
+   "status": "ok",
+   "engine_used": "euler",
+   "data_source": "sensor",
+   "output": "origin_cloud.geojson",
+   "contract": "origin_cloud",
+   "source": "real",
+   "detail": "Engine B [euler] hindcast 24h, currents+wind",
+   "seconds": 5.49,
+   "warnings": [],
+   "idempotency_key": "ebd57066be74d5a3fd1714c5f52ae937bc52645aead1502713d409435860c646"
+  },
+  {
+   "stage": "drift_forecast",
+   "owner": "Nandha",
+   "status": "ok",
+   "engine_used": "euler",
+   "data_source": "sensor",
+   "output": "forecast.geojson",
+   "contract": "forecast",
+   "source": "real",
+   "detail": "Engine B [euler] forecast 24h, currents+wind",
+   "seconds": 3.15,
+   "warnings": [],
+   "idempotency_key": "9735ad403b0e9d06eb7f6d1276f4bea7f91c033c50fcb101833f3c0b131ae236"
+  },
+  {
+   "stage": "attribution",
+   "owner": "Nandha",
+   "status": "ok",
+   "engine_used": "primary",
+   "data_source": "synthetic",
+   "output": "suspects.json",
+   "contract": "suspects",
+   "source": "real",
+   "detail": "Engine C: 1 suspect(s), top MMSI 237717848 score 0.64",
+   "seconds": 2.89,
+   "warnings": [
+    "mc_gulf_2023_01_01.parquet (real) does not cover the computed origin window",
+    "vessels.parquet (synthetic) does not cover the computed origin window",
+    "vessels.parquet (synthetic) does not cover the computed origin window",
+    "generating AIS for this origin instead",
+    "synthesised AIS around the computed origin (13.373, 80.428) -- flagged SYNTHETIC",
+    "AIS index: 43 vessels/3507 rows -> 3 vessels/153 rows (query 85.1 ms vs full scan 7.4 ms; ingest 172.5 ms)"
+   ],
+   "idempotency_key": "23ae4609fb0c07cceb25fba95cd3342cf064047bc0801d249438881c9d95dc0f"
+  }
+ ],
+ "ais": {
+  "selection": "synthetic",
+  "data_source": "synthetic",
+  "covers_origin": true,
+  "file": "vessels_generated.parquet",
+  "detail": "no real AIS covered the computed origin window; a fleet was synthesised around it and every row is flagged SYNTHETIC",
+  "considered": [
+   {
+    "file": "mc_gulf_2023_01_01.parquet",
+    "path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/data/ais/real/mc_gulf_2023_01_01.parquet",
+    "data_source": "real",
+    "covers_origin": false
+   },
+   {
+    "file": "vessels.parquet",
+    "path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/ais_service/test_output/vessels.parquet",
+    "data_source": "synthetic",
+    "covers_origin": false
+   },
+   {
+    "file": "vessels.parquet",
+    "path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/contracts/mocks/vessels.parquet",
+    "data_source": "synthetic",
+    "covers_origin": false
+   }
+  ]
+ },
+ "total_seconds": 349.31
+}

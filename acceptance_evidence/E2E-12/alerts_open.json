@@ -1,0 +1,40 @@
+[
+ {
+  "id": "alert-9e20a0a5e1",
+  "kind": "new_scene",
+  "severity": "info",
+  "status": "acknowledged",
+  "title": "New Sentinel-1 pass over Danish Straits (Kattegat / Great Belt)",
+  "detail": "Acquired 2026-09-06T17:00:43Z. An investigation was opened automatically.",
+  "aoi_id": "danish-straits",
+  "scene_id": "S1D_IW_GRDH_1SDV_20260906T170043_20260906T170108_004460_00844F_ACA9",
+  "run_id": null,
+  "investigation_id": "aoi-danish-straits-20260906T170043",
+  "created_utc": "2026-09-08T07:36:06.420008",
+  "acknowledged_utc": "2026-09-08T07:36:06.758317",
+  "assigned_to": null,
+  "assigned_utc": null,
+  "dismissed_utc": null,
+  "dismiss_reason": null,
+  "age_seconds": 2589.4
+ },
+ {
+  "id": "alert-e7a7351b74",
+  "kind": "new_scene",
+  "severity": "info",
+  "status": "open",
+  "title": "New Sentinel-1 pass over Danish Straits (Kattegat / Great Belt)",
+  "detail": "Acquired 2026-09-07T05:39:40Z. An investigation was opened automatically.",
+  "aoi_id": "danish-straits",
+  "scene_id": "S1C_IW_GRDH_1SDV_20260907T053940_20260907T054005_009337_012918_1CFB",
+  "run_id": null,
+  "investigation_id": "aoi-danish-straits-20260907T053940",
+  "created_utc": "2026-09-08T07:36:06.707258",
+  "acknowledged_utc": null,
+  "assigned_to": null,
+  "assigned_utc": null,
+  "dismissed_utc": null,
+  "dismiss_reason": null,
+  "age_seconds": 2589.1
+ }
+]

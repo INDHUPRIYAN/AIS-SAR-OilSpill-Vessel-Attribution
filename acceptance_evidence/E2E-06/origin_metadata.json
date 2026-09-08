@@ -1,0 +1,48 @@
+{
+ "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
+ "origin_window_start_utc": "2023-01-07T11:10:08Z",
+ "origin_window_end_utc": "2023-01-08T00:10:08Z",
+ "backtrack_hours": 24.0,
+ "n_particles": 7500,
+ "timestep_minutes": 60.0,
+ "forcing": {
+  "currents": {
+   "provider": "Copernicus Marine Service (CMEMS)",
+   "variables": [
+    "uo",
+    "vo"
+   ],
+   "fallback": null,
+   "file": "currents.nc",
+   "dataset": "OceanTrace Normalized Surface Currents",
+   "normalised": "Normalized at 2026-09-07T06:34:21.349113+00:00"
+  },
+  "wind": {
+   "provider": "ECMWF ERA5 Reanalysis (CDS API)",
+   "variables": [
+    "u10",
+    "v10"
+   ],
+   "fallback": null,
+   "file": "wind.nc",
+   "dataset": "OceanTrace Normalized 10m Atmospheric Winds",
+   "normalised": "Normalized at 2026-09-07T07:13:27.663782+00:00"
+  },
+  "windage": 0.03,
+  "engine": "euler",
+  "ml_residual": {
+   "model": null,
+   "applied": false,
+   "mean_correction_m_per_step": 0.0,
+   "corrects": "forward-Euler truncation error at the operational timestep"
+  },
+  "hours": 24
+ },
+ "origin_window_method": "cloud_convergence",
+ "origin_peak_utc": "2023-01-08T00:10:08Z",
+ "origin_uncertainty_km": 0.3658,
+ "origin_uncertainty_coverage": 0.908,
+ "origin_uncertainty_method": "calibrated physics heuristic (not ML): m*k*cloud_sigma, k=0.0907 m=1.75, fitted on 1665 closed-loop scenarios over 24 real fields",
+ "source": "real",
+ "crs": "EPSG:4326"
+}

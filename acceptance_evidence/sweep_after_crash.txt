@@ -1,0 +1,2 @@
+in-flight rows now: []
+swept rows: [('aoi-danish-straits-20260906T170043-49a921', 'failed', 'server restarted while this run was in flight; it was left u'), ('aoi-danish-straits-20260906T170108-0358d4', 'failed', 'server restarted while this run was in flight; it was left u'), ('aoi-danish-straits-20260907T053940-389f67', 'failed', 'server restarted while this run was in flight; it was left u')]

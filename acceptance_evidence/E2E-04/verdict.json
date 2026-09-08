@@ -1,0 +1,165 @@
+{
+ "id": "E2E-04",
+ "title": "Flagship real run",
+ "pass_condition": "Gulf S1 + MarineCadastre through run_pipeline: attribution data_source real; suspects.source == real; sealed + verified; UI shows REAL badge",
+ "status": "PASS",
+ "executed_utc": "2026-09-08T07:32:09.555957+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "GET /api/runs/{flagship} -> 200",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "registry row is marked reconciled (derived, not observed)",
+   "ok": true,
+   "measured": "reconciled",
+   "expected": "reconciled"
+  },
+  {
+   "check": "investigation_id left NULL (not fabricated)",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "manifest.ais.data_source == real",
+   "ok": true,
+   "measured": "real",
+   "expected": "real"
+  },
+  {
+   "check": "manifest.ais.covers_origin",
+   "ok": true,
+   "measured": true,
+   "expected": true
+  },
+  {
+   "check": "5/5 stages real, 0 mock, 0 failed",
+   "ok": true,
+   "measured": [
+    5,
+    0,
+    0
+   ],
+   "expected": [
+    5,
+    0,
+    0
+   ]
+  },
+  {
+   "check": "every stage source == real",
+   "ok": true,
+   "measured": [
+    "real",
+    "real",
+    "real",
+    "real",
+    "real"
+   ],
+   "expected": null
+  },
+  {
+   "check": "segment model is unet-r34-fullcorpus-e48",
+   "ok": true,
+   "measured": "unet-r34-fullcorpus-e48",
+   "expected": null
+  },
+  {
+   "check": "screen model is yolo11n-screen-dartis-2026-08-24",
+   "ok": true,
+   "measured": "yolo11n-screen-dartis-2026-08-24",
+   "expected": null
+  },
+  {
+   "check": "manifest carries code_git_sha",
+   "ok": true,
+   "measured": "03b48a779b2ebb12aea0ac3a2c1801cbb8b3e729",
+   "expected": null
+  },
+  {
+   "check": "digest prefix is fd42e078f8366110",
+   "ok": true,
+   "measured": "fd42e078f8366110",
+   "expected": "fd42e078f8366110"
+  },
+  {
+   "check": "suspects.source == real",
+   "ok": true,
+   "measured": "real",
+   "expected": "real"
+  },
+  {
+   "check": "rank #1 is MMSI 367653160 at 0.6691",
+   "ok": true,
+   "measured": [
+    367653160,
+    0.6691
+   ],
+   "expected": null
+  },
+  {
+   "check": "no ranked vessel carries an invented name",
+   "ok": true,
+   "measured": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "expected": null
+  },
+  {
+   "check": "/verify ok over 8 artefacts",
+   "ok": true,
+   "measured": [
+    true,
+    8
+   ],
+   "expected": [
+    true,
+    8
+   ]
+  },
+  {
+   "check": "/verify reports no problems",
+   "ok": true,
+   "measured": [],
+   "expected": []
+  },
+  {
+   "check": "searchable by exact id (tier 0)",
+   "ok": true,
+   "measured": [
+    [
+     "inv-gulf-flagship-20230108-2day",
+     0
+    ]
+   ],
+   "expected": null
+  },
+  {
+   "check": "appears in /api/runs listing",
+   "ok": true,
+   "measured": [
+    "inv-gulf-flagship-20230108-2day",
+    "inv-gulf-flagship-20230108-final",
+    "inv-gulf-flagship-20230108-v2",
+    "inv-gulf-flagship-20230108"
+   ],
+   "expected": null
+  }
+ ],
+ "notes": [
+  "UI REAL badge / UNFILED RUN / RECONCILED chips: see acceptance_evidence/E2E-04/ui-*.png (captured by scripts/acceptance_shots.mjs)"
+ ],
+ "blocked_reason": null,
+ "captures": [
+  "run.json",
+  "suspects.json",
+  "verify.json"
+ ]
+}

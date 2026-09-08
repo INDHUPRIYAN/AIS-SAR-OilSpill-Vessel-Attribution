@@ -1,0 +1,78 @@
+{
+ "id": "E2E-06",
+ "title": "Hindcast uncertainty",
+ "pass_condition": "published ellipses non-zero, consistent with particle covariance; origin_uncertainty_km rendered; PHYSICS badge; no ML claim anywhere",
+ "status": "PASS",
+ "executed_utc": "2026-09-08T07:32:12.708964+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "25 ellipses published",
+   "ok": true,
+   "measured": 25,
+   "expected": 25
+  },
+  {
+   "check": "every ellipse has non-zero axes",
+   "ok": true,
+   "measured": [
+    4921,
+    4961,
+    5009,
+    5071,
+    5090,
+    5139
+   ],
+   "expected": null
+  },
+  {
+   "check": "origin_uncertainty_km published",
+   "ok": true,
+   "measured": 0.3658,
+   "expected": null
+  },
+  {
+   "check": "uncertainty method states it is not ML",
+   "ok": true,
+   "measured": "calibrated physics heuristic (not ML): m*k*cloud_sigma, k=0.0907 m=1.75, fitted on 1665 closed-loop scenarios over 24 real fields",
+   "expected": null
+  },
+  {
+   "check": "window method published (cloud_convergence)",
+   "ok": true,
+   "measured": "cloud_convergence",
+   "expected": null
+  },
+  {
+   "check": "final ellipse within 0.5x-5x of particle 1-sigma spread (same order)",
+   "ok": true,
+   "measured": 2.497,
+   "expected": "0.5 .. 5.0"
+  },
+  {
+   "check": "drift ML is EXPERIMENTAL and not applied",
+   "ok": true,
+   "measured": {
+    "status": "experimental",
+    "applied": false,
+    "evaluated": "negative"
+   },
+   "expected": null
+  },
+  {
+   "check": "no accuracy claimed for drift",
+   "ok": true,
+   "measured": false,
+   "expected": false
+  }
+ ],
+ "notes": [
+  "origin_uncertainty_km on the flagship is 0.3658 km; the plan's 0.99 figure is the Chennai scene's value, not a target for this scene."
+ ],
+ "blocked_reason": null,
+ "captures": [
+  "origin_metadata.json",
+  "cloud_vs_ellipse.json",
+  "metrics_drift.json"
+ ]
+}

@@ -1,0 +1,17 @@
+
+== E2E-12
+    BLOCKED: ConnectError: [WinError 10061] No connection could be made because the target machine actively refused it
+  => E2E-12 BLOCKED
+
+{
+ "E2E-01": "PASS",
+ "E2E-04": "PASS",
+ "E2E-05": "PARTIAL",
+ "E2E-06": "PASS",
+ "E2E-07": "PASS",
+ "E2E-08": "PASS",
+ "E2E-09": "PASS",
+ "E2E-10": "PASS",
+ "E2E-12": "BLOCKED",
+ "E2E-13": "PARTIAL"
+}

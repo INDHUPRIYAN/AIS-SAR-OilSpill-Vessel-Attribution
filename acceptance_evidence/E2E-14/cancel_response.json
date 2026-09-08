@@ -1,0 +1,6 @@
+{
+ "ok": true,
+ "status": "cancelling",
+ "job_id": "job-inv-f3ec39f2a2-074125",
+ "detail": "the pipeline stops at the next stage boundary; the run will not be sealed"
+}

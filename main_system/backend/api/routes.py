@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import re
 import secrets
 import threading
@@ -30,6 +31,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from backend.core.authz import require_role
@@ -315,10 +317,26 @@ def list_investigations(db: Session = Depends(get_db)):
 _run_lock = threading.Lock()
 _running: set = set()
 
+# How many pipelines may execute at once in this process. One, by default:
+# during P20 acceptance an AOI poll fanned out three auto_run pipelines on top
+# of a fourth already executing, and the process died in HDF5 with a
+# segmentation fault -- the metocean readers are not thread-safe. Every launch
+# path (start, rerun, the AOI watcher) goes through _execute_run, so this gate
+# serialises all of them. A queued run keeps its `pending` status until it
+# actually starts, which is what the word means.
+_pipeline_gate = threading.BoundedSemaphore(
+    max(1, int(os.getenv("OT_MAX_CONCURRENT_RUNS", "1"))))
+
 
 def _execute_run(run_id: str, investigation_id: Optional[str],
                  scene: Optional[str], scene_meta: Optional[str], engine: str):
     """Run the pipeline in a worker thread and record the outcome."""
+    with _pipeline_gate:
+        _execute_run_now(run_id, investigation_id, scene, scene_meta, engine)
+
+
+def _execute_run_now(run_id: str, investigation_id: Optional[str],
+                     scene: Optional[str], scene_meta: Optional[str], engine: str):
     from backend.models.db import SessionLocal
     from backend.services.pipeline.run import MOCKS, run_pipeline
 
@@ -419,7 +437,8 @@ def start_run(request: Request, investigation_id: str, body: RunRequest,
     # Stamped now, not joined later: re-filing the investigation under a
     # different case must not rewrite what a sealed run was evidence for.
     db.add(Run(id=run_id, investigation_id=investigation_id, status="pending",
-               scene_id=inv.scene_id, incident_id=inv.incident_id))
+               scene_id=inv.scene_id, incident_id=inv.incident_id,
+               registry_source="api"))
     scene_path = body.scene_path or inv.scene_path
     scene_meta_path = body.scene_meta_path or inv.scene_meta_path
     jobs_service.create(db, run_id, investigation_id,
@@ -510,7 +529,8 @@ def rerun(request: Request, run_id: str, db: Session = Depends(get_db)):
         new_id = f"{new_id}-{secrets.token_hex(2)}"
 
     db.add(Run(id=new_id, investigation_id=old.investigation_id, status="pending",
-               scene_id=old.scene_id, incident_id=old.incident_id))
+               scene_id=old.scene_id, incident_id=old.incident_id,
+               registry_source="api"))
     jobs_service.create(db, new_id, old.investigation_id, inputs)
     audit_service.record(db, "run.rerun", request=request, resource=new_id,
                          detail=json.dumps({"reran": run_id,
@@ -554,7 +574,9 @@ def list_runs(db: Session = Depends(get_db),
     """
     query = db.query(Run)
     if not archived:
-        query = query.filter(Run.archived.is_(False))
+        # NULL-safe: a row that predates the column has never been archived.
+        # init_db() backfills the default, but the filter must not depend on it.
+        query = query.filter(or_(Run.archived.is_(False), Run.archived.is_(None)))
     if status:
         query = query.filter(Run.status == status)
     if incident:
@@ -664,6 +686,10 @@ def _run_dict(r: Run) -> dict:
             "top_score": r.top_score,
             "slick_area_km2": r.slick_area_km2,
             "region": r.region,
+            # Whether this row was observed by the API or rebuilt from the
+            # sealed manifest afterwards. Published so a reader never has to
+            # assume which -- see Run.registry_source.
+            "registry_source": r.registry_source,
             "archived": bool(r.archived),
             "error": r.error}
 

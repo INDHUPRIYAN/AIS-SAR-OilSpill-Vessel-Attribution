@@ -1,0 +1,22 @@
+{
+ "run_id": "inv-f3ec39f2a2-074125",
+ "investigation_id": "inv-f3ec39f2a2",
+ "incident_id": null,
+ "scene_id": "S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_8B05_COG",
+ "status": "cancelled",
+ "started_utc": "2026-09-08T07:41:25.964877",
+ "finished_utc": "2026-09-08T07:44:29.967127",
+ "seconds": 0.0,
+ "detect_engine": null,
+ "stages_total": 0,
+ "stages_real": 0,
+ "stages_mock": 0,
+ "stages_failed": 0,
+ "top_suspect_mmsi": null,
+ "top_score": null,
+ "slick_area_km2": null,
+ "region": null,
+ "registry_source": "api",
+ "archived": false,
+ "error": "run inv-f3ec39f2a2-074125 cancelled after 5 stage(s)"
+}

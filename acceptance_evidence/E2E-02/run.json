@@ -1,0 +1,211 @@
+{
+ "run_id": "inv-9480a327d1-081049",
+ "investigation_id": "inv-9480a327d1",
+ "incident_id": "INC-2026-002",
+ "scene_id": "S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_8B05_COG",
+ "status": "complete",
+ "started_utc": "2026-09-08T08:10:49.766905",
+ "finished_utc": "2026-09-08T08:16:39.659825",
+ "seconds": 349.31,
+ "detect_engine": "ml",
+ "stages_total": 5,
+ "stages_real": 5,
+ "stages_mock": 0,
+ "stages_failed": 0,
+ "top_suspect_mmsi": 237717848,
+ "top_score": 0.6424,
+ "slick_area_km2": 7.411,
+ "region": null,
+ "registry_source": "api",
+ "archived": false,
+ "error": null,
+ "manifest": {
+  "run_id": "inv-9480a327d1-081049",
+  "scene_id": "S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_8B05_COG",
+  "scene_path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/data/scenes/S1A_CHENNAI_20170129/scene_sigma0_db.tif",
+  "generated_utc": "2026-09-08T08:16:39Z",
+  "total_seconds": 349.31,
+  "code_git_sha": "393246b5526f7f607a093d382878ecb821ff4645+dirty",
+  "models": [
+   {
+    "kind": "screen",
+    "file": "screen.onnx",
+    "sha256": "9a6ff8df0d2b4a8f8a287895c6780030c336c5c7f61f1d16d11cc89ceb9ac9fd",
+    "bytes": 10423456,
+    "name": "yolo11n-screen-dartis-2026-08-24",
+    "config_fingerprint": "01e24b0fb0e8"
+   },
+   {
+    "kind": "segment",
+    "file": "segment.onnx",
+    "sha256": "a4aac81f3ddd54ce05859c0fc4faada7b196288ed64a54293ab96488c5804a44",
+    "bytes": 97719644,
+    "name": "unet-r34-fullcorpus-e48",
+    "config_fingerprint": "01e24b0fb0e8"
+   }
+  ],
+  "ais": {
+   "selection": "synthetic",
+   "data_source": "synthetic",
+   "covers_origin": true,
+   "file": "vessels_generated.parquet",
+   "detail": "no real AIS covered the computed origin window; a fleet was synthesised around it and every row is flagged SYNTHETIC",
+   "considered": [
+    {
+     "file": "mc_gulf_2023_01_01.parquet",
+     "path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/data/ais/real/mc_gulf_2023_01_01.parquet",
+     "data_source": "real",
+     "covers_origin": false
+    },
+    {
+     "file": "vessels.parquet",
+     "path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/ais_service/test_output/vessels.parquet",
+     "data_source": "synthetic",
+     "covers_origin": false
+    },
+    {
+     "file": "vessels.parquet",
+     "path": "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/contracts/mocks/vessels.parquet",
+     "data_source": "synthetic",
+     "covers_origin": false
+    }
+   ]
+  },
+  "attribution_profile": {
+   "profile": "default-v1",
+   "profile_hash": "f7e12dd4a5154d05b8a1b1c945fa62093aa05b4cae1bf9cdc8bf12abff5255ba",
+   "sum": 1.0,
+   "validated": true
+  },
+  "stages": [
+   {
+    "stage": "detect",
+    "owner": "Indhu",
+    "status": "ok",
+    "engine_used": "ml",
+    "data_source": "sensor",
+    "output": "detect_response.json",
+    "contract": "detect",
+    "source": "real",
+    "detail": "engine=ml, 0 oil + 78 look-alike candidate(s), confidence 0.6565",
+    "seconds": 238.1,
+    "warnings": [
+     "screen: 7 oil candidate(s) over 1728 tile(s), best 0.40",
+     "ml inference 116.7s",
+     "screen rejected 78/78 segmented region(s) as look-alike",
+     "every candidate was rejected as a look-alike by the screening model; downstream drift still runs on the full mask, so treat this origin and its suspects as unconfirmed"
+    ],
+    "idempotency_key": "d9fdd0cd216efe5918d05871413864b2191bf17be5c2c231374fa62894b38038"
+   },
+   {
+    "stage": "characterise",
+    "owner": "Nandha",
+    "status": "ok",
+    "engine_used": "primary",
+    "data_source": "sensor",
+    "output": "slick.geojson",
+    "contract": "slick",
+    "source": "real",
+    "detail": "Engine A: 18 slick(s)",
+    "seconds": 33.09,
+    "warnings": [
+     "Engine A ran on a 5711x11737 px window around the detections (margin 1500 px) instead of the full 28072x21162 scene; geometry is georeferenced identically"
+    ],
+    "idempotency_key": "dd1cdfaefca318d1c9ace0726d681e4b40e71bab010ec77a955f4a5bfe28f5ee"
+   },
+   {
+    "stage": "drift_hindcast",
+    "owner": "Nandha",
+    "status": "ok",
+    "engine_used": "euler",
+    "data_source": "sensor",
+    "output": "origin_cloud.geojson",
+    "contract": "origin_cloud",
+    "source": "real",
+    "detail": "Engine B [euler] hindcast 24h, currents+wind",
+    "seconds": 5.49,
+    "warnings": [],
+    "idempotency_key": "ebd57066be74d5a3fd1714c5f52ae937bc52645aead1502713d409435860c646"
+   },
+   {
+    "stage": "drift_forecast",
+    "owner": "Nandha",
+    "status": "ok",
+    "engine_used": "euler",
+    "data_source": "sensor",
+    "output": "forecast.geojson",
+    "contract": "forecast",
+    "source": "real",
+    "detail": "Engine B [euler] forecast 24h, currents+wind",
+    "seconds": 3.15,
+    "warnings": [],
+    "idempotency_key": "9735ad403b0e9d06eb7f6d1276f4bea7f91c033c50fcb101833f3c0b131ae236"
+   },
+   {
+    "stage": "attribution",
+    "owner": "Nandha",
+    "status": "ok",
+    "engine_used": "primary",
+    "data_source": "synthetic",
+    "output": "suspects.json",
+    "contract": "suspects",
+    "source": "real",
+    "detail": "Engine C: 1 suspect(s), top MMSI 237717848 score 0.64",
+    "seconds": 2.89,
+    "warnings": [
+     "mc_gulf_2023_01_01.parquet (real) does not cover the computed origin window",
+     "vessels.parquet (synthetic) does not cover the computed origin window",
+     "vessels.parquet (synthetic) does not cover the computed origin window",
+     "generating AIS for this origin instead",
+     "synthesised AIS around the computed origin (13.373, 80.428) -- flagged SYNTHETIC",
+     "AIS index: 43 vessels/3507 rows -> 3 vessels/153 rows (query 85.1 ms vs full scan 7.4 ms; ingest 172.5 ms)"
+    ],
+    "idempotency_key": "23ae4609fb0c07cceb25fba95cd3342cf064047bc0801d249438881c9d95dc0f"
+   }
+  ],
+  "artefacts": [
+   {
+    "file": "scene_meta.json",
+    "bytes": 548,
+    "sha256": "cfbff0ca02073666f41723395fdb4b69303d953f2d0d7ecc196ff4cecde681da"
+   },
+   {
+    "file": "detect_response.json",
+    "bytes": 15951,
+    "sha256": "baf42db52bffc35a9ef6631f3867773abeb499129d4f8c16df55c03698476bd1"
+   },
+   {
+    "file": "raw_mask.tif",
+    "bytes": 668026,
+    "sha256": "a63df23e5d7b54a65ad29192eb7f39897e24f648520bde1272ff12d681f29923"
+   },
+   {
+    "file": "slick.geojson",
+    "bytes": 94998,
+    "sha256": "e3bdcc96db342f4128dd5c10425c26abb6551e3bd50db43a18988d63bea4718a"
+   },
+   {
+    "file": "origin_cloud.geojson",
+    "bytes": 2931179,
+    "sha256": "dfafab9762b379607d33915daee5aaa9e31efcefddff856c15b2a344afc6bb9b"
+   },
+   {
+    "file": "forecast.geojson",
+    "bytes": 33687,
+    "sha256": "e158eb0498313ddcfde078d5edafba4b80d7bbe61097fe19203dc63656f2256f"
+   },
+   {
+    "file": "vessels.parquet",
+    "bytes": 178189,
+    "sha256": "c54a7a1b060f7f0b3fcfa8047878971edf929a3699a9d801dc8383061a450fb5"
+   },
+   {
+    "file": "suspects.json",
+    "bytes": 1878,
+    "sha256": "0e8f1d3bf495480536930a21fa73c470d37d4626cc42ac3ab72885f7a8dcd442"
+   }
+  ],
+  "artefact_digest": "eded5057ce61ab5600f2f405d7fbf34504e379a7f4929273b0a43074b78fd5f5",
+  "immutable": true
+ }
+}

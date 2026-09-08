@@ -1,0 +1,30 @@
+=== AFTER RECONCILIATION ===
+artefact_digest        : fd42e078f836611043fd088e1e0abc490064b05404f887c2a69571ab65f94a84
+digest (first 16)      : fd42e078f8366110   <- must be fd42e078f8366110
+manifest sha256        : 7e64a6655c4e418b7398295f0fb271152566f3d1f95b447558df19606e88dd44
+verify ok              : True  (8 artefacts checked)
+verify problems        : []
+
+db rows                : 104
+
+--- the reconciled registry row ---
+  id                   inv-gulf-flagship-20230108-2day
+  scene_id             S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG
+  status               complete
+  started_utc          2026-09-07 07:58:11.700000
+  finished_utc         2026-09-07 08:04:36.000000
+  seconds              384.3
+  stages_total         5
+  stages_real          5
+  stages_mock          0
+  stages_failed        0
+  detect_engine        ml
+  investigation_id     None
+  incident_id          None
+  region               None
+  top_suspect_mmsi     367653160
+  top_score            0.6691
+  slick_area_km2       59.624
+  registry_source      reconciled
+
+registry_source census: {'(null: predates the column)': 99, 'reconciled': 5}

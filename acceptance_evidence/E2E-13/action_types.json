@@ -1,0 +1,49 @@
+{
+ "in_page": [
+  "alert.ack",
+  "aoi.create",
+  "aoi.delete",
+  "auth.login",
+  "decision.inconclusive",
+  "incident.create",
+  "investigation.create",
+  "report.create",
+  "report.publish",
+  "report.revise",
+  "report.submit",
+  "run.cancel",
+  "run.start"
+ ],
+ "in_table": [
+  "alert.ack",
+  "aoi.create",
+  "aoi.delete",
+  "auth.login",
+  "decision.inconclusive",
+  "incident.create",
+  "investigation.create",
+  "report.create",
+  "report.publish",
+  "report.revise",
+  "report.submit",
+  "run.cancel",
+  "run.start"
+ ],
+ "declared": [
+  "auth.login",
+  "auth.logout",
+  "user.change",
+  "incident.create",
+  "incident.status",
+  "investigation.create",
+  "run.start",
+  "run.complete",
+  "run.cancel",
+  "decision",
+  "report.submit",
+  "report.approve",
+  "key.set",
+  "model.change",
+  "data.export"
+ ]
+}

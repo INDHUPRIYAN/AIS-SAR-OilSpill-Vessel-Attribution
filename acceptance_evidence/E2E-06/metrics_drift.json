@@ -1,0 +1,9 @@
+{
+ "accuracy_reported": false,
+ "status": "experimental",
+ "applied": false,
+ "evaluated": "negative",
+ "experiment": "drift-residual-mlp-20260906",
+ "note": "Drift output is a probability cloud with an uncertainty ellipse. No accuracy is claimed: no ground-truth drift dataset exists for these scenes.",
+ "ml_note": "A learned drift residual exists but is EXPERIMENTAL and disabled: held-out evaluation improved 0 of 6 trajectories, so the deployed hindcast is physics only (Engine B)."
+}

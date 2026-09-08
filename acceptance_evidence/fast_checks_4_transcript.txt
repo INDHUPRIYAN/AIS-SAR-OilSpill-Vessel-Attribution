@@ -1,0 +1,39 @@
+
+== E2E-11
+    [ok ] every sealed run on disk has a DB row: []
+    [ok ] every row marked complete has a sealed directory: []
+    [ok ] no row claims running/pending without a live job: []
+    [MISS] sealed count == rows marked complete: (105, 98)
+    [ok ] flagship family (5) all registered and reconciled: None
+    note: 49 directories have no manifest (never sealed: cancelled/aborted) and are correctly absent from the registry.
+    [ok ] replay list is a subset of the registry: 0
+    [ok ] /api/runs total == non-archived rows: (16, 16)
+    [MISS] pagination has no overlap and no gap: 16
+    [ok ] sort order is monotone desc: None
+    [ok ] first 40 by started_utc match brute-force set: 0
+    [ok ] status=complete filter == brute force: (8, 8)
+    [ok ] q=gulf filter == brute force: (5, 5)
+  => E2E-11 PARTIAL
+
+== E2E-13
+    [ok ] >= 10 distinct event types recorded: 11
+    note: recorded action types: ['alert.ack', 'aoi.create', 'aoi.delete', 'auth.login', 'decision.inconclusive', 'investigation.create', 'report.create', 'report.publish', 'report.revise', 'report.submit', 'run.start']
+    [ok ] every event has an authenticated actor: 68
+    [MISS] every event records an IP: 68
+    [ok ] /api/audit/verify ok on the live chain: {'ok': True, 'checked': 67, 'total': 68, 'unchained': 1, 'broken_at': None, 'note': '1 legacy row(s) predate hash chaining and are not covered'}
+    [ok ] tampered copy fails verification: False
+  => E2E-13 PARTIAL
+
+{
+ "E2E-01": "PASS",
+ "E2E-04": "PASS",
+ "E2E-05": "PARTIAL",
+ "E2E-06": "PASS",
+ "E2E-07": "PASS",
+ "E2E-08": "PASS",
+ "E2E-09": "PASS",
+ "E2E-10": "PASS",
+ "E2E-11": "PARTIAL",
+ "E2E-12": "BLOCKED",
+ "E2E-13": "PARTIAL"
+}

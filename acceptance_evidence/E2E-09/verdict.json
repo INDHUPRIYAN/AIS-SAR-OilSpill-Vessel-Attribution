@@ -1,0 +1,91 @@
+{
+ "id": "E2E-09",
+ "title": "Vessel dossier",
+ "pass_condition": "MMSI ranked in >= 2 runs -> GET /api/vessels/{mmsi} shows both appearances; cross-run tracks render",
+ "status": "PASS",
+ "executed_utc": "2026-09-08T07:32:26.981963+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "GET /api/vessels/367653160 -> 200",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "appears in >= 2 runs",
+   "ok": true,
+   "measured": [
+    "inv-gulf-flagship-20230108",
+    "inv-gulf-flagship-20230108-2day",
+    "inv-gulf-flagship-20230108-final",
+    "inv-gulf-flagship-20230108-v2"
+   ],
+   "expected": null
+  },
+  {
+   "check": "rank #1 in each flagship-family run",
+   "ok": true,
+   "measured": [
+    [
+     "inv-gulf-flagship-20230108-v2",
+     1
+    ],
+    [
+     "inv-gulf-flagship-20230108-final",
+     1
+    ],
+    [
+     "inv-gulf-flagship-20230108-2day",
+     1
+    ],
+    [
+     "inv-gulf-flagship-20230108",
+     1
+    ]
+   ],
+   "expected": null
+  },
+  {
+   "check": "identity honestly absent (name null, identity_available false)",
+   "ok": true,
+   "measured": [
+    null,
+    false
+   ],
+   "expected": null
+  },
+  {
+   "check": "source == real",
+   "ok": true,
+   "measured": "real",
+   "expected": "real"
+  },
+  {
+   "check": "tracks endpoint answers",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "cross-run tracks present",
+   "ok": true,
+   "measured": 4,
+   "expected": null
+  },
+  {
+   "check": "vessel found by MMSI in search",
+   "ok": true,
+   "measured": [
+    "367653160"
+   ],
+   "expected": null
+  }
+ ],
+ "notes": [],
+ "blocked_reason": null,
+ "captures": [
+  "vessel.json",
+  "tracks.json"
+ ]
+}

@@ -71,6 +71,20 @@ def _health_loop() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    # Nothing is running at boot. Any row that says otherwise belongs to a
+    # process that died; mark it failed with the reason rather than let the UI
+    # show work in progress that does not exist.
+    from backend.models.db import SessionLocal
+    from backend.services import jobs as jobs_service
+
+    with SessionLocal() as db:
+        swept = jobs_service.sweep_dead_runs(db)
+    if swept["swept"]:
+        print(f"[jobs] marked {len(swept['swept'])} dead in-flight run(s) failed: "
+              f"{', '.join(swept['swept'])}")
+    if swept["sealed_but_unmarked"]:
+        print(f"[jobs] {len(swept['sealed_but_unmarked'])} run(s) sealed but still marked "
+              f"in-flight; run backfill_runs --refresh: {', '.join(swept['sealed_but_unmarked'])}")
     # First-run administrator, only when both env vars are set and the
     # user table is empty. A checkout with neither gets no account at all
     # rather than a well-known one.

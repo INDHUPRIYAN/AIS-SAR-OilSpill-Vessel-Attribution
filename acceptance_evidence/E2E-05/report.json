@@ -1,0 +1,557 @@
+{
+ "id": "rep-3ea88f670e",
+ "run_id": "inv-final-audit",
+ "investigation_id": null,
+ "version": 1,
+ "status": "draft",
+ "title": "Investigation report \u2014 S1A_IW_GRDH_BALI",
+ "artefact_digest": "24842276f60c0671e8553a8ca05b6f6ac53191776b6722cb3a8edd1d338b3ee5",
+ "created_utc": "2026-09-08T07:35:54.013103+00:00",
+ "updated_utc": "2026-09-08T07:35:54.013103+00:00",
+ "submitted_utc": null,
+ "published_utc": null,
+ "review_note": null,
+ "immutable": false,
+ "body": {
+  "run_id": "inv-final-audit",
+  "scene_id": "S1A_IW_GRDH_BALI",
+  "artefact_digest": "24842276f60c0671e8553a8ca05b6f6ac53191776b6722cb3a8edd1d338b3ee5",
+  "composed_utc": "2026-09-08T07:35:53Z",
+  "sections": [
+   {
+    "kind": "executive_summary",
+    "title": "Executive summary",
+    "paragraphs": [
+     "Run inv-final-audit processed Sentinel-1 scene S1A_IW_GRDH_BALI. 5 of 5 pipeline stages completed on real data.",
+     "The dominant feature measures 10.09 km\u00b2 with a damping ratio of -0.13.",
+     "Backward drift places the origin between 2023-05-04T17:52:00Z and 2023-05-04T21:52:00Z.",
+     "27 vessels were considered; 17 were excluded by the gates and 10 were ranked. The highest-ranked is MMSI 563433761 at Rank #1 \u00b7 score 0.93.",
+     "A rank is a position in a weighted, explainable ordering of vessels near the estimated origin. It is not a determination of responsibility."
+    ]
+   },
+   {
+    "kind": "detection",
+    "title": "Detection",
+    "engine": "ml",
+    "model_version": "unet-r34-fullcorpus-e48+yolo-screen",
+    "confidence": 0.9332,
+    "candidates_total": 4,
+    "by_class": {
+     "oil": 2,
+     "lookalike": 2
+    },
+    "data_source": "sensor",
+    "warnings": [
+     "screen: 2 oil candidate(s) over 9 tile(s), best 0.27",
+     "ml inference 0.6s",
+     "screen rejected 2/4 segmented region(s) as look-alike"
+    ],
+    "note": null
+   },
+   {
+    "kind": "characterisation",
+    "title": "Characterisation",
+    "area_km2": 10.086,
+    "perimeter_km": 47.674,
+    "orientation_deg": 100.0,
+    "damping_ratio": -0.13,
+    "age_hours": null,
+    "age_confidence": 0.25,
+    "age_method": null,
+    "age_label": "LOW confidence",
+    "age_caveat": "Slick age is inverted from spreading physics and is low confidence by construction. It bounds the search window; it does not date the discharge."
+   },
+   {
+    "kind": "environment",
+    "title": "Environment",
+    "engine": "euler",
+    "currents": {
+     "provider": "currents.nc"
+    },
+    "wind": {
+     "provider": "wind.nc"
+    }
+   },
+   {
+    "kind": "origin",
+    "title": "Hindcast and origin",
+    "window_start_utc": "2023-05-04T17:52:00Z",
+    "window_end_utc": "2023-05-04T21:52:00Z",
+    "peak_utc": null,
+    "method": null,
+    "uncertainty_km": null,
+    "uncertainty_coverage": null,
+    "uncertainty_method": null,
+    "backtrack_hours": 21.0,
+    "n_particles": 6600,
+    "ellipse_semi_major_m": {
+     "min": 0.0,
+     "max": 0.0
+    },
+    "method_caveat": "The current field did not deform the particle cloud, so the whole run is reported as the window and the peak carries no information."
+   },
+   {
+    "kind": "forecast",
+    "title": "Forecast",
+    "horizons_h": [
+     6,
+     12,
+     24
+    ],
+    "engine": "euler",
+    "note": "Forecast extents are physics, not a prediction of where oil will be found."
+   },
+   {
+    "kind": "ais",
+    "title": "AIS",
+    "selection": null,
+    "data_source": "synthetic",
+    "covers_origin": null,
+    "considered": [],
+    "source_badge": "SYNTHETIC",
+    "funnel": null,
+    "note": "Synthetic AIS is generated around this run's own computed origin and is labelled SYNTHETIC everywhere it appears."
+   },
+   {
+    "kind": "attribution",
+    "title": "Attribution",
+    "weights": {
+     "proximity": 0.3,
+     "temporal": 0.2,
+     "trajectory": 0.2,
+     "behaviour": 0.1,
+     "ais_gap": 0.15,
+     "vessel_prior": 0.05
+    },
+    "total_vessels_considered": 27,
+    "suspects": [
+     {
+      "rank": 1,
+      "mmsi": 563433761,
+      "vessel_name": null,
+      "vessel_type": "tanker",
+      "total_score": 0.9327,
+      "sub_scores": {
+       "proximity": 0.925,
+       "temporal": 0.9,
+       "trajectory": 0.977,
+       "behaviour": 0.8,
+       "ais_gap": 1.0,
+       "vessel_prior": 0.994
+      },
+      "reason": "Passed through the 90% origin region at 2023-05-04 20:57 UTC, slowed from 14.1 to 5.9 kn, altered course by 180\u00b0, had a 50-minute AIS gap overlapping the estimated discharge window, and ran within 4\u00b0 of the slick's axis.",
+      "evidence": {
+       "closest_approach_km": 0.0,
+       "time_in_origin_window_min": 240.0,
+       "ais_gap_minutes": 50,
+       "course_delta_deg": 180.0,
+       "min_sog_kn": 5.9,
+       "track_points_in_cloud": 17
+      },
+      "source": "synthetic"
+     },
+     {
+      "rank": 2,
+      "mmsi": 419462634,
+      "vessel_name": null,
+      "vessel_type": "tanker",
+      "total_score": 0.6163,
+      "sub_scores": {
+       "proximity": 0.815,
+       "temporal": 1.0,
+       "trajectory": 0.597,
+       "behaviour": 0.023,
+       "ais_gap": 0.0,
+       "vessel_prior": 1.0
+      },
+      "reason": "Passed through the 90% origin region at 2023-05-04 21:52 UTC, but no unusual speed, course or transmission behaviour was recorded.",
+      "evidence": {
+       "closest_approach_km": 0.0,
+       "time_in_origin_window_min": 240.0,
+       "ais_gap_minutes": null,
+       "course_delta_deg": 2.2,
+       "min_sog_kn": 17.6,
+       "track_points_in_cloud": 6
+      },
+      "source": "synthetic"
+     },
+     {
+      "rank": 3,
+      "mmsi": 419421440,
+      "vessel_name": null,
+      "vessel_type": "fishing",
+      "total_score": 0.5831,
+      "sub_scores": {
+       "proximity": 0.561,
+       "temporal": 1.0,
+       "trajectory": 0.914,
+       "behaviour": 0.12,
+       "ais_gap": 0.0,
+       "vessel_prior": 0.399
+      },
+      "reason": "Passed through the 90% origin region at 2023-05-04 21:52 UTC, ran within 8\u00b0 of the slick's axis.",
+      "evidence": {
+       "closest_approach_km": 0.0,
+       "time_in_origin_window_min": 240.0,
+       "ais_gap_minutes": null,
+       "course_delta_deg": 18.1,
+       "min_sog_kn": 8.5,
+       "track_points_in_cloud": 18
+      },
+      "source": "synthetic"
+     },
+     {
+      "rank": 4,
+      "mmsi": 215120420,
+      "vessel_name": null,
+      "vessel_type": "passenger",
+      "total_score": 0.5781,
+      "sub_scores": {
+       "proximity": 0.886,
+       "temporal": 0.657,
+       "trajectory": 0.857,
+       "behaviour": 0.033,
+       "ais_gap": 0.0,
+       "vessel_prior": 0.123
+      },
+      "reason": "Passed through the 90% origin region at 2023-05-04 20:02 UTC, but no unusual speed, course or transmission behaviour was recorded.",
+      "evidence": {
+       "closest_approach_km": 0.0,
+       "time_in_origin_window_min": 170.0,
+       "ais_gap_minutes": null,
+       "course_delta_deg": 5.1,
+       "min_sog_kn": 16.1,
+       "track_points_in_cloud": 12
+      },
+      "source": "synthetic"
+     },
+     {
+      "rank": 5,
+      "mmsi": 563189273,
+      "vessel_name": null,
+      "vessel_type": "fishing",
+      "total_score": 0.4522,
+      "sub_scores": {
+       "proximity": 0.0,
+       "temporal": 0.958,
+       "trajectory": 0.979,
+       "behaviour": 0.458,
+       "ais_gap": 0.0,
+       "vessel_prior": 0.377
+      },
+      "reason": "Passed through the 90% origin region at 2023-05-04 21:17 UTC, slowed from 4.6 to 3.9 kn, altered course by 177\u00b0, and ran within 3\u00b0 of the slick's axis.",
+      "evidence": {
+       "closest_approach_km": 0.0,
+       "time_in_origin_window_min": 240.0,
+       "ais_gap_minutes": null,
+       "course_delta_deg": 177.4,
+       "min_sog_kn": 3.9,
+       "track_points_in_cloud": 30
+      },
+      "source": "synthetic"
+     },
+     {
+      "rank": 6,
+      "mmsi": 419692373,
+      "vessel_name": null,
+      "vessel_type": "cargo",
+      "total_score": 0.3288,
+      "sub_scores": {
+       "proximity": 0.098,
+       "temporal": 0.367,
+       "trajectory": 0.943,
+       "behaviour": 0.042,
+       "ais_gap": 0.0,
+       "vessel_prior": 0.67
+      },
+      "reason": "Passed through the 90% origin region at 2023-05-04 19:02 UTC, ran within 9\u00b0 of the slick's axis.",
+      "evidence": {
+       "closest_approach_km": 0.0,
+       "time_in_origin_window_min": 240.0,
+       "ais_gap_minutes": null,
+       "course_delta_deg": 7.4,
+       "min_sog_kn": 16.2,
+       "track_points_in_cloud": 14
+      },
+      "source": "synthetic"
+     },
+     {
+      "rank": 7,
+      "mmsi": 477378780,
+      "vessel_name": null,
+      "vessel_type": "cargo",
+      "total_score": 0.2675,
+      "sub_scores": {
+       "proximity": 0.274,
+       "temporal": 0.232,
+       "trajectory": 0.528,
+       "behaviour": 0.018,
+       "ais_gap": 0.0,
+       "vessel_prior": 0.629
+      },
+      "reason": "Passed through the 90% origin region at 2023-05-04 18:27 UTC, but no unusual speed, course or transmission behaviour was recorded.",
+      "evidence": {
+       "closest_approach_km": 0.0,
+       "time_in_origin_window_min": 240.0,
+       "ais_gap_minutes": null,
+       "course_delta_deg": 3.5,
+       "min_sog_kn": 14.9,
+       "track_points_in_cloud": 7
+      },
+      "source": "synthetic"
+     },
+     {
+      "rank": 8,
+      "mmsi": 215348850,
+      "vessel_name": null,
+      "vessel_type": "tanker",
+      "total_score": 0.2625,
+      "sub_scores": {
+       "proximity": 0.15,
+       "temporal": 0.201,
+       "trajectory": 0.644,
+       "behaviour": 0.013,
+       "ais_gap": 0.0,
+       "vessel_prior": 0.943
+      },
+      "reason": "Passed through the 90% origin region at 2023-05-04 18:17 UTC, but no unusual speed, course or transmission behaviour was recorded.",
+      "evidence": {
+       "closest_approach_km": 0.0,
+       "time_in_origin_window_min": 240.0,
+       "ais_gap_minutes": null,
+       "course_delta_deg": 2.3,
+       "min_sog_kn": 15.6,
+       "track_points_in_cloud": 6
+      },
+      "source": "synthetic"
+     },
+     {
+      "rank": 9,
+      "mmsi": 563652858,
+      "vessel_name": null,
+      "vessel_type": "cargo",
+      "total_score": 0.2568,
+      "sub_scores": {
+       "proximity": 0.23,
+       "temporal": 0.186,
+       "trajectory": 0.561,
+       "behaviour": 0.028,
+       "ais_gap": 0.0,
+       "vessel_prior": 0.712
+      },
+      "reason": "Passed through the 90% origin region at 2023-05-04 18:12 UTC, but no unusual speed, course or transmission behaviour was recorded.",
+      "evidence": {
+       "closest_approach_km": 0.0,
+       "time_in_origin_window_min": 240.0,
+       "ais_gap_minutes": null,
+       "course_delta_deg": 4.1,
+       "min_sog_kn": 17.4,
+       "track_points_in_cloud": 5
+      },
+      "source": "synthetic"
+     },
+     {
+      "rank": 10,
+      "mmsi": 215589965,
+      "vessel_name": null,
+      "vessel_type": "cargo",
+      "total_score": 0.2315,
+      "sub_scores": {
+       "proximity": 0.005,
+       "temporal": 0.411,
+       "trajectory": 0.543,
+       "behaviour": 0.075,
+       "ais_gap": 0.0,
+       "vessel_prior": 0.634
+      },
+      "reason": "Passed through the 90% origin region at 2023-05-04 19:12 UTC, but no unusual speed, course or transmission behaviour was recorded.",
+      "evidence": {
+       "closest_approach_km": 0.0,
+       "time_in_origin_window_min": 195.0,
+       "ais_gap_minutes": null,
+       "course_delta_deg": 10.5,
+       "min_sog_kn": 10.2,
+       "track_points_in_cloud": 8
+      },
+      "source": "synthetic"
+     }
+    ],
+    "filtered_out": [
+     {
+      "mmsi": 215903092,
+      "reason": "Filtered out: course ran 54\u00b0 off the slick's axis, so a discharge trailing behind it would not match."
+     },
+     {
+      "mmsi": 237502028,
+      "reason": "Filtered out: course ran 58\u00b0 off the slick's axis, so a discharge trailing behind it would not match."
+     },
+     {
+      "mmsi": 237504263,
+      "reason": "Filtered out: course ran 48\u00b0 off the slick's axis, so a discharge trailing behind it would not match."
+     },
+     {
+      "mmsi": 354769404,
+      "reason": "Filtered out: closest approach was 25.953 km from the origin region."
+     },
+     {
+      "mmsi": 371203889,
+      "reason": "Filtered out: closest approach was 2.512 km from the origin region."
+     },
+     {
+      "mmsi": 371880299,
+      "reason": "Filtered out: closest approach was 13.58 km from the origin region."
+     },
+     {
+      "mmsi": 371992181,
+      "reason": "Filtered out: course ran 84\u00b0 off the slick's axis, so a discharge trailing behind it would not match."
+     },
+     {
+      "mmsi": 419925321,
+      "reason": "Filtered out: closest approach was 14.267 km from the origin region."
+     },
+     {
+      "mmsi": 477514975,
+      "reason": "Filtered out: closest approach was 1.404 km from the origin region."
+     },
+     {
+      "mmsi": 477876876,
+      "reason": "Filtered out: closest approach was 24.33 km from the origin region."
+     },
+     {
+      "mmsi": 538258217,
+      "reason": "Filtered out: closest approach was 14.408 km from the origin region."
+     },
+     {
+      "mmsi": 538649098,
+      "reason": "Filtered out: course ran 49\u00b0 off the slick's axis, so a discharge trailing behind it would not match."
+     },
+     {
+      "mmsi": 538741332,
+      "reason": "Filtered out: course ran 47\u00b0 off the slick's axis, so a discharge trailing behind it would not match."
+     },
+     {
+      "mmsi": 538885719,
+      "reason": "Filtered out: course ran 79\u00b0 off the slick's axis, so a discharge trailing behind it would not match."
+     },
+     {
+      "mmsi": 563329187,
+      "reason": "Filtered out: closest approach was 16.467 km from the origin region."
+     },
+     {
+      "mmsi": 563936313,
+      "reason": "Filtered out: course ran 77\u00b0 off the slick's axis, so a discharge trailing behind it would not match."
+     },
+     {
+      "mmsi": 636489810,
+      "reason": "Filtered out: closest approach was 13.153 km from the origin region."
+     }
+    ],
+    "source": "synthetic",
+    "language_note": "Scores rank how well a vessel's track matches the estimated origin in space, time and course. They are not probabilities of guilt, and the ordering is not a legal finding."
+   },
+   {
+    "kind": "limitations",
+    "title": "Methodology and limitations",
+    "source": "docs/LIMITATIONS.md",
+    "sections": [
+     {
+      "heading": "Data availability",
+      "items": [
+       "**No public bulk historic AIS exists for Indian waters.** MarineCadastre covers US waters, DMA covers Danish/Baltic waters; AISStream is live-only. This is a data-availability fact, not an engineering gap. **Any run over Indian waters uses synthetic AIS, labelled SYNTHETIC everywhere including the UI.** Runs over US waters use real MarineCadastre archives: the flagship run `inv-gulf-flagship-20230108-2day` ingested the 2023-01-07 and 2023-01-08 archives (86,830 rows, 441 MMSI) and its attribution stage carries `source: real`. The MarineCadastre adapter has therefore been exercised end to end on real archives; the DMA adapter has not, and is still only unit-tested against format fixtures. `ensure_vessels` chooses real AIS only when it actually covers the run's computed origin window \u2014 a real archive for the wrong day is rejected in favour of clearly labelled synthesis, and the manifest's `ais` block records which path ran.",
+       "**Vessels without AIS are invisible to attribution.** A transponder-off or spoofing vessel cannot be ranked. The system can still say \"no AIS-carrying candidate matches\" \u2014 itself investigative signal. SAR ship detection (CFAR) crossed against AIS is the future-scope answer (see `resolution_and_sensor_choice.md` \u00a73).",
+       "**Sentinel-1 revisit is not continuous.** A slick can appear and disperse between passes. Detection latency is bounded by the constellation, not by us."
+      ]
+     },
+     {
+      "heading": "Detection physics",
+      "items": [
+       "**SAR slick detection has a wind window** (~2\u201312 m/s). Below it the whole sea is smooth and everything resembles oil; above it slicks disperse and contrast collapses. Look-alikes (biogenic films, wind shadow, rain cells, upwelling) are intrinsic to the physics \u2014 which is why look-alike candidates are **classified and reported as `class: lookalike`, never silently deleted**, and why a human confirms before an alert becomes an incident. The current screening model is single-class, so the `phenomenon` sub-type field is reserved and not yet populated.",
+       "**Model metrics are dataset metrics.** mAP/IoU are measured on DARTIS and Trujillo holdouts. Performance on full real scenes depends on the calibration chain matching the training normalisation (`config/normalisation.yaml` \u2014 checked by an explicit histogram gate before any real-scene claim)."
+      ]
+     },
+     {
+      "heading": "Slick age and origin",
+      "items": [
+       "**`age_hours_est` is an order-of-magnitude bracket, not a timestamp.** Fay's law needs a volume; a mask gives area only, closed with an assumed ~1 mm thickness, and age scales as thickness^(\u22124/3). `age_confidence` is hard-wired `\"low\"`. Where the Fay age and the hindcast origin window disagree, **the hindcast window is the defensible number** and the UI leads with it.",
+       "**The origin is always a cloud with a time window, never a point.** Under a non-deforming current field (uniform translation/rigid rotation) no release *time* is recoverable from drift alone; the engine then widens the window to the whole run and says so. Forcing resolution (1/12\u00b0 currents) bounds everything downstream.",
+       "**The drift engine is an in-house Lagrangian particle integrator, dependency-free by design, and carries no oil weathering** (evaporation, emulsification). Horizons are kept \u2264 24 h partly for this reason. OpenDrift/OpenOil integration is architecturally supported and left as future work: it is not installed, and no run has used it. Run manifests written before 2026-09-01 may carry `engine: openoil` from a log-text provenance bug; the backend that actually ran in every one of them was the Euler integrator (fixed in `pipeline/engines.py`)."
+      ]
+     },
+     {
+      "heading": "Attribution",
+      "items": [
+       "**Attribution is probabilistic ranking, not proof.** 86% top-1 / 100% top-3 on the 50-scenario benchmark; **62% top-1 on the hard tier by design** \u2014 several hard scenarios contain genuinely no distinguishing evidence, and all 7 misses ranked the culprit 2nd. The system ranks candidates; a human decides.",
+       "**Benchmarks are synthetic.** They are the only source of attribution ground truth (real confirmed-culprit corpora do not exist), so they measure the algorithm, not the world. Real-world accuracy is additionally bounded by items 1\u20133.",
+       "**Gate thresholds are reasoned, not fitted** (5 km buffer, \u00b190 min, 45\u00b0 axis offset). With dense real traffic, expect more vessels through the gates than the mock suggests. Reassurance: 0/50 benchmark culprits were lost to the gates \u2014 a gate false-negative is unrecoverable, so that is the metric we watch first.",
+       "**The deployed weights are deliberately not the benchmark-optimal ones.** A behaviour-heavy weighting scores 90% vs our 86%, but tuning weights to our own generator would be fitting the exam. The sensitivity sweep (top-1 moves only 10 points across six wildly different weightings) is the defence against \"you tuned until it looked good\"."
+      ]
+     },
+     {
+      "heading": "Processing honesty",
+      "items": [
+       "**Geocoding is GCP-warp, not full Range-Doppler terrain correction.** Over open ocean (flat) the difference is within GCP accuracy; near steep coasts it is not, and land is masked out anyway.",
+       "**Degraded runs are labelled, not hidden \u2014 on two separate axes.** Every stage carries an execution provenance (`source`: real code ran / fallback / mock, with the backend named in `engine_used`) **and** a data provenance (`data_source`: `sensor` bytes measured by an instrument or a reanalysis product, `synthetic` bytes we fabricated, or `cached` real data served from a local copy). The two are independent on purpose: a run of real code on the mock scene badges **SYNTHETIC**, and a run on a genuine Sentinel-1 scene with synthetic AIS badges the detection layers **SENSOR** and the attribution layer **SYNTHETIC**. The UI renders `data_source` first. A run's manifest records exactly which providers, models (`model_version`) and parameters produced it \u2014 reproducible years later."
+      ]
+     }
+    ]
+   },
+   {
+    "kind": "provenance_annex",
+    "title": "Data provenance annex",
+    "run_id": "inv-final-audit",
+    "artefact_digest": "24842276f60c0671e8553a8ca05b6f6ac53191776b6722cb3a8edd1d338b3ee5",
+    "code_git_sha": null,
+    "generated_utc": "2026-09-06T11:32:25Z",
+    "artefacts": [
+     {
+      "file": "scene_meta.json",
+      "bytes": 426,
+      "sha256": "7a37f07ed15362ebe70eabe06d8cd15b119c2e089d1655a8a1d7edb748731f8b"
+     },
+     {
+      "file": "detect_response.json",
+      "bytes": 1115,
+      "sha256": "5c51630027be734feffb6db5842abf72f9d582b864323671f8dc2ad3f51c5451"
+     },
+     {
+      "file": "raw_mask.tif",
+      "bytes": 63477,
+      "sha256": "2e0435e44d4c704bd281fa81148a005f4bf97af866fa40770379437839b8503c"
+     },
+     {
+      "file": "slick.geojson",
+      "bytes": 30742,
+      "sha256": "bf20165e68df074b76f37a392eee681352ace9ef6f734a64d62ac88a35b39f69"
+     },
+     {
+      "file": "origin_cloud.geojson",
+      "bytes": 2585762,
+      "sha256": "14c1203c32a23f8cfd43214d5776a4fa87887f93fbb286c8e290fd948fba4814"
+     },
+     {
+      "file": "forecast.geojson",
+      "bytes": 16504,
+      "sha256": "28f81f1dc3f4b25c2c3706402026e1058a370cfc02d4129471f5bebb1ef53e43"
+     },
+     {
+      "file": "vessels.parquet",
+      "bytes": 102671,
+      "sha256": "3ba24a0b2d784bfddbbc5a3909ec8b8174125dd7770d0e955ce573f7cb077a77"
+     },
+     {
+      "file": "suspects.json",
+      "bytes": 10743,
+      "sha256": "09d4b3d70f876b724bca8a0812506f6a99c3fe658eaef784d41874d7f4dc6091"
+     }
+    ],
+    "models": [],
+    "attribution_profile": null,
+    "sources": [],
+    "note": "Hashes are copied from the sealed manifest, so this table is what `/api/runs/{id}/verify` re-checks. A mismatch between them would mean the annex was generated from something other than the sealed run."
+   }
+  ],
+  "omitted": [
+   "decisions"
+  ]
+ }
+}

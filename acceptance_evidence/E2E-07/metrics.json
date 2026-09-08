@@ -1,0 +1,213 @@
+{
+ "segmentation": {
+  "model": "U-Net \u00b7 ResNet-34 encoder",
+  "checkpoint": {
+   "file": "main_system/backend/services/detection/weights/segment.onnx",
+   "sha256": "a4aac81f3ddd54ce05859c0fc4faada7b196288ed64a54293ab96488c5804a44",
+   "bytes": 97719644,
+   "name": "unet-r34-fullcorpus-e48",
+   "epoch": 48,
+   "config_fingerprint": "01e24b0fb0e8"
+  },
+  "test_split": "data/processed/trujillo/test",
+  "dataset": "trujillo",
+  "part": 3,
+  "scenes": 90,
+  "oil_tiles": 512,
+  "negative_tiles": 5248,
+  "poc_holdout": true,
+  "config_fingerprint": "01e24b0fb0e8",
+  "checkpoint_epoch": 48,
+  "test_tiles": 5760,
+  "db_range": [
+   -35.0,
+   0.0
+  ],
+  "threshold": 0.5,
+  "oil_tile_iou": 0.5723238801958904,
+  "oil_tile_precision": 0.9404735426646038,
+  "oil_tile_recall": 0.593835415936174,
+  "oil_tile_f1": 0.7279974400078045,
+  "overall_iou": 0.4445016912379933,
+  "overall_precision": 0.6386748459028889,
+  "overall_recall": 0.593835415936174,
+  "overall_f1": 0.6154394883350961,
+  "no_oil_tiles": 5248,
+  "no_oil_firing": 280,
+  "no_oil_firing_rate": 0.053353658536585365,
+  "sweep": [
+   {
+    "threshold": 0.3,
+    "overall_iou": 0.3750028867778997,
+    "oil_iou": 0.7946000594531044,
+    "no_oil_firing_rate": 0.07621951219512195
+   },
+   {
+    "threshold": 0.4,
+    "overall_iou": 0.4350322793901904,
+    "oil_iou": 0.6736382189009308,
+    "no_oil_firing_rate": 0.06955030487804878
+   },
+   {
+    "threshold": 0.5,
+    "overall_iou": 0.4445016912379933,
+    "oil_iou": 0.5723238801958904,
+    "no_oil_firing_rate": 0.053353658536585365
+   },
+   {
+    "threshold": 0.6,
+    "overall_iou": 0.43316540043869817,
+    "oil_iou": 0.522472157497553,
+    "no_oil_firing_rate": 0.037728658536585365
+   },
+   {
+    "threshold": 0.7,
+    "overall_iou": 0.4209259505173079,
+    "oil_iou": 0.48262373079235493,
+    "no_oil_firing_rate": 0.033727134146341466
+   }
+  ],
+  "pixel_accuracy_note": "Pixel accuracy is deliberately not reported: sea dominates every SAR tile, so an all-sea prediction scores above 99% and means nothing."
+ },
+ "screening": {
+  "model": "YOLO11n \u00b7 1 class (oil)",
+  "checkpoint": {
+   "file": "main_system/backend/services/detection/weights/screen.onnx",
+   "sha256": "9a6ff8df0d2b4a8f8a287895c6780030c336c5c7f61f1d16d11cc89ceb9ac9fd",
+   "bytes": 10423456,
+   "name": "yolo11n-screen-dartis-2026-08-24",
+   "epoch": null,
+   "config_fingerprint": "01e24b0fb0e8"
+  },
+  "map50": 0.6230005340795313,
+  "map50_95": 0.2970426941096986,
+  "precision": 0.656953743046394,
+  "recall": 0.5652519676833311,
+  "background_images": 458,
+  "background_false_positives": 14,
+  "background_fp_rate": 0.03056768558951965,
+  "conf_threshold": 0.25,
+  "note": "Look-alike patches carry no annotations in DARTIS, so they are background negatives rather than a second class. The number that matters is how often the model fires on one."
+ },
+ "attribution": {
+  "scenarios": 50,
+  "top1": 43,
+  "top3": 50,
+  "top1_rate": 0.86,
+  "top3_rate": 1.0,
+  "mean_rank_when_placed": 1.14,
+  "culprit_filtered_by_gates": 0,
+  "engine_errors": 0,
+  "by_tier": {
+   "easy": {
+    "scenarios": 20,
+    "top1": 20,
+    "top3": 20,
+    "top1_rate": 1.0
+   },
+   "medium": {
+    "scenarios": 17,
+    "top1": 15,
+    "top3": 17,
+    "top1_rate": 0.882
+   },
+   "hard": {
+    "scenarios": 13,
+    "top1": 8,
+    "top3": 13,
+    "top1_rate": 0.615
+   }
+  },
+  "by_behaviour": {
+   "with_ais_gap": {
+    "scenarios": 29,
+    "top1_rate": 0.931
+   },
+   "without_ais_gap": {
+    "scenarios": 21,
+    "top1_rate": 0.762
+   },
+   "with_slowdown": {
+    "scenarios": 28,
+    "top1_rate": 1.0
+   },
+   "without_slowdown": {
+    "scenarios": 22,
+    "top1_rate": 0.682
+   },
+   "no_behavioural_evidence": {
+    "scenarios": 13,
+    "top1_rate": 0.615
+   }
+  },
+  "note": "Synthetic benchmark with a planted culprit. No real-world attribution ground truth exists, which is precisely why this harness was built."
+ },
+ "drift": {
+  "accuracy_reported": false,
+  "status": "experimental",
+  "applied": false,
+  "evaluated": "negative",
+  "experiment": "drift-residual-mlp-20260906",
+  "note": "Drift output is a probability cloud with an uncertainty ellipse. No accuracy is claimed: no ground-truth drift dataset exists for these scenes.",
+  "ml_note": "A learned drift residual exists but is EXPERIMENTAL and disabled: held-out evaluation improved 0 of 6 trajectories, so the deployed hindcast is physics only (Engine B)."
+ },
+ "notes": [
+  "carved out of Part III itself; metrics are POC figures, re-measure once Parts I-II are prepared"
+ ],
+ "weight_sensitivity": [
+  {
+   "weights": "contract (0.30/0.20/0.20/0.10/0.15/0.05)",
+   "top1": 43,
+   "top3": 50,
+   "scenarios": 50,
+   "top1_rate": 0.86,
+   "top3_rate": 1.0,
+   "hard_top1_rate": 0.615
+  },
+  {
+   "weights": "uniform (all factors equal)",
+   "top1": 42,
+   "top3": 50,
+   "scenarios": 50,
+   "top1_rate": 0.84,
+   "top3_rate": 1.0,
+   "hard_top1_rate": 0.538
+  },
+  {
+   "weights": "proximity-heavy (0.50)",
+   "top1": 43,
+   "top3": 50,
+   "scenarios": 50,
+   "top1_rate": 0.86,
+   "top3_rate": 1.0,
+   "hard_top1_rate": 0.538
+  },
+  {
+   "weights": "behaviour-heavy (anomaly+gap 0.55)",
+   "top1": 45,
+   "top3": 50,
+   "scenarios": 50,
+   "top1_rate": 0.9,
+   "top3_rate": 1.0,
+   "hard_top1_rate": 0.615
+  },
+  {
+   "weights": "ais_gap discarded",
+   "top1": 40,
+   "top3": 50,
+   "scenarios": 50,
+   "top1_rate": 0.8,
+   "top3_rate": 1.0,
+   "hard_top1_rate": 0.615
+  },
+  {
+   "weights": "anomaly + ais_gap discarded",
+   "top1": 40,
+   "top3": 50,
+   "scenarios": 50,
+   "top1_rate": 0.8,
+   "top3_rate": 1.0,
+   "hard_top1_rate": 0.615
+  }
+ ]
+}

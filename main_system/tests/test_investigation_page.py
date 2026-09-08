@@ -269,3 +269,24 @@ def test_unknown_layer_and_investigation(client, fixture_run):
     iid, _, _ = fixture_run
     assert client.get(f"/api/investigations/{iid}/layers/nope").status_code == 404
     assert client.get("/api/investigations/inv-does-not-exist").status_code == 404
+
+
+def test_a_cancelled_run_reports_cancelled_not_the_stale_file_state(client, fixture_run):
+    """status.json is written by the pipeline as it goes and never rewritten
+    when a run is cancelled (the writer stops -- that is the point). Its
+    `state` therefore stays "running", and the workspace badge read COMPLETE
+    for a cancelled run during P20 acceptance. The registry row is the
+    authority once a run has ended."""
+    iid, rid, d = fixture_run
+    stale = json.loads((d / "status.json").read_text(encoding="utf-8"))
+    stale["state"] = "running"
+    for s in stale["stages"][2:]:
+        s["status"] = "cancelled"
+    (d / "status.json").write_text(json.dumps(stale), encoding="utf-8")
+    with SessionLocal() as db:
+        db.get(Run, rid).status = "cancelled"
+        db.commit()
+
+    body = client.get(f"/api/investigations/{iid}/status", params={"run": rid}).json()
+    assert body["state"] == "cancelled"
+    assert body["run_status"] == "cancelled"

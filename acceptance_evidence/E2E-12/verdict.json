@@ -1,0 +1,96 @@
+{
+ "id": "E2E-12",
+ "title": "Alerts",
+ "pass_condition": "AOI poll (dry-run) errors: []; new-scene alert -> ack -> assign -> investigation link; SSE delivery",
+ "status": "PASS",
+ "executed_utc": "2026-09-08T08:19:15.957015+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "dry-run poll answers",
+   "ok": true,
+   "measured": 200,
+   "expected": 200
+  },
+  {
+   "check": "dry-run errors == []",
+   "ok": true,
+   "measured": [],
+   "expected": []
+  },
+  {
+   "check": "dry-run opened nothing",
+   "ok": true,
+   "measured": [],
+   "expected": null
+  },
+  {
+   "check": "live poll on chennai-coast answers",
+   "ok": true,
+   "measured": [
+    200,
+    "{\"started_utc\":\"2026-09-08T08:19:08.148095+00:00\",\"polled\":[\"chennai-coast\"],\"skipped\":[],\"disabled\":[],\"new_scenes\":[],"
+   ],
+   "expected": null
+  },
+  {
+   "check": "live poll errors == []",
+   "ok": true,
+   "measured": [],
+   "expected": []
+  },
+  {
+   "check": "ack -> acknowledged",
+   "ok": true,
+   "measured": [
+    200,
+    "acknowledged"
+   ],
+   "expected": null
+  },
+  {
+   "check": "assign to a real user",
+   "ok": true,
+   "measured": [
+    200,
+    1
+   ],
+   "expected": null
+  },
+  {
+   "check": "alert reads assigned afterwards",
+   "ok": true,
+   "measured": [
+    [
+     "alert-9e20a0a5e1",
+     1
+    ],
+    [
+     "alert-9dbf4809f8",
+     1
+    ]
+   ],
+   "expected": null
+  },
+  {
+   "check": "alert links an investigation or scene",
+   "ok": true,
+   "measured": {
+    "investigation_id": "aoi-danish-straits-20260906T170043",
+    "scene_id": "S1D_IW_GRDH_1SDV_20260906T170043_20260906T170108_004460_00844F_ACA9"
+   },
+   "expected": null
+  }
+ ],
+ "notes": [
+  "dry-run names 0 scene(s) it would open; polled ['chennai-coast'], disabled ['us-gulf-coast', 'mumbai-offshore']",
+  "live poll opened 0 investigation(s): []",
+  "SSE delivery: /api/events/alerts is driven in-suite (test_alerts.py::test_sse_sends_the_current_queue_on_connect); consuming a live SSE stream from this harness is deliberately avoided (an SSE endpoint never ends)."
+ ],
+ "blocked_reason": null,
+ "captures": [
+  "poll_dry_run.json",
+  "poll_live.json",
+  "alerts_open.json"
+ ]
+}

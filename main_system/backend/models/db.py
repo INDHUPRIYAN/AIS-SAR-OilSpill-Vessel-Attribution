@@ -93,6 +93,22 @@ class Run(Base):
     archived = Column(Boolean, nullable=False, default=False, index=True)
     region = Column(String(120), nullable=True, index=True)
 
+    # How this row came to exist. The distinction is not bookkeeping: it says
+    # whether the metadata beside it was OBSERVED or DERIVED.
+    #
+    #   "api"         the API watched this run happen and recorded its real
+    #                 start time, its investigation and its incident;
+    #   "reconciled"  the run was produced by the CLI and this row was rebuilt
+    #                 afterwards from the sealed manifest, so every field here
+    #                 is a derivation from the artefacts and some facts the API
+    #                 would have recorded (which investigation, which incident)
+    #                 are simply absent;
+    #   NULL          the row predates this column and cannot say which it was.
+    #
+    # The artefacts remain the evidence either way. This column exists so a
+    # reader can tell an index entry apart from a witness statement.
+    registry_source = Column(String(16), nullable=True, index=True)
+
     investigation = relationship("Investigation", back_populates="runs")
 
 
@@ -636,10 +652,27 @@ def _add_missing_columns() -> None:
                 conn.execute(text(ddl))
 
 
+def _fill_column_defaults() -> None:
+    """Give rows that predate a NOT NULL-by-intent column its default.
+
+    `ALTER TABLE ... ADD COLUMN` leaves existing rows NULL, and a Python-side
+    `default=` only applies to rows inserted afterwards. `runs.archived` was
+    added that way, so 92 of 110 runs carried NULL -- and the runs listing,
+    which filters `archived IS FALSE`, silently hid every one of them
+    (found during P20 acceptance: the default list showed 18 runs). NULL means
+    "never archived", and this makes the column say so.
+    """
+    from sqlalchemy import text
+
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE runs SET archived = 0 WHERE archived IS NULL"))
+
+
 def init_db() -> None:
     """Create tables and seed the provider registry."""
     Base.metadata.create_all(engine)
     _add_missing_columns()
+    _fill_column_defaults()
     from backend.core.config import PROVIDERS
 
     with SessionLocal() as db:

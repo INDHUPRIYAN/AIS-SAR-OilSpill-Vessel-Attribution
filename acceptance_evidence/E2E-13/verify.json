@@ -1,0 +1,8 @@
+{
+ "ok": true,
+ "checked": 84,
+ "total": 85,
+ "unchained": 1,
+ "broken_at": null,
+ "note": "1 legacy row(s) predate hash chaining and are not covered"
+}

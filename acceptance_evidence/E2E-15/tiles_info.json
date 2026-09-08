@@ -1,0 +1,23 @@
+{
+ "run_id": "inv-gulf-flagship-20230108-2day",
+ "tile_url": "/api/tiles/inv-gulf-flagship-20230108-2day/{z}/{x}/{y}.png",
+ "tile_size": 256,
+ "bounds_wgs84": [
+  -92.99498753427518,
+  27.217558077500833,
+  -90.0868412501363,
+  29.142895385678813
+ ],
+ "native_crs": "EPSG:4326",
+ "shape": [
+  19884,
+  30034
+ ],
+ "bands": 1,
+ "default_stretch_db": [
+  -35.0,
+  0.0
+ ],
+ "stretch_note": "Defaults are the frozen normalisation clip range -- the same values the segmenter was trained on, so the pixels an analyst sees are the pixels the model saw. Override with ?db_min=&db_max= for inspection; the response headers report what was applied.",
+ "nodata_note": "Land and scene edges are transparent, never black: a black fill reads as very dark water, which is what a slick looks like in SAR."
+}

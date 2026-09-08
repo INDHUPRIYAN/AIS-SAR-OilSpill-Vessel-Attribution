@@ -1,0 +1,90 @@
+{
+ "id": "E2E-15",
+ "title": "Tiles & perf",
+ "pass_condition": "native-res tiles <= 256 KB; origin_cloud?lite faster than full; pipeline <= 60 s warm; regression suite passes",
+ "status": "PARTIAL",
+ "executed_utc": "2026-09-08T08:28:19.189027+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "z8 tile <= 256 KB",
+   "ok": true,
+   "measured": {
+    "status": 200,
+    "bytes": 24537,
+    "ms": 24817
+   },
+   "expected": null
+  },
+  {
+   "check": "z10 tile <= 256 KB",
+   "ok": true,
+   "measured": {
+    "status": 200,
+    "bytes": 45166,
+    "ms": 2606
+   },
+   "expected": null
+  },
+  {
+   "check": "z12 tile <= 256 KB",
+   "ok": true,
+   "measured": {
+    "status": 200,
+    "bytes": 63720,
+    "ms": 374
+   },
+   "expected": null
+  },
+  {
+   "check": "z14 tile <= 256 KB",
+   "ok": true,
+   "measured": {
+    "status": 200,
+    "bytes": 53929,
+    "ms": 118
+   },
+   "expected": null
+  },
+  {
+   "check": "origin_cloud?lite is smaller than full",
+   "ok": true,
+   "measured": [
+    432337,
+    1591733
+   ],
+   "expected": null
+  },
+  {
+   "check": "origin_cloud?lite median time <= full median time (5 samples each)",
+   "ok": true,
+   "measured": {
+    "lite_ms": 69,
+    "full_ms": 109
+   },
+   "expected": null
+  },
+  {
+   "check": "pipeline <= 60 s warm",
+   "ok": false,
+   "measured": 349.31,
+   "expected": "<= 60"
+  },
+  {
+   "check": "regression suite passes (>= 654 tests)",
+   "ok": true,
+   "measured": "1006 passed, 4 skipped, 26 warnings in 224.72s (0:03:44)",
+   "expected": null
+  }
+ ],
+ "notes": [
+  "The wire-size reduction (what the browser parses) is the property that matters for first paint; server time for the subsample is measured, not assumed.",
+  "The 60 s figure predates full-resolution scenes; the deployed segmenter walks the whole raster. Reported as measured, not tuned."
+ ],
+ "blocked_reason": null,
+ "captures": [
+  "tiles_info.json",
+  "tiles.json",
+  "origin_lite_vs_full.json"
+ ]
+}

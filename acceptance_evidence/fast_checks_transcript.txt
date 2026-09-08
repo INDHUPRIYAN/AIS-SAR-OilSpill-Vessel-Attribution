@@ -1,0 +1,134 @@
+
+== E2E-01
+    [ok ] anonymous GET /api/runs -> 401: 401
+    [ok ] anonymous GET /api/runs/inv-gulf-flagship-20230108-2day -> 401: 401
+    [ok ] anonymous GET /api/search?q=inv -> 401: 401
+    [ok ] anonymous GET /api/investigations -> 401: 401
+    [ok ] anonymous GET /api/incidents -> 401: 401
+    [ok ] anonymous GET /api/vessels -> 401: 401
+    [ok ] anonymous GET /api/vessels/367653160 -> 401: 401
+    [ok ] anonymous GET /api/alerts -> 401: 401
+    [ok ] anonymous GET /api/aois -> 401: 401
+    [ok ] anonymous GET /api/reports -> 401: 401
+    [ok ] anonymous GET /api/audit -> 401: 401
+    [ok ] anonymous GET /api/audit/verify -> 401: 401
+    [ok ] anonymous GET /api/metrics -> 401: 401
+    [ok ] anonymous GET /api/models -> 401: 401
+    [ok ] anonymous GET /api/catalog -> 401: 401
+    [ok ] anonymous GET /api/system/health -> 401: 401
+    [ok ] anonymous GET /api/apis/status -> 401: 401
+    [ok ] anonymous GET /api/keys -> 401: 401
+    [ok ] anonymous GET /api/layers/inv-gulf-flagship-20230108-2day/slick -> 401: 401
+    [ok ] anonymous GET /api/tiles/inv-gulf-flagship-20230108-2day/info -> 401: 401
+    [ok ] anonymous GET /api/runs/inv-gulf-flagship-20230108-2day/verify -> 401: 401
+    [ok ] anonymous GET /api/scenes/local -> 401: 401
+    [ok ] anonymous GET /api/jobs/job-x -> 401: 401
+    [ok ] anonymous GET /api/alerts/summary -> 401: 401
+    [ok ] public /health reachable: 200
+    [ok ] public / reachable: 200
+    [ok ] route x role matrix suite passes: 'exit 0'
+  => E2E-01 PASS
+
+== E2E-04
+    [ok ] GET /api/runs/{flagship} -> 200: 200
+    [ok ] registry row is marked reconciled (derived, not observed): 'reconciled'
+    [ok ] investigation_id left NULL (not fabricated): None
+    [ok ] manifest.ais.data_source == real: 'real'
+    [ok ] manifest.ais.covers_origin: True
+    [ok ] 5/5 stages real, 0 mock, 0 failed: (5, 0, 0)
+    [ok ] every stage source == real: ['real', 'real', 'real', 'real', 'real']
+    [ok ] segment model is unet-r34-fullcorpus-e48: 'unet-r34-fullcorpus-e48'
+    [ok ] screen model is yolo11n-screen-dartis-2026-08-24: 'yolo11n-screen-dartis-2026-08-24'
+    [ok ] manifest carries code_git_sha: '03b48a779b2ebb12aea0ac3a2c1801cbb8b3e729'
+    [ok ] digest prefix is fd42e078f8366110: 'fd42e078f8366110'
+    [ok ] suspects.source == real: 'real'
+    [ok ] rank #1 is MMSI 367653160 at 0.6691: (367653160, 0.6691)
+    [ok ] no ranked vessel carries an invented name: [None, None, None, None]
+    [ok ] /verify ok over 8 artefacts: (True, 8)
+    [ok ] /verify reports no problems: []
+    [ok ] searchable by exact id (tier 0): [('inv-gulf-flagship-20230108-2day', 0)]
+    [ok ] appears in /api/runs listing: ['inv-gulf-flagship-20230108-2day', 'inv-gulf-flagship-20230108-final', 'inv-gulf-flagship-20230108-v2', 'inv-gulf-flagship-20230108']
+    note: UI REAL badge / UNFILED RUN / RECONCILED chips: see acceptance_evidence/E2E-04/ui-*.png (captured by scripts/acceptance_shots.mjs)
+  => E2E-04 PASS
+
+== E2E-05
+    [ok ] manifest names its synthetic stages: ['drift_hindcast', 'drift_forecast', 'attribution']
+    [ok ] listing shows 2/5 real (not 5/5): (2, 3)
+    [MISS] every vessel row on the map carries source == synthetic: ['real'] (expected ['synthetic'])
+    [ok ] suspects.source == synthetic: 'synthetic'
+    BLOCKED: AttributeError: 'list' object has no attribute 'get'
+  => E2E-05 BLOCKED
+
+== E2E-06
+    [ok ] 25 ellipses published: 25
+    [ok ] every ellipse has non-zero axes: [4921, 4961, 5009, 5071, 5090, 5139]
+    [ok ] origin_uncertainty_km published: 0.3658
+    note: origin_uncertainty_km on the flagship is 0.3658 km; the plan's 0.99 figure is the Chennai scene's value, not a target for this scene.
+    [ok ] uncertainty method states it is not ML: 'calibrated physics heuristic (not ML): m*k*cloud_sigma, k=0.0907 m=1.75, fitted on 1665 closed-loop scenarios over 24 real fields'
+    [ok ] window method published (cloud_convergence): 'cloud_convergence'
+    [ok ] final ellipse within 0.5x-5x of particle 1-sigma spread (same order): 2.497
+    [ok ] drift ML is EXPERIMENTAL and not applied: {'status': 'experimental', 'applied': False, 'evaluated': 'negative'}
+    [ok ] no accuracy claimed for drift: False
+  => E2E-06 PASS
+
+== E2E-07
+    [ok ] segmentation identity is unet-r34-fullcorpus-e48: None
+    [ok ] oil-tile IoU 0.5723 present: None
+    [ok ] overall IoU 0.4445 present (C-10: all three numbers): None
+    [ok ] no-oil tile firing 280/5248 present (C-10): None
+    [ok ] nothing named YOLOv8: None
+    [ok ] segment model listed with a sha256: 'a4aac81f3ddd54ce05859c0fc4faada7b196288ed64a54293ab96488c5804a44'
+    [ok ] drift residual listed as EXPERIMENTAL: None
+    [MISS] Sentinel-2 / EO listed NOT_DEPLOYED: None
+    note: Analytics page render: acceptance_evidence/E2E-07/ui-analytics.png
+  => E2E-07 PARTIAL
+
+== E2E-08
+    [ok ] weights sum to 1.0: 1.0
+    [ok ] sum(w_i*s_i) reproduces every total_score (<= 0.001): 0.00015
+    [ok ] ranks are in descending score order: None
+    [ok ] funnel endpoint answers: 200
+    [ok ] funnel considered == 32: 32
+    [ok ] funnel ranked == 4 and filtered == 28: {'ranked': None, 'filtered_out': 28}
+    [ok ] served suspects layer == suspects.json on disk: [367653160, 367668740, 367357000, 367630990]
+    [ok ] no guilt language in suspects artefact: None
+    [ok ] zero-candidate behaviour covered by passing tests (no sealed zero-suspect run exists to replay): 'exit 0'
+    note: A live zero-candidate scenario was not manufactured for the archive (standing rule 11).
+  => E2E-08 PASS
+
+== E2E-09
+    [ok ] GET /api/vessels/367653160 -> 200: 200
+    [ok ] appears in >= 2 runs: ['inv-gulf-flagship-20230108', 'inv-gulf-flagship-20230108-2day', 'inv-gulf-flagship-20230108-final', 'inv-gulf-flagship-20230108-v2']
+    [ok ] rank #1 in each flagship-family run: [('inv-gulf-flagship-20230108-v2', 1), ('inv-gulf-flagship-20230108-final', 1), ('inv-gulf-flagship-20230108-2day', 1), ('inv-gulf-flagship-20230108', 1)]
+    [ok ] identity honestly absent (name null, identity_available false): (None, False)
+    [ok ] source == real: 'real'
+    [ok ] tracks endpoint answers: 200
+    [ok ] cross-run tracks present: 4
+    [ok ] vessel found by MMSI in search: ['367653160']
+  => E2E-09 PASS
+
+== E2E-10
+    BLOCKED: AttributeError: 'list' object has no attribute 'get'
+  => E2E-10 BLOCKED
+
+== E2E-12
+    [ok ] AOI created (201): 201
+    [ok ] dry-run poll answers: 200
+    [ok ] dry-run errors == []: []
+    [ok ] dry-run opened nothing: []
+    [MISS] an open alert exists to exercise ack/assign: 0 (expected '>= 1')
+    note: No open alert was raised: the live poll found no new scene for the AOI window (or CDSE was unreachable -- see poll_live.json). ack/assign not exercised on a fabricated alert.
+  => E2E-12 PARTIAL
+
+{
+ "E2E-01": "PASS",
+ "E2E-04": "PASS",
+ "E2E-05": "BLOCKED",
+ "E2E-06": "PASS",
+ "E2E-07": "PARTIAL",
+ "E2E-08": "PASS",
+ "E2E-09": "PASS",
+ "E2E-10": "BLOCKED",
+ "E2E-12": "PARTIAL",
+ "E2E-13": "PARTIAL"
+}

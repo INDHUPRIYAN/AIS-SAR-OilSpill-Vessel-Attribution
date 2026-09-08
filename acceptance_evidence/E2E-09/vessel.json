@@ -1,0 +1,68 @@
+{
+ "mmsi": 367653160,
+ "name": null,
+ "imo": null,
+ "call_sign": null,
+ "flag": null,
+ "vessel_type": "other",
+ "length_m": 58.0,
+ "width_m": 9.0,
+ "draught_m": 2.3,
+ "source": "real",
+ "first_seen_utc": "2023-01-07T00:25:00",
+ "last_seen_utc": "2023-01-08T00:05:00",
+ "appearances": 4,
+ "identity_available": false,
+ "appearance_list": [
+  {
+   "run_id": "inv-gulf-flagship-20230108-v2",
+   "incident_id": null,
+   "rank": 1,
+   "total_score": 0.6689,
+   "filtered": false,
+   "filter_reason": null,
+   "ais_gap_minutes": null,
+   "source": "real",
+   "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
+   "started_utc": "2026-09-07T07:25:57.900000"
+  },
+  {
+   "run_id": "inv-gulf-flagship-20230108-final",
+   "incident_id": null,
+   "rank": 1,
+   "total_score": 0.6689,
+   "filtered": false,
+   "filter_reason": null,
+   "ais_gap_minutes": null,
+   "source": "real",
+   "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
+   "started_utc": "2026-09-07T07:37:11.180000"
+  },
+  {
+   "run_id": "inv-gulf-flagship-20230108-2day",
+   "incident_id": null,
+   "rank": 1,
+   "total_score": 0.6691,
+   "filtered": false,
+   "filter_reason": null,
+   "ais_gap_minutes": null,
+   "source": "real",
+   "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
+   "started_utc": "2026-09-07T07:58:11.700000"
+  },
+  {
+   "run_id": "inv-gulf-flagship-20230108",
+   "incident_id": null,
+   "rank": 1,
+   "total_score": 0.6606,
+   "filtered": false,
+   "filter_reason": null,
+   "ais_gap_minutes": null,
+   "source": "real",
+   "scene_id": "S1A_IW_GRDH_1SDV_20230108T001008_20230108T001033_046685_059887_E5A1_COG",
+   "started_utc": "2026-09-07T07:07:51.840000"
+  }
+ ],
+ "ranked_in": 4,
+ "filtered_in": 0
+}

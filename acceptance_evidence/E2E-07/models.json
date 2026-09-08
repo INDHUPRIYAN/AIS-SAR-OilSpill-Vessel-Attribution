@@ -1,0 +1,181 @@
+{
+ "models": [
+  {
+   "kind": "segment",
+   "file": "segment.onnx",
+   "status": "DEPLOYED",
+   "name": "unet-r34-fullcorpus-e48",
+   "config_fingerprint": "01e24b0fb0e8",
+   "sha256": "a4aac81f3ddd54ce05859c0fc4faada7b196288ed64a54293ab96488c5804a44",
+   "bytes": 97719644,
+   "metadata": {
+    "config_fingerprint": "01e24b0fb0e8",
+    "db_min": "-35.0",
+    "db_max": "0.0",
+    "tile_size": "256",
+    "in_channels": "1",
+    "input_range": "float32 [0,1] = (clip(dB, db_min, db_max) - db_min) / (db_max - db_min)",
+    "output": "raw logits; apply sigmoid then threshold (default 0.5)",
+    "model_version": "unet-r34-fullcorpus-e48",
+    "trained_on": "trujillo part 1+2+3carve: 2930 scenes, 93646 tiles (15115 oil)",
+    "checkpoint_epoch": "48"
+   },
+   "model_card": "backend/services/detection/weights/model_card.md"
+  },
+  {
+   "kind": "screen",
+   "file": "screen.onnx",
+   "status": "DEPLOYED",
+   "name": "yolo11n-screen-dartis-2026-08-24",
+   "config_fingerprint": "01e24b0fb0e8",
+   "sha256": "9a6ff8df0d2b4a8f8a287895c6780030c336c5c7f61f1d16d11cc89ceb9ac9fd",
+   "bytes": 10423456,
+   "metadata": {
+    "description": "Ultralytics YOLO11n model trained on C:\\Users\\Indhu Priyan\\Documents\\GitHub\\AIS-SAR-OilSpill-Vessel-Attribution\\data\\processed\\dartis\\dartis.yaml",
+    "author": "Ultralytics",
+    "date": "2026-08-24T19:23:36.987675+05:30",
+    "version": "8.4.127",
+    "license": "AGPL-3.0 License (https://ultralytics.com/license)",
+    "docs": "https://docs.ultralytics.com",
+    "stride": "32",
+    "task": "detect",
+    "head": "Detect",
+    "batch": "1",
+    "imgsz": "[640, 640]",
+    "names": "{0: 'oil'}",
+    "args": "{'data': None, 'batch': 1, 'fraction': 1.0, 'quantize': None, 'dynamic': True, 'simplify': False, 'opset': 17, 'nms': False}",
+    "channels": "3",
+    "end2end": "False",
+    "config_fingerprint": "01e24b0fb0e8",
+    "model_version": "yolo11n-screen-dartis-2026-08-24",
+    "input_convention": "SAR scene tiled 640x640; each tile = db_to_uint8(clip(dB, db_min, db_max)) replicated to 3 channels -- must match config/normalisation.yaml",
+    "db_min": "-35.0",
+    "db_max": "0.0",
+    "validated": "DARTIS val, conf 0.25: mAP50 0.623, background FP 14/458 (3.1%) -- docs/eval/screen-yolo11n-deployed_dartis.json"
+   },
+   "model_card": "backend/services/detection/weights/model_card.md"
+  },
+  {
+   "kind": "drift_residual",
+   "file": null,
+   "status": "EXPERIMENTAL",
+   "name": "drift ML residual correction",
+   "note": "evaluated negative; disabled",
+   "detail": "A learned residual on top of the physics hindcast was trained and evaluated. It did not improve origin accuracy over the physics alone, so it is not applied to any run. The hindcast is physics: no machine learning contributes to the origin estimate.",
+   "applied": false
+  }
+ ],
+ "recent_runs": [
+  {
+   "run_id": "inv-gulf-flagship-20230108-2day",
+   "models": [
+    {
+     "kind": "screen",
+     "file": "screen.onnx",
+     "sha256": "9a6ff8df0d2b4a8f8a287895c6780030c336c5c7f61f1d16d11cc89ceb9ac9fd",
+     "bytes": 10423456,
+     "name": "yolo11n-screen-dartis-2026-08-24",
+     "config_fingerprint": "01e24b0fb0e8"
+    },
+    {
+     "kind": "segment",
+     "file": "segment.onnx",
+     "sha256": "a4aac81f3ddd54ce05859c0fc4faada7b196288ed64a54293ab96488c5804a44",
+     "bytes": 97719644,
+     "name": "unet-r34-fullcorpus-e48",
+     "config_fingerprint": "01e24b0fb0e8"
+    }
+   ],
+   "code_git_sha": "03b48a779b2ebb12aea0ac3a2c1801cbb8b3e729"
+  },
+  {
+   "run_id": "inv-gulf-flagship-20230108-final",
+   "models": [
+    {
+     "kind": "screen",
+     "file": "screen.onnx",
+     "sha256": "9a6ff8df0d2b4a8f8a287895c6780030c336c5c7f61f1d16d11cc89ceb9ac9fd",
+     "bytes": 10423456,
+     "name": "yolo11n-screen-dartis-2026-08-24",
+     "config_fingerprint": "01e24b0fb0e8"
+    },
+    {
+     "kind": "segment",
+     "file": "segment.onnx",
+     "sha256": "a4aac81f3ddd54ce05859c0fc4faada7b196288ed64a54293ab96488c5804a44",
+     "bytes": 97719644,
+     "name": "unet-r34-fullcorpus-e48",
+     "config_fingerprint": "01e24b0fb0e8"
+    }
+   ],
+   "code_git_sha": "1a20f7b5decc5093c6429e2e168ccf9692a3bb54+dirty"
+  },
+  {
+   "run_id": "inv-gulf-flagship-20230108-v2",
+   "models": [
+    {
+     "kind": "screen",
+     "file": "screen.onnx",
+     "sha256": "9a6ff8df0d2b4a8f8a287895c6780030c336c5c7f61f1d16d11cc89ceb9ac9fd",
+     "bytes": 10423456,
+     "name": "yolo11n-screen-dartis-2026-08-24",
+     "config_fingerprint": "01e24b0fb0e8"
+    },
+    {
+     "kind": "segment",
+     "file": "segment.onnx",
+     "sha256": "a4aac81f3ddd54ce05859c0fc4faada7b196288ed64a54293ab96488c5804a44",
+     "bytes": 97719644,
+     "name": "unet-r34-fullcorpus-e48",
+     "config_fingerprint": "01e24b0fb0e8"
+    }
+   ],
+   "code_git_sha": "1a20f7b5decc5093c6429e2e168ccf9692a3bb54"
+  },
+  {
+   "run_id": "inv-gulf-flagship-20230108",
+   "models": [
+    {
+     "kind": "screen",
+     "file": "screen.onnx",
+     "sha256": "9a6ff8df0d2b4a8f8a287895c6780030c336c5c7f61f1d16d11cc89ceb9ac9fd",
+     "bytes": 10423456,
+     "name": "yolo11n-screen-dartis-2026-08-24",
+     "config_fingerprint": "01e24b0fb0e8"
+    },
+    {
+     "kind": "segment",
+     "file": "segment.onnx",
+     "sha256": "a4aac81f3ddd54ce05859c0fc4faada7b196288ed64a54293ab96488c5804a44",
+     "bytes": 97719644,
+     "name": "unet-r34-fullcorpus-e48",
+     "config_fingerprint": "01e24b0fb0e8"
+    }
+   ],
+   "code_git_sha": "9b04f6aca60fa5c239a51d06a5ec3f52db37951e+dirty"
+  },
+  {
+   "run_id": "inv-gulf-rehearsal-20230108",
+   "models": [
+    {
+     "kind": "screen",
+     "file": "screen.onnx",
+     "sha256": "9a6ff8df0d2b4a8f8a287895c6780030c336c5c7f61f1d16d11cc89ceb9ac9fd",
+     "bytes": 10423456,
+     "name": "yolo11n-screen-dartis-2026-08-24",
+     "config_fingerprint": "01e24b0fb0e8"
+    },
+    {
+     "kind": "segment",
+     "file": "segment.onnx",
+     "sha256": "a4aac81f3ddd54ce05859c0fc4faada7b196288ed64a54293ab96488c5804a44",
+     "bytes": 97719644,
+     "name": "unet-r34-fullcorpus-e48",
+     "config_fingerprint": "01e24b0fb0e8"
+    }
+   ],
+   "code_git_sha": "332706fc81e2b244e25774241c8a4a721d8ae267+dirty"
+  }
+ ],
+ "note": "Deployed model identity comes from the ONNX metadata, so a re-export cannot leave this page naming the previous checkpoint."
+}

@@ -1,0 +1,3 @@
+created analyst@oceantrace.local (analyst)
+created reviewer@oceantrace.local (reviewer)
+users now: [('operator@oceantrace.local', 'admin'), ('analyst@oceantrace.local', 'analyst'), ('reviewer@oceantrace.local', 'reviewer')]

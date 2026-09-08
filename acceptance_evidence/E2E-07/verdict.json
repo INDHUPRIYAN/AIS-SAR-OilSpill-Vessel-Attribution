@@ -1,0 +1,73 @@
+{
+ "id": "E2E-07",
+ "title": "Metrics truth",
+ "pass_condition": "Analytics shows unet-r34-fullcorpus-e48 identity + sha256, oil-tile IoU 0.5723; drift ML card EXPERIMENTAL / disabled",
+ "status": "PASS",
+ "executed_utc": "2026-09-08T07:35:54.582601+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": "segmentation identity is unet-r34-fullcorpus-e48",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "oil-tile IoU 0.5723 present",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "overall IoU 0.4445 present (C-10: all three numbers)",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "no-oil tile firing 280/5248 present (C-10)",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "nothing named YOLOv8",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "segment model listed with a sha256",
+   "ok": true,
+   "measured": "a4aac81f3ddd54ce05859c0fc4faada7b196288ed64a54293ab96488c5804a44",
+   "expected": null
+  },
+  {
+   "check": "drift residual listed as EXPERIMENTAL",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "Sentinel-2 / EO listed NOT_DEPLOYED in the catalogue",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  },
+  {
+   "check": "S2 search answers 501, not an empty list",
+   "ok": true,
+   "measured": null,
+   "expected": null
+  }
+ ],
+ "notes": [
+  "Analytics page render: acceptance_evidence/E2E-07/ui-analytics.png"
+ ],
+ "blocked_reason": null,
+ "captures": [
+  "metrics.json",
+  "models.json",
+  "catalog.json"
+ ]
+}

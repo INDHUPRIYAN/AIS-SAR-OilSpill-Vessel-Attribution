@@ -1,0 +1,76 @@
+
+== E2E-14
+    [ok ] investigation created: 200
+    [ok ] run started: 200
+    [ok ] job was running when cancel was requested: 'running'
+    [ok ] cancel accepted: (200, '{"ok":true,"status":"cancelling","job_id":"job-inv-f3ec39f2a2-074125","detail":"the pipeline stops at the next stage bou')
+    [ok ] job status == cancelled: 'cancelled'
+    [ok ] no manifest.json (run left unsealed): False
+    [ok ] run row status is not 'complete': 'cancelled'
+    [ok ] /verify says the run never completed: ['no manifest at manifest.json; run never completed']
+    [ok ] run does not appear in the replay list: None
+    note: UI honest state: acceptance_evidence/E2E-14/ui-cancelled.png
+  => E2E-14 PASS
+
+== E2E-02 / E2E-03
+    [ok ] incident created: 201
+    [ok ] live CDSE search returned products: 200
+    [ok ] S2 search -> 501 NOT DEPLOYED (never an empty list): 501
+    [ok ] investigation created (scene picked): 200
+    [ok ] run started from the API the UI uses: 200
+    [ok ] registry row stamped api: None
+    note: SSE stream ended with ReadError: [WinError 10054] An existing connection was forcibly closed by the remote host
+    [ok ] SSE showed all 5 stages: ['attribution', 'characterise', 'detect', 'drift_forecast', 'drift_hindcast']
+Traceback (most recent call last):
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpx\_transports\default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpx\_transports\default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpcore\_sync\connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpcore\_sync\connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpcore\_sync\connection.py", line 101, in handle_request
+    raise exc
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpcore\_sync\connection.py", line 78, in handle_request
+    stream = self._connect(request)
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpcore\_sync\connection.py", line 124, in _connect
+    stream = self._network_backend.connect_tcp(**kwargs)
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpcore\_backends\sync.py", line 207, in connect_tcp
+    with map_exceptions(exc_map):
+  File "C:\Program Files\Python310\lib\contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpcore\_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ConnectError: [WinError 10061] No connection could be made because the target machine actively refused it
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\scripts\acceptance_e2e.py", line 941, in <module>
+    v = Verdict(tid, tid, "see FAST table"); v.block(f"{type(exc).__name__}: {exc}"); results[tid] = v.finish()
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\scripts\acceptance_e2e.py", line 930, in main
+    ap.add_argument("--only", help="comma-separated ids")
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\scripts\acceptance_e2e.py", line 878, in e2e_02_03
+    timeout=httpx.Timeout(900.0, connect=10.0)) as sc:
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\scripts\acceptance_e2e.py", line 775, in _wait_job
+    reg = EVIDENCE / "regression_pytest.txt"
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpx\_client.py", line 1053, in get
+    return self.request(
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpx\_client.py", line 825, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpx\_client.py", line 914, in send
+    response = self._send_handling_auth(
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpx\_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpx\_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpx\_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpx\_transports\default.py", line 249, in handle_request
+    with map_httpcore_exceptions():
+  File "C:\Program Files\Python310\lib\contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\Indhu Priyan\Documents\GitHub\AIS-SAR-OilSpill-Vessel-Attribution\.venv\lib\site-packages\httpx\_transports\default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ConnectError: [WinError 10061] No connection could be made because the target machine actively refused it

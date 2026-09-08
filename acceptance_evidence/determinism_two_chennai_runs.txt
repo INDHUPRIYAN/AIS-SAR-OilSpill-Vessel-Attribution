@@ -1,0 +1,17 @@
+Two UI/API-launched runs of the same Chennai scene, same code, minutes apart (OT-C-05 anti-fabrication / determinism):
+  inv-e153ccca69-073206: digest 8e49f29da59e0720  scene S1A_IW_GRDH_1SDV_20170129T003132_2017012  code 393246b552  229.72 s
+  inv-559113eeb5-074435: digest a5716b4b35aec58a  scene S1A_IW_GRDH_1SDV_20170129T003132_2017012  code 393246b552  225.57 s
+  identical artefacts: ['scene_meta.json', 'raw_mask.tif', 'origin_cloud.geojson', 'forecast.geojson', 'vessels.parquet']
+  differing artefacts: ['detect_response.json', 'slick.geojson', 'suspects.json']
+    detect_response.json: differs; carries run-specific fields []
+    slick.geojson: differs; carries run-specific fields []
+    suspects.json: differs; carries run-specific fields ['generated_utc', 'run_id']
+  flagship (different scene) digest for contrast: fd42e078f8366110
+
+field-level comparison of the differing artefacts, timestamps/run ids removed:
+  detect_response.json: differs in top-level keys ['mask_path', 'runtime_ms']
+     mask_path: "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/data/runs/inv-e153ccca69-073206/raw_mask.tif  |  "C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/data/runs/inv-559113eeb5-074435/raw_mask.tif
+     runtime_ms: 166697  |  158969
+  slick.geojson: differs in top-level keys ['metadata']
+     metadata: {"scene_id": "S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_8B05_COG", "detected_utc": "2017-01-29T00:3  |  {"scene_id": "S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_8B05_COG", "detected_utc": "2017-01-29T00:3
+  suspects.json: IDENTICAL once run_id/timestamps are removed

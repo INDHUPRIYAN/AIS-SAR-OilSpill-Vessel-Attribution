@@ -1,0 +1,19 @@
+{
+ "id": "job-inv-f3ec39f2a2-074125",
+ "run_id": "inv-f3ec39f2a2-074125",
+ "investigation_id": "inv-f3ec39f2a2",
+ "status": "cancelled",
+ "current_stage": null,
+ "stages_done": 1,
+ "stages_total": 5,
+ "created_utc": "2026-09-08T07:41:25.962881",
+ "started_utc": "2026-09-08T07:41:26.056271",
+ "finished_utc": "2026-09-08T07:44:29.972123",
+ "cancel_requested_utc": "2026-09-08T07:44:00.619962",
+ "error": null,
+ "inputs": {
+  "scene_path": "C:\\Users\\Indhu Priyan\\Documents\\GitHub\\AIS-SAR-OilSpill-Vessel-Attribution\\data\\scenes\\S1A_CHENNAI_20170129\\scene_sigma0_db.tif",
+  "scene_meta_path": "C:\\Users\\Indhu Priyan\\Documents\\GitHub\\AIS-SAR-OilSpill-Vessel-Attribution\\data\\runs\\inv-chennai-real2\\scene_meta.json",
+  "engine": "auto"
+ }
+}

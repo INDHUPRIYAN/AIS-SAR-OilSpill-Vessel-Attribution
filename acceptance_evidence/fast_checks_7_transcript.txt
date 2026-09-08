@@ -1,0 +1,29 @@
+
+== E2E-12
+    [ok ] dry-run poll answers: 200
+    [ok ] dry-run errors == []: []
+    [ok ] dry-run opened nothing: []
+    note: dry-run names 0 scene(s) it would open; polled ['chennai-coast'], disabled ['us-gulf-coast', 'mumbai-offshore']
+    [ok ] live poll on chennai-coast answers: (200, '{"started_utc":"2026-09-08T08:19:08.148095+00:00","polled":["chennai-coast"],"skipped":[],"disabled":[],"new_scenes":[],')
+    [ok ] live poll errors == []: []
+    note: live poll opened 0 investigation(s): []
+    [ok ] ack -> acknowledged: (200, 'acknowledged')
+    [ok ] assign to a real user: (200, 1)
+    [ok ] alert reads assigned afterwards: [('alert-9e20a0a5e1', 1), ('alert-9dbf4809f8', 1)]
+    [ok ] alert links an investigation or scene: {'investigation_id': 'aoi-danish-straits-20260906T170043', 'scene_id': 'S1D_IW_GRDH_1SDV_20260906T170043_20260906T170108_004460_00844F_ACA9'}
+    note: SSE delivery: /api/events/alerts is driven in-suite (test_alerts.py::test_sse_sends_the_current_queue_on_connect); consuming a live SSE stream from this harness is deliberately avoided (an SSE endpoint never ends).
+  => E2E-12 PASS
+
+{
+ "E2E-01": "PASS",
+ "E2E-04": "PASS",
+ "E2E-05": "PARTIAL",
+ "E2E-06": "PASS",
+ "E2E-07": "PASS",
+ "E2E-08": "PASS",
+ "E2E-09": "PASS",
+ "E2E-10": "PASS",
+ "E2E-11": "PASS",
+ "E2E-12": "PASS",
+ "E2E-13": "PASS"
+}

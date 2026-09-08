@@ -1,0 +1,62 @@
+{
+ "id": "E2E-13",
+ "title": "Audit chain",
+ "pass_condition": "10 event types present with authenticated actors + IP; /api/audit/verify ok; manual row tamper -> verify fails",
+ "status": "PASS",
+ "executed_utc": "2026-09-08T08:10:48.558275+00:00",
+ "api": "http://127.0.0.1:8010",
+ "checks": [
+  {
+   "check": ">= 10 distinct event types recorded",
+   "ok": true,
+   "measured": 13,
+   "expected": ">= 10"
+  },
+  {
+   "check": "every event has an actor",
+   "ok": true,
+   "measured": 85,
+   "expected": null
+  },
+  {
+   "check": "every session-originated event records an IP",
+   "ok": true,
+   "measured": [
+    73,
+    0
+   ],
+   "expected": null
+  },
+  {
+   "check": "/api/audit/verify ok on the live chain",
+   "ok": true,
+   "measured": {
+    "ok": true,
+    "checked": 84,
+    "total": 85,
+    "unchained": 1,
+    "broken_at": null,
+    "note": "1 legacy row(s) predate hash chaining and are not covered"
+   },
+   "expected": null
+  },
+  {
+   "check": "tampered copy fails verification",
+   "ok": true,
+   "measured": false,
+   "expected": false
+  }
+ ],
+ "notes": [
+  "recorded action types: ['alert.ack', 'aoi.create', 'aoi.delete', 'auth.login', 'decision.inconclusive', 'incident.create', 'investigation.create', 'report.create', 'report.publish', 'report.revise', 'report.submit', 'run.cancel', 'run.start']",
+  "12 event(s) carry no IP because no request produced them (actors: ['auditor', 'test-admin@example.invalid']) -- pipeline/scheduler/CLI actions, recorded as such."
+ ],
+ "blocked_reason": null,
+ "captures": [
+  "audit_page.json",
+  "action_types.json",
+  "verify.json",
+  "tampered_row.json",
+  "tamper_verify.txt"
+ ]
+}

@@ -1,0 +1,153 @@
+{
+ "run_id": "inv-final-audit",
+ "investigation_id": null,
+ "incident_id": null,
+ "scene_id": "S1A_IW_GRDH_BALI",
+ "status": "complete",
+ "started_utc": "2026-09-06T11:32:25",
+ "finished_utc": "2026-09-06T11:32:25",
+ "seconds": 34.34,
+ "detect_engine": "ml",
+ "stages_total": 5,
+ "stages_real": 5,
+ "stages_mock": 0,
+ "stages_failed": 0,
+ "top_suspect_mmsi": 563433761,
+ "top_score": 0.9327,
+ "slick_area_km2": 10.086,
+ "region": null,
+ "registry_source": null,
+ "archived": false,
+ "error": null,
+ "manifest": {
+  "run_id": "inv-final-audit",
+  "scene_id": "S1A_IW_GRDH_BALI",
+  "scene_path": "../data/raw/trujillo/part3/Images/Oil/00074.tif",
+  "generated_utc": "2026-09-06T11:32:25Z",
+  "total_seconds": 34.34,
+  "stages": [
+   {
+    "stage": "detect",
+    "owner": "Indhu",
+    "status": "ok",
+    "engine_used": "ml",
+    "data_source": "sensor",
+    "output": "detect_response.json",
+    "contract": "detect",
+    "source": "real",
+    "detail": "engine=ml, 2 oil + 2 look-alike candidate(s), confidence 0.9332",
+    "seconds": 11.05,
+    "warnings": [
+     "screen: 2 oil candidate(s) over 9 tile(s), best 0.27",
+     "ml inference 0.6s",
+     "screen rejected 2/4 segmented region(s) as look-alike"
+    ],
+    "idempotency_key": "e2713521c399d1319a03b1b17373dc1b40d833cecf313573d6093a90fe25e59b"
+   },
+   {
+    "stage": "characterise",
+    "owner": "Nandha",
+    "status": "ok",
+    "engine_used": "primary",
+    "data_source": "sensor",
+    "output": "slick.geojson",
+    "contract": "slick",
+    "source": "real",
+    "detail": "Engine A: 1 slick(s)",
+    "seconds": 2.17,
+    "warnings": [],
+    "idempotency_key": "d9780c774e75a8c9a439c5c50f281934a373be37b17c3607e86bb5e9519c515c"
+   },
+   {
+    "stage": "drift_hindcast",
+    "owner": "Nandha",
+    "status": "ok",
+    "engine_used": "euler",
+    "data_source": "cached",
+    "output": "origin_cloud.geojson",
+    "contract": "origin_cloud",
+    "source": "real",
+    "detail": "Engine B [euler] hindcast 21h, currents+wind",
+    "seconds": 4.02,
+    "warnings": [],
+    "idempotency_key": "ebd57066be74d5a3fd1714c5f52ae937bc52645aead1502713d409435860c646"
+   },
+   {
+    "stage": "drift_forecast",
+    "owner": "Nandha",
+    "status": "ok",
+    "engine_used": "euler",
+    "data_source": "cached",
+    "output": "forecast.geojson",
+    "contract": "forecast",
+    "source": "real",
+    "detail": "Engine B [euler] forecast 24h, currents+wind",
+    "seconds": 2.72,
+    "warnings": [],
+    "idempotency_key": "9735ad403b0e9d06eb7f6d1276f4bea7f91c033c50fcb101833f3c0b131ae236"
+   },
+   {
+    "stage": "attribution",
+    "owner": "Nandha",
+    "status": "ok",
+    "engine_used": "primary",
+    "data_source": "synthetic",
+    "output": "suspects.json",
+    "contract": "suspects",
+    "source": "real",
+    "detail": "Engine C: 10 suspect(s), top MMSI 563433761 score 0.93",
+    "seconds": 2.49,
+    "warnings": [
+     "vessels.parquet does not cover the computed origin window; generating AIS for this origin instead",
+     "synthesised AIS around the computed origin (-8.795, 114.329) -- flagged SYNTHETIC",
+     "AIS index: 43 vessels/1963 rows -> 27 vessels/1220 rows (query 59.4 ms vs full scan 6.6 ms; ingest 78.8 ms)"
+    ],
+    "idempotency_key": "ccec97871b2ea56b8786f1b8e084f5fc094622a17076fcc64315aa041fa3e00d"
+   }
+  ],
+  "artefacts": [
+   {
+    "file": "scene_meta.json",
+    "bytes": 426,
+    "sha256": "7a37f07ed15362ebe70eabe06d8cd15b119c2e089d1655a8a1d7edb748731f8b"
+   },
+   {
+    "file": "detect_response.json",
+    "bytes": 1115,
+    "sha256": "5c51630027be734feffb6db5842abf72f9d582b864323671f8dc2ad3f51c5451"
+   },
+   {
+    "file": "raw_mask.tif",
+    "bytes": 63477,
+    "sha256": "2e0435e44d4c704bd281fa81148a005f4bf97af866fa40770379437839b8503c"
+   },
+   {
+    "file": "slick.geojson",
+    "bytes": 30742,
+    "sha256": "bf20165e68df074b76f37a392eee681352ace9ef6f734a64d62ac88a35b39f69"
+   },
+   {
+    "file": "origin_cloud.geojson",
+    "bytes": 2585762,
+    "sha256": "14c1203c32a23f8cfd43214d5776a4fa87887f93fbb286c8e290fd948fba4814"
+   },
+   {
+    "file": "forecast.geojson",
+    "bytes": 16504,
+    "sha256": "28f81f1dc3f4b25c2c3706402026e1058a370cfc02d4129471f5bebb1ef53e43"
+   },
+   {
+    "file": "vessels.parquet",
+    "bytes": 102671,
+    "sha256": "3ba24a0b2d784bfddbbc5a3909ec8b8174125dd7770d0e955ce573f7cb077a77"
+   },
+   {
+    "file": "suspects.json",
+    "bytes": 10743,
+    "sha256": "09d4b3d70f876b724bca8a0812506f6a99c3fe658eaef784d41874d7f4dc6091"
+   }
+  ],
+  "artefact_digest": "24842276f60c0671e8553a8ca05b6f6ac53191776b6722cb3a8edd1d338b3ee5",
+  "immutable": true
+ }
+}
