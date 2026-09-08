@@ -29,6 +29,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import String, cast, or_
 from sqlalchemy.orm import Session
 
+from backend.api.scenes import _load_catalog as load_scene_catalog
 from backend.core.config import get_settings
 from backend.models.db import Incident, Investigation, Run, Vessel, get_db
 
@@ -164,19 +165,16 @@ def _scenes() -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
     seen = set()
 
-    catalogue = root.parent / "main_system" / "config" / "scene_catalog.json"
-    if catalogue.exists():
-        try:
-            payload = json.loads(catalogue.read_text(encoding="utf-8"))
-            entries = payload if isinstance(payload, list) else payload.get("scenes", [])
-            for entry in entries:
-                if entry.get("id") and entry["id"] not in seen:
-                    seen.add(entry["id"])
-                    out.append({"id": entry["id"], "label": entry.get("label"),
-                                "context": (f"{entry.get('provenance', 'unknown')}"
-                                            f" · {entry.get('time_basis', '')}").strip(" ·")})
-        except (json.JSONDecodeError, OSError):
-            pass
+    # Loaded through the scenes module rather than re-parsed here. This block
+    # held a second copy of the catalogue path and of the JSON handling; the
+    # two agreed, but a divergence would have surfaced as scenes quietly
+    # missing from search results -- an empty result set, never an error.
+    for entry in load_scene_catalog():
+        if entry.get("id") and entry["id"] not in seen:
+            seen.add(entry["id"])
+            out.append({"id": entry["id"], "label": entry.get("label"),
+                        "context": (f"{entry.get('provenance', 'unknown')}"
+                                    f" · {entry.get('time_basis', '')}").strip(" ·")})
 
     scenes_dir = root / "scenes"
     if scenes_dir.is_dir():

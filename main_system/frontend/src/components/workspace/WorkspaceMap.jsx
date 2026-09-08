@@ -24,6 +24,7 @@ import { WS } from "./palette";
 import {
   circleRing, destination, trackStateAt, trackPathUntil, bearingDeg, fmtUtc,
 } from "../../lib/replay";
+import { segments as measureSegments } from "../../lib/geodesy";
 
 const dashExt = [new PathStyleExtension({ dash: true })];
 const CHARSET = "auto";
@@ -79,7 +80,7 @@ function hatchLines(w, s, e, n, count = 7) {
 
 export default function WorkspaceMap({
   view, onViewChange, show, layers, timeMs, sceneT0, runId, sarStretch,
-  selectedMmsi, onSelect, onHover, maxStep,
+  selectedMmsi, onSelect, onHover, maxStep, measure,
 }) {
   const { sceneMeta, slick, origin, forecast, vessels, suspects, detect } = layers;
   const [pinned, setPinned] = useState(null);
@@ -465,6 +466,41 @@ export default function WorkspaceMap({
     }));
   }
 
+  /* ------------------------------------------------ measure (MAP tools) --
+   * Drawn last, on top of everything: a ruler the evidence can cover is not
+   * a ruler. Labels carry km AND nm because every speed in this system is in
+   * knots, and the numbers come from the same function the readout panel uses
+   * so the map and the panel cannot disagree. */
+  const mPoints = measure?.points ?? [];
+  if (mPoints.length) {
+    const legs = measureSegments(mPoints);
+    if (legs.length) {
+      deck.push(new PathLayer({
+        id: "ws-measure-line", data: [{ path: mPoints }],
+        getPath: (d) => d.path, getColor: [56, 189, 248, 235],
+        getWidth: 1.6, widthUnits: "pixels",
+        getDashArray: [7, 4], extensions: dashExt,
+      }));
+      deck.push(new TextLayer({
+        id: "ws-measure-label", data: legs,
+        getPosition: (d) => d.labelAt,
+        getText: (d) => `${d.km.toFixed(2)} km · ${d.nm.toFixed(2)} nm · ${d.bearingDeg.toFixed(0)}°`,
+        getSize: 11, getColor: [224, 242, 254, 245],
+        fontFamily: "JetBrains Mono, monospace",
+        getTextAnchor: "middle", getAlignmentBaseline: "bottom",
+        characterSet: CHARSET,
+      }));
+    }
+    deck.push(new ScatterplotLayer({
+      id: "ws-measure-points", data: mPoints.map((pos, i) => ({ pos, i })),
+      getPosition: (d) => d.pos, getRadius: 90,
+      radiusMinPixels: 3, radiusMaxPixels: 6,
+      stroked: true, filled: true,
+      getFillColor: [7, 11, 20, 220], getLineColor: [56, 189, 248, 255],
+      getLineWidth: 1.8, lineWidthUnits: "pixels",
+    }));
+  }
+
   /* scene footprint always */
   if (bbox) {
     const [w, s, e, n] = bbox;
@@ -481,11 +517,21 @@ export default function WorkspaceMap({
     <DeckGL
       viewState={view}
       onViewStateChange={onViewChange}
-      controller={{ dragRotate: true }}
+      controller={{ dragRotate: true, doubleClickZoom: !measure?.active }}
       layers={deck}
       style={{ position: "absolute", inset: 0 }}
-      getCursor={({ isHovering }) => (isHovering ? "pointer" : "grab")}
-      onClick={(i) => { if (!i.object) setPinned(null); }}
+      getCursor={({ isHovering }) => (measure?.active ? "crosshair"
+        : isHovering ? "pointer" : "grab")}
+      onClick={(i) => {
+        // While measuring, a click is a vertex -- including a click that
+        // lands on a vessel. Silently selecting the vessel instead would
+        // drop the point the analyst just placed.
+        if (measure?.active) {
+          if (i.coordinate) measure.onAddPoint(i.coordinate);
+          return;
+        }
+        if (!i.object) setPinned(null);
+      }}
     >
       <MapGL mapStyle={BASEMAP} attributionControl={false} />
     </DeckGL>

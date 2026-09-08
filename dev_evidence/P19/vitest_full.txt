@@ -1,0 +1,87 @@
+
+ RUN  v2.1.9 C:/Users/Indhu Priyan/Documents/GitHub/AIS-SAR-OilSpill-Vessel-Attribution/main_system/frontend
+
+ ✓ tests-unit/geodesy.test.js > distance > measures one degree of latitude as 111.195 km
+ ✓ tests-unit/geodesy.test.js > distance > makes one degree of latitude 60 nautical miles, as the definition says
+ ✓ tests-unit/geodesy.test.js > distance > measures half the earth's circumference across the globe
+ ✓ tests-unit/geodesy.test.js > distance > returns zero for a point measured against itself
+ ✓ tests-unit/geodesy.test.js > distance > crosses the antimeridian without measuring the long way round
+ ✓ tests-unit/geodesy.test.js > it is a distance on the globe, not on the projection > shrinks a degree of longitude as latitude rises
+ ✓ tests-unit/geodesy.test.js > bearing > reads 0° due north and 90° due east
+ ✓ tests-unit/geodesy.test.js > bearing > reads 180° due south and 270° due west, never a negative angle
+ ✓ tests-unit/geodesy.test.js > segments > returns one leg per pair of points
+ ✓ tests-unit/geodesy.test.js > segments > carries km, nm and bearing on every leg
+ ✓ tests-unit/geodesy.test.js > segments > is the same arithmetic the total uses
+ ✓ tests-unit/geodesy.test.js > formatMeasurement > returns nothing for fewer than two points
+ ✓ tests-unit/geodesy.test.js > formatMeasurement > reports both units and the bearing in one line
+ ✓ tests-unit/geodesy.test.js > formatMeasurement > states its own geodesy, so a screenshot carries its method
+ ✓ tests-unit/geodesy.test.js > formatMeasurement > takes the bearing start-to-end, not leg by leg
+ ✓ tests-unit/runEvents.test.jsx > useRunEvents > collects one row per stage and ends on the terminal event
+ ✓ tests-unit/runEvents.test.jsx > useRunEvents > replaces a stage rather than appending it twice
+ ✓ tests-unit/runEvents.test.jsx > useRunEvents > falls back to polling and says so when the stream closes
+ ✓ tests-unit/runEvents.test.jsx > useRunEvents > falls back when EventSource does not exist at all
+ ✓ tests-unit/runEvents.test.jsx > useRunEvents > does nothing without a run id
+ ✓ tests-unit/session.test.jsx > session > asks the server who is signed in, rather than trusting local state
+ ✓ tests-unit/session.test.jsx > session > sends credentials so the HttpOnly cookie actually rides along
+ ✓ tests-unit/session.test.jsx > session > treats a 401 as signed out, not as an error page
+ ✓ tests-unit/session.test.jsx > session > shows 'checking' before the first answer, so a reload does not flash the form
+ ✓ tests-unit/session.test.jsx > session > keeps no token anywhere JavaScript can read
+ ✓ tests-unit/session.test.jsx > Unauthenticated > is distinguishable from an ordinary failure
+stderr | tests-unit/topbar.test.jsx > provenance chips > shows one ghost chip when no run is open
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ tests-unit/topbar.test.jsx > provenance chips > shows one ghost chip when no run is open
+ ✓ tests-unit/topbar.test.jsx > provenance chips > reads the run in context and names it
+ ✓ tests-unit/topbar.test.jsx > provenance chips > says REAL for a run whose AIS came from an archive
+ ✓ tests-unit/topbar.test.jsx > provenance chips > says SYNTHETIC loudly for a run whose AIS was generated
+ ✓ tests-unit/topbar.test.jsx > provenance chips > says UNRECORDED rather than assuming real when the manifest is silent
+ ✓ tests-unit/topbar.test.jsx > provenance chips > says NO MANIFEST rather than showing a stage count it cannot support
+ ✓ tests-unit/topbar.test.jsx > provenance chips > names every source that was not real, instead of hiding it in a count
+ ✓ tests-unit/topbar.test.jsx > provenance chips > groups several stages of one source into a chip that still says the word
+ ✓ tests-unit/measureTool.test.jsx > before there is anything to measure > says how to start, rather than showing a zero
+ ✓ tests-unit/measureTool.test.jsx > before there is anything to measure > reports one point as one point, with its position
+ ✓ tests-unit/measureTool.test.jsx > a two-point measurement > prints km, nm and bearing together
+ ✓ tests-unit/measureTool.test.jsx > a two-point measurement > states the geodesy beside the number
+ ✓ tests-unit/measureTool.test.jsx > a multi-leg path > lists every leg
+ ✓ tests-unit/measureTool.test.jsx > a multi-leg path > shows a total that is the legs added up
+ ✓ tests-unit/measureTool.test.jsx > a multi-leg path > says the headline bearing is start-to-end
+ ✓ tests-unit/measureTool.test.jsx > a multi-leg path > carries no such note for a single leg, where it would be noise
+ ✓ tests-unit/measureTool.test.jsx > controls > undoes the last point and clears the whole measurement
+ ✓ tests-unit/measureTool.test.jsx > controls > disables both when there is nothing to undo or clear
+ ✓ tests-unit/topbar.test.jsx > provenance chips > shows the artefact digest, truncated, for the run it describes
+ ✓ tests-unit/topbar.test.jsx > provenance chips > claims no provenance at all when the run cannot be read
+ ✓ tests-unit/topbar.test.jsx > provenance chips > can be closed, which empties the strip rather than leaving a stale run
+ ✓ tests-unit/topbar.test.jsx > ZULU clock > shows UTC with a Z suffix
+ ✓ tests-unit/topbar.test.jsx > ZULU clock > ticks
+ ✓ tests-unit/topbar.test.jsx > ZULU clock > hides IST until asked, then labels it
+ ✓ tests-unit/topbar.test.jsx > ZULU clock > is not affected by the browser's own timezone
+stderr | tests-unit/commandPalette.test.jsx > opening and closing > opens on ⌘K and on Ctrl+K
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ ✓ tests-unit/commandPalette.test.jsx > opening and closing > opens on ⌘K and on Ctrl+K
+ ✓ tests-unit/commandPalette.test.jsx > opening and closing > closes on Escape from inside its own input
+ ✓ tests-unit/commandPalette.test.jsx > opening and closing > forgets the previous query when reopened
+ ✓ tests-unit/commandPalette.test.jsx > it reaches every screen > lists one command per declared route
+ ✓ tests-unit/commandPalette.test.jsx > it reaches every screen > navigates when a route command is chosen
+ ✓ tests-unit/commandPalette.test.jsx > it reaches every screen > filters commands by substring, not by fuzzy guessing
+ ✓ tests-unit/commandPalette.test.jsx > entity search > queries the endpoint and opens the row's own route
+ ✓ tests-unit/commandPalette.test.jsx > entity search > says a search failed instead of showing an empty list
+ ✓ tests-unit/commandPalette.test.jsx > entity search > repeats the server's matching rule when nothing matched
+ ✓ tests-unit/commandPalette.test.jsx > entity search > does not search on a single character
+ ✓ tests-unit/commandPalette.test.jsx > entity search > debounces: typing an MMSI is one request, not nine 483ms
+ ✓ tests-unit/commandPalette.test.jsx > commands contributed by the mounted view > appear in the palette and run when chosen
+ ✓ tests-unit/commandPalette.test.jsx > commands contributed by the mounted view > bind their own key, and that key does not fire while typing
+ ✓ tests-unit/commandPalette.test.jsx > keyboard > moves with the arrows and opens with Enter
+ ✓ tests-unit/commandPalette.test.jsx > keyboard > wraps at both ends rather than dead-ending
+ ✓ tests-unit/commandPalette.test.jsx > the ? overlay > is generated from the live keymap
+ ✓ tests-unit/commandPalette.test.jsx > the ? overlay > lists nothing the shell cannot dispatch
+ ✓ tests-unit/commandPalette.test.jsx > the ? overlay > gives way to the palette rather than stacking on top of it
+ ✓ tests-unit/commandPalette.test.jsx > run in context > survives navigation and is only dropped when closed explicitly
+
+ Test Files  6 passed (6)
+      Tests  70 passed (70)
+   Start at  12:05:55
+   Duration  5.69s (transform 453ms, setup 2.26s, collect 2.91s, tests 2.55s, environment 12.51s, prepare 1.86s)
+

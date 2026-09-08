@@ -10,7 +10,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity, Crosshair, Download, Droplets, FileText, Info,
-  Layers as LayersIcon, Play, Plus, RotateCcw, Square, Zap,
+  Layers as LayersIcon, Play, Plus, RotateCcw, Ruler, Square, Zap,
 } from "lucide-react";
 
 import WorkspaceMap from "../components/workspace/WorkspaceMap";
@@ -19,11 +19,13 @@ import LayerPanel from "../components/workspace/LayerPanel";
 import SpillPanel from "../components/workspace/SpillPanel";
 import SuspectsPanel from "../components/workspace/SuspectsPanel";
 import TimeSlider from "../components/workspace/TimeSlider";
+import MeasureTool from "../components/workspace/MeasureTool";
 import { sourceBadge } from "../components/workspace/palette";
 import NewInvestigation from "../components/NewInvestigation";
 import { Spinner, Empty } from "../components/ui";
 import { api, useApi } from "../lib/api";
 import { useRunEvents } from "../lib/useRunEvents";
+import { useRegisterCommands, useRunInContext } from "../lib/shell";
 import { guessPlace, fmtUtc } from "../lib/replay";
 
 const LAYER_STAGE = {
@@ -66,9 +68,20 @@ export default function Investigation() {
   const [view, setView] = useState({
     longitude: 80.32, latitude: 13.05, zoom: 9.6, pitch: 0, bearing: 0,
   });
+  // MAP-mode measure. Points are [lon, lat] straight off the map click, so
+  // the numbers are measured on the globe rather than on the projection.
+  const [measuring, setMeasuring] = useState(false);
+  const [measurePoints, setMeasurePoints] = useState([]);
 
-  const runId = replayRunId || status?.run_id || params.get("run")
-    || inv?.latest_run_id || null;
+  /* Precedence matters and is not obvious. A `?run=` in the URL used to lose
+   * to `status.run_id`, which is the *selected investigation's* latest run --
+   * so a deep link to a specific run silently showed a different one. Every
+   * run row in the command palette is such a link, and a link that opens the
+   * wrong run is worse than a link that fails. The two ids the page produces
+   * itself (a replay, and a run it just started) still win, or starting a run
+   * from a deep-linked page would pin the old one forever. */
+  const runId = replayRunId || job?.run_id || params.get("run")
+    || status?.run_id || inv?.latest_run_id || null;
   const loadedFor = useRef(null);
   const fetched = useRef(new Set());
 
@@ -199,6 +212,48 @@ export default function Investigation() {
                   (layers.scene_meta.bbox[1] + layers.scene_meta.bbox[3]) / 2])
     : "—";
 
+  /* ------------------------------------------- shell context + palette -- */
+  /* The run rides in the top bar until it is explicitly closed, so the
+   * provenance chips describe what is on screen even after navigating away. */
+  useRunInContext(runId);
+
+  /* What this view contributes to ⌘K. Layer toggles and time jumps cannot
+   * live in the palette itself -- they are this page's state -- so the page
+   * hands them over for as long as it is mounted. */
+  useRegisterCommands(() => {
+    const cmds = [
+      { id: "measure", group: "Map", keys: ["M"], scope: "workspace",
+        label: measuring ? "Measure tool — turn off" : "Measure tool — turn on",
+        run: () => setMeasuring((v) => !v) },
+      { id: "measure-clear", group: "Map", label: "Clear the measurement",
+        run: () => setMeasurePoints([]) },
+    ];
+    for (const [key, on] of Object.entries(show)) {
+      cmds.push({
+        id: `layer:${key}`, group: "Layer",
+        label: `${on ? "Hide" : "Show"} ${key}`,
+        run: () => setShow((sh) => ({ ...sh, [key]: !sh[key] })),
+      });
+    }
+    if (sceneT0) {
+      cmds.push({
+        id: "t:acquisition", group: "Time",
+        label: "Jump to scene acquisition time",
+        hint: fmtUtc(sceneT0), run: () => setTimeMs(sceneT0),
+      });
+    }
+    const windowStart = Date.parse(
+      layers.origin_cloud?.metadata?.origin_window_start_utc ?? "");
+    if (windowStart) {
+      cmds.push({
+        id: "t:window-start", group: "Time",
+        label: "Jump to the start of the origin window",
+        hint: fmtUtc(windowStart), run: () => setTimeMs(windowStart),
+      });
+    }
+    return cmds;
+  }, [measuring, show, sceneT0, layers.origin_cloud]);
+
   /* ------------------------------------------------------------- actions -- */
   async function run() {
     if (!invId) return;
@@ -283,6 +338,11 @@ export default function Investigation() {
         timeMs={timeMs} sceneT0={sceneT0} runId={runId}
         selectedMmsi={selectedMmsi} onSelect={flyToVessel}
         onHover={setHover} maxStep={maxStep}
+        measure={{
+          active: measuring,
+          points: measurePoints,
+          onAddPoint: (p) => setMeasurePoints((pts) => [...pts, p]),
+        }}
       />
 
       {/* ------------------------------------------------------- header --- */}
@@ -320,6 +380,12 @@ export default function Investigation() {
               <option key={x.id} value={x.id}>{x.name} · {x.id}</option>
             ))}
           </select>
+          <button className={`btn btn-icon ${measuring ? "btn-on" : ""}`}
+            title="Measure distance on the map (M) — great-circle km and nm"
+            aria-pressed={measuring}
+            onClick={() => setMeasuring((v) => !v)} data-testid="measure-toggle">
+            <Ruler size={14} />
+          </button>
           <button className="btn btn-icon" title="New investigation"
             onClick={() => setWizardOpen(true)} data-testid="new-investigation-btn">
             <Plus size={14} />
@@ -401,12 +467,18 @@ export default function Investigation() {
 
         <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }} className="panel"
-          style={{ padding: 13, overflowY: "auto", minHeight: 0 }}>
+          style={{ padding: 13, overflowY: "auto", minHeight: 120 }}>
           <div className="ws-panel-title"><LayersIcon size={13} /> Layers</div>
           <LayerPanel show={show} present={status?.layers_present}
             stages={status?.stages}
             onToggle={(k, v) => setShow((s) => ({ ...s, [k]: v }))} />
         </motion.div>
+
+        {measuring && (
+          <MeasureTool points={measurePoints}
+            onUndo={() => setMeasurePoints((pts) => pts.slice(0, -1))}
+            onClear={() => setMeasurePoints([])} />
+        )}
       </div>
 
       {/* -------------------------------------------------- right column --- */}

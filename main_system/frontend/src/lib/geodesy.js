@@ -43,13 +43,40 @@ export function bearingDeg(a, b) {
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
+/** Every leg of a path, measured individually.
+ *
+ * The measure tool draws leg labels on the map, and a total alone cannot be
+ * checked against them: a reader who adds up the legs and gets a different
+ * total has found a bug, which is only possible if both are computed from the
+ * same function. So the total below is the sum of exactly these legs.
+ */
+export function segments(points) {
+  const out = [];
+  if (!points || points.length < 2) return out;
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const from = points[i];
+    const to = points[i + 1];
+    const km = haversineKm(from, to);
+    out.push({
+      index: i,
+      from,
+      to,
+      km,
+      nm: kmToNm(km),
+      bearingDeg: bearingDeg(from, to),
+      // Midpoint of the leg in plain lon/lat, for label placement only. It is
+      // deliberately NOT presented as a geodesic midpoint: labels may sit a
+      // little off the great circle on a long leg, and a label position is
+      // not a measurement.
+      labelAt: [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2],
+    });
+  }
+  return out;
+}
+
 /** Total length of a [lon, lat] path, in kilometres. */
 export function pathLengthKm(points) {
-  let total = 0;
-  for (let i = 0; i < points.length - 1; i += 1) {
-    total += haversineKm(points[i], points[i + 1]);
-  }
-  return total;
+  return segments(points).reduce((total, leg) => total + leg.km, 0);
 }
 
 export const kmToNm = (km) => km / KM_PER_NM;

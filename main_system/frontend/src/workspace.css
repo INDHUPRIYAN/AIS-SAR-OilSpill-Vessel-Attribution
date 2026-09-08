@@ -19,7 +19,13 @@
 .ws-left {
   top: 66px; left: 12px; bottom: 88px; width: 278px;
   display: flex; flex-direction: column; gap: 10px;
+  /* The column scrolls rather than compressing its panels. Opening the
+   * measure tool used to squeeze the Layers panel to zero height -- the
+   * toggles were still mounted, still "on", and completely invisible. */
+  overflow-y: auto; scrollbar-width: none;
 }
+.ws-left::-webkit-scrollbar { display: none; }
+.ws-left > * { flex-shrink: 0; }
 .ws-right {
   top: 66px; right: 12px; bottom: 88px; width: 330px;
   display: flex; flex-direction: column;

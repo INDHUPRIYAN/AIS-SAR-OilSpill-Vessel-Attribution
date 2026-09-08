@@ -77,8 +77,8 @@ body::before {
 .app { display: flex; flex-direction: column; height: 100vh; position: relative; z-index: 1; }
 
 .topbar {
-  display: flex; align-items: center; gap: 24px;
-  height: 58px; padding: 0 20px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 14px;
+  height: 58px; padding: 0 14px; flex-shrink: 0;
   background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
   border-bottom: 1px solid var(--line);
 }
@@ -93,13 +93,28 @@ body::before {
 .brand-name { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
 .brand-sub { font-size: 10px; color: var(--ink-2); letter-spacing: 1.1px; text-transform: uppercase; }
 
-.nav { display: flex; gap: 3px; margin-left: 10px; }
+/* The nav shrinks before the honesty strip does. Provenance is layout, not
+ * decoration (spec §8.7): a SYNTHETIC chip pushed off the right edge is the
+ * defect that rule exists to prevent, so the nav gives up its labels first. */
+.nav { display: flex; gap: 2px; margin-left: 4px; min-width: 0; flex-shrink: 1; }
 .nav a {
   display: flex; align-items: center; gap: 7px;
-  padding: 7px 14px; border-radius: var(--r-sm);
+  padding: 7px 10px; border-radius: var(--r-sm);
   color: var(--ink-1); text-decoration: none;
-  font-size: 13px; font-weight: 500;
+  font-size: 12.5px; font-weight: 500; white-space: nowrap;
   transition: background 140ms, color 140ms;
+}
+.nav a svg { flex-shrink: 0; }
+
+/* Below this width the labels go and the icons stay. The link text remains in
+ * the accessibility tree — `font-size: 0` hides it visually only — and every
+ * link carries a title, so nothing becomes unidentifiable. */
+@media (max-width: 1660px) {
+  .nav a { font-size: 0; gap: 0; padding: 7px 9px; }
+  .brand-sub { display: none; }
+}
+@media (max-width: 1180px) {
+  .brand > div:last-child { display: none; }
 }
 .nav a:hover { background: var(--bg-3); color: var(--ink-0); }
 .nav a.active {
@@ -108,7 +123,10 @@ body::before {
   box-shadow: inset 0 0 0 1px rgba(56,189,248,0.28);
 }
 
-.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.topbar-right {
+  margin-left: auto; display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0; min-width: 0;
+}
 
 .main { flex: 1; overflow: hidden; position: relative; }
 .page { height: 100%; overflow-y: auto; padding: 20px; }
@@ -334,3 +352,155 @@ tr.clickable:hover td { background: var(--bg-2); }
   align-items: center; justify-content: center;
 }
 .al-bell-count.crit { background: var(--danger); color: #fff; }
+
+/* ------------------------------------------------------ command palette --
+ * ⌘K. Cyan edge marks the chrome selection (spec §8.6: gold is reserved for
+ * data entities, so a highlighted palette row must never wear it).
+ */
+.cp-scrim {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(4, 8, 16, 0.62);
+  backdrop-filter: blur(3px);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 12vh;
+}
+.cp {
+  width: min(720px, 92vw);
+  max-height: 66vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.cp-input-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 15px; border-bottom: 1px solid var(--line);
+}
+.cp-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--ink-0); font-size: 14.5px; font-family: var(--sans);
+}
+.cp-input::placeholder { color: var(--ink-3); }
+.cp-list { overflow-y: auto; padding: 6px; min-height: 0; }
+.cp-row {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  background: transparent; border: 1px solid transparent;
+  color: var(--ink-1); font-size: 13px; text-align: left; cursor: pointer;
+}
+.cp-row.on {
+  background: rgba(56, 189, 248, 0.09);
+  border-color: rgba(56, 189, 248, 0.42);
+  color: var(--ink-0);
+}
+.cp-kind {
+  font-size: 9.5px; letter-spacing: 0.08em; color: var(--ink-3);
+  min-width: 96px; text-transform: uppercase; flex-shrink: 0;
+}
+.cp-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cp-hint {
+  font-size: 10.5px; color: var(--ink-3); flex-shrink: 0;
+  max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cp-hint kbd {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-1);
+  background: var(--bg-3); border: 1px solid var(--line-bright);
+  border-radius: 3px; padding: 1px 5px; margin-left: 4px;
+}
+.cp-note { padding: 16px 12px; font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+.cp-note-error { color: var(--danger); }
+.cp-matching { margin-top: 7px; font-size: 11px; color: var(--ink-3); }
+.cp-foot {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 8px 14px; border-top: 1px solid var(--line); color: var(--ink-3);
+}
+.cp-foot span { display: flex; align-items: center; gap: 6px; }
+.cp-trigger { flex-shrink: 0; }
+
+/* ------------------------------------------------------ provenance strip --
+ * The chips describe the run in context, not the machine. `SYNTHETIC` is the
+ * loudest chip in the system on purpose (spec §8.7).
+ */
+.pchips {
+  display: flex; align-items: center; gap: 6px;
+  min-width: 0; max-width: 34vw; overflow-x: auto; scrollbar-width: none;
+}
+.pchips::-webkit-scrollbar { display: none; }
+.pchip {
+  display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+  padding: 3px 8px; border-radius: 2px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; font-family: var(--mono);
+  border: 1px solid var(--line-bright); background: var(--bg-2);
+  color: var(--ink-2); cursor: default;
+}
+.pchip-k { color: var(--ink-3); font-weight: 500; }
+.pchip-v { color: inherit; }
+.pchip-real   { border-color: rgba(16,185,129,0.45);  color: var(--ok); }
+.pchip-synth  { background: var(--oil); border-color: var(--oil); color: #1a1200; }
+.pchip-synth .pchip-k { color: #3d2a00; }
+.pchip-cache  { border-color: var(--line-bright); color: var(--ink-2); }
+.pchip-fallback { border-color: rgba(245,158,11,0.5); color: var(--warn); }
+.pchip-mock   { border-color: rgba(168,85,247,0.5);  color: var(--mock); }
+.pchip-ghost  { border-style: dashed; color: var(--ink-3); }
+.pchip-neutral { color: var(--ink-1); }
+.pchip-ctx {
+  text-decoration: none; color: var(--accent); max-width: 168px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-transform: none; letter-spacing: 0;
+}
+.pchip-hash, .pchip-close { cursor: pointer; }
+.pchip-close { padding: 3px 5px; }
+
+/* The ZULU clock is the only pill in the app (spec §1.1.7). */
+.zulu {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 4px 12px; border-radius: 999px;
+  background: rgba(56,189,248,0.10); border: 1px solid rgba(56,189,248,0.3);
+  cursor: pointer; flex-shrink: 0;
+}
+.zulu-utc { font-size: 12px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.zulu-ist { font-size: 9.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+/* ----------------------------------------------------------- measure tool */
+.ms-panel { padding: 13px; }
+.ms-actions { margin-left: auto; display: flex; gap: 5px; }
+.ms-table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-top: 8px; }
+.ms-table th {
+  text-align: left; font-size: 9.5px; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--ink-3); padding: 3px 6px;
+  border-bottom: 1px solid var(--line);
+}
+.ms-table td { padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.ms-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.ms-total {
+  display: flex; align-items: baseline; gap: 9px; margin-top: 9px;
+  padding-top: 8px; border-top: 1px solid var(--line-bright);
+}
+.ms-total-k { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+.ms-method { margin-top: 7px; color: var(--ink-3); font-size: 9.5px; line-height: 1.5; }
+.btn-on { border-color: rgba(56,189,248,0.5); color: var(--accent); background: rgba(56,189,248,0.12); }
+
+/* ----------------------------------------------------------- keyboard ----
+ * Spec §8.6: a 1px cyan ring, 2px offset, on every operable element, and
+ * focus is never suppressed. `:focus-visible` keeps it off mouse clicks.
+ */
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* --------------------------------------------------------- reduced motion --
+ * Spec §0.5/§10.7: information is never lost, only motion. Durations collapse
+ * to ~0 rather than animations being removed, so anything whose end state is
+ * set by a transition still lands on that end state. Framer Motion is handled
+ * separately by <MotionConfig reducedMotion="user"> in App.jsx.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .dot.pulsing { animation: none !important; opacity: 1; }
+}

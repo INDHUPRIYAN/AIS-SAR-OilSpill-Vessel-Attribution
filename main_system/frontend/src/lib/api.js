@@ -162,6 +162,13 @@ export const api = {
   dismissAlert: (id, reason) =>
     request(`/api/alerts/${id}/dismiss`, { method: "POST", body: { reason } }),
 
+  // One box across runs, incidents, investigations, vessels and scenes.
+  // `kinds` narrows it; the server states its own matching rule in the reply.
+  search: (q, params = {}) => {
+    const qs = new URLSearchParams({ q, ...params }).toString();
+    return request(`/api/search?${qs}`);
+  },
+
   catalog: () => request("/api/catalog"),
   models: () => request("/api/models"),
   systemHealth: () => request("/api/system/health"),

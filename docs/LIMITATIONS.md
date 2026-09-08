@@ -108,3 +108,16 @@ discovered later is an impeachment. Per-module detail lives in
 - **Speckle filtering** is deliberately absent from the calibration chain: it softens
   slick edges, and the slick geometry feeds attribution. Offered as an ablation, not a
   default.
+- **3D globe mode is deferred, not built.** The UX spec describes a `3D · 2D ·
+  MAP · SAT` mode switcher over a deck.gl `_GlobeView`. Architect decision D3
+  names the globe "optional polish, last in, first out… If the schedule
+  tightens, drop 3D entirely; the audit and the master plan both name it first
+  to cut, and nothing depends on it." It has been dropped rather than
+  half-built: there is no mode switcher and no globe view. The map is 2D, and
+  the measure tool that runs on it measures on the sphere (great-circle), so
+  no number in the product depends on the missing mode.
+- **The command palette reaches routes, entities and the mounted view's own
+  actions — not camera state.** `⌘K` covers every screen, every run, incident,
+  investigation, vessel and scene, plus the workspace's layer toggles, measure
+  tool and time jumps. It does not carry camera position, because there is no
+  mode switcher for it to preserve camera state across.
