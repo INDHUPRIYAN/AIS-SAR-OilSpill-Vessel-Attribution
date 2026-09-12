@@ -178,7 +178,7 @@ def models(db: Session = Depends(get_db)):
         "kind": "drift_residual",
         "file": None,
         "status": "EXPERIMENTAL",
-        "name": "drift ML residual correction",
+        "name": "drift ML residual correction (v1)",
         "note": "evaluated negative; disabled",
         "detail": ("A learned residual on top of the physics hindcast was "
                    "trained and evaluated. It did not improve origin accuracy "
@@ -186,6 +186,30 @@ def models(db: Session = Depends(get_db)):
                    "The hindcast is physics: no machine learning contributes "
                    "to the origin estimate."),
         "applied": False,
+    })
+
+    # The v2 candidate. Listed with its REAL state, which is neither deployed
+    # nor disabled-on-evidence: it is implemented and unmeasured. Collapsing
+    # that into "experimental" alongside v1 would imply it had also been
+    # evaluated and lost, which is a benchmark nobody ran.
+    from backend.services import hindcast_benchmark
+
+    _v2 = next(c for c in hindcast_benchmark.benchmark()["candidates"]
+               if c["candidate"] == "ml_origin_correction")
+    entries.append({
+        "kind": "drift_origin_correction",
+        "file": _v2["weights_path"] if _v2["weights_present"] else None,
+        "status": _v2["status"],
+        "name": _v2["name"],
+        "note": _v2.get("note"),
+        "detail": ("Targets the origin LOCATION -- the quantity the problem "
+                   "statement asks for -- with one bounded correction to the "
+                   "finished hindcast rather than one per step, which is the "
+                   "fix the v1 root-cause analysis derived. See "
+                   "/api/models/hindcast for the benchmark and the selection "
+                   "basis."),
+        "applied": _v2["applied_to_runs"],
+        "sha256": _v2["sha256"],
     })
 
     runs_with_models = (db.query(Run)
@@ -207,6 +231,22 @@ def models(db: Session = Depends(get_db)):
             "note": "Deployed model identity comes from the ONNX metadata, so a "
                     "re-export cannot leave this page naming the previous "
                     "checkpoint."}
+
+
+@router.get("/models/hindcast")
+def hindcast_selection():
+    """The ML-vs-physics hindcast benchmark, and why the primary is primary.
+
+    Exposed as its own endpoint because the problem statement requires the
+    selected model AND the benchmark result to be visible in the UI, and
+    because the interesting field is `selection_basis`: physics being primary
+    means something different when ML lost a benchmark than when ML was never
+    measured, and a page that rendered those identically would be claiming a
+    comparison nobody ran.
+    """
+    from backend.services import hindcast_benchmark
+
+    return hindcast_benchmark.benchmark()
 
 
 # --------------------------------------------------------------------------

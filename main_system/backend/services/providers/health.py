@@ -113,9 +113,11 @@ CREDENTIAL_ALTERNATIVES: Dict[str, List[List[str]]] = {
             ["ASF_USERNAME", "ASF_PASSWORD"]],
     "CMEMS": [["CMEMS_USERNAME", "CMEMS_PASSWORD"]],
     "ERA5": [["CDSAPI_KEY"]],
-    # AISStream deliberately absent: live AIS is NOT_DEPLOYED and nothing reads
-    # a key for it. Listing it here would make the Keys page offer a field that
-    # configures nothing.
+    # AISStream was deliberately absent while live AIS was NOT_DEPLOYED --
+    # listing it would have made the Keys page offer a field that configured
+    # nothing. The ingest worker (`services.ais_live`) now consumes this key,
+    # so the field is real and belongs here.
+    "AISStream": [["AISSTREAM_API_KEY"]],
 }
 
 # Flattened view, for the Key Management page's field listing.

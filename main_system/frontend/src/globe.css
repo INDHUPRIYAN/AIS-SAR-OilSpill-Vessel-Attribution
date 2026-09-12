@@ -388,3 +388,56 @@
 @media (prefers-reduced-motion: reduce) {
   .globe-wrap canvas { transition: none !important; }
 }
+
+/* ------------------------------------------------------- admin tables --- */
+
+/* Zone Management and Officer Assignment share this. Added here rather than
+   reusing `.cat-table` or `.al-table`: those carry page-specific padding and
+   row states, and widening one of them for a third page is how a shared style
+   quietly changes two screens nobody was looking at. */
+.ot-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ot-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  background: var(--bg-3);
+  border-bottom: 1px solid var(--line-bright);
+  white-space: nowrap;
+}
+
+.ot-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  color: var(--ink-1);
+}
+
+.ot-table tbody tr:hover > td { background: rgba(56, 189, 248, 0.04); }
+
+/* Numbers right-aligned and tabular, so a column of areas scans as a column
+   rather than as ragged text. */
+.ot-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ot-table .badge { margin-left: 4px; }
+
+.ot-table select.btn {
+  padding: 3px 6px;
+  font-size: 11px;
+  max-width: 140px;
+}

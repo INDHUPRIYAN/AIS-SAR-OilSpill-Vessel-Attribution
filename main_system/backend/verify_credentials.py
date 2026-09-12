@@ -150,19 +150,26 @@ def check_hycom():
 
 
 def check_aisstream():
-    """Live AIS is NOT DEPLOYED. This check reports that, not a missing key.
+    """Live AIS is deployed. The key is read, and the caveat is now coverage.
 
-    The old message said the key was "optional -- only the live demo tab needs
-    it". There is no live demo tab, and nothing in the pipeline consumes live
-    AIS: it is stream-only and cannot answer questions about a scene acquired
-    in the past, which is every question this system asks. Telling an operator
-    a key is optional implies configuring it would enable something.
+    This check previously reported NOT DEPLOYED, because nothing consumed the
+    credential and calling it "optional" implied that configuring it would
+    enable something. `services.ais_live` consumes it now.
+
+    What replaced the deployment caveat is a coverage one, and it is reported
+    here because this is the script an operator runs before a demo. Measured
+    2026-09-12: the Bay of Bengal returned zero messages in 60 s while a
+    globally-bounded subscription on the same key delivered immediately.
     """
     if os.getenv("AISSTREAM_API_KEY"):
-        return WARN, ("a key is set but NOTHING READS IT -- live AIS is not "
-                      "deployed and no code path consumes this credential")
-    return SKIP, ("live AIS is NOT DEPLOYED; no key is needed and setting one "
-                  "would enable nothing")
+        return OK, ("key present; live AIS ingestion will run. NOTE: AISStream "
+                    "is relayed by volunteer receivers and has effectively no "
+                    "coverage of the Bay of Bengal -- an empty live vessel "
+                    "layer there is a coverage limit, not an empty sea")
+    return WARN, ("no key, so live AIS reports NOT CONFIGURED. Historical "
+                  "attribution is unaffected (it reads the bulk archives); "
+                  "the live vessel layer and the growing live archive will be "
+                  "empty")
 
 
 CHECKS = [
@@ -173,7 +180,7 @@ CHECKS = [
     ("ERA5 / CDS (wind primary)", check_era5),
     ("Open-Meteo (wind fallback)", check_openmeteo),
     ("HYCOM (currents fallback)", check_hycom),
-    ("AISStream (NOT DEPLOYED)", check_aisstream),
+    ("AISStream (live AIS)", check_aisstream),
 ]
 
 ICON = {OK: "[PASS]", BAD: "[FAIL]", SKIP: "[ -- ]", WARN: "[WARN]"}

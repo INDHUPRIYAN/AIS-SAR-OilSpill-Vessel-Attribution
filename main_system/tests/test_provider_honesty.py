@@ -149,14 +149,55 @@ def test_a_provider_needing_keys_reports_configured_or_missing():
             assert health.credential_state(db, gated) in ("configured", "missing")
 
 
-def test_the_aisstream_key_field_is_gone():
-    """Nothing reads it. Offering the field invited operators to configure a
-    capability that does not exist."""
-    from backend.core.config import Settings
-    from backend.services.providers.health import CREDENTIAL_ALTERNATIVES
+def test_the_aisstream_key_field_exists_now_that_live_ais_is_deployed():
+    """This test used to assert the OPPOSITE, and the change is the point.
 
-    assert "AISStream" not in CREDENTIAL_ALTERNATIVES
-    assert Settings().env_credentials("AISStream") == {}
+    While live AIS was NOT_DEPLOYED, offering a key field invited operators to
+    configure a capability that did not exist, so the field was deliberately
+    absent and this test guarded that. `services.ais_live` now consumes the
+    key, so the field is real.
+
+    The original objection -- "a stream cannot answer questions about a scene
+    acquired in the past, which is every question this system asks" -- was
+    correct about a stream ALONE, and is answered by archiving it: the worker
+    appends every observation to the same day-partitioned AISStore the bulk
+    providers write to. It is NOT answered retroactively, which is what
+    `test_aisstream_coverage_is_honest_about_receivers` below holds the line on.
+    """
+    from backend.core.config import Settings
+    from backend.services.providers.health import (CREDENTIAL_ALTERNATIVES,
+                                                   CREDENTIAL_FIELDS)
+
+    assert "AISStream" in CREDENTIAL_ALTERNATIVES
+    assert CREDENTIAL_FIELDS["AISStream"] == ["AISSTREAM_API_KEY"]
+    assert "AISSTREAM_API_KEY" in Settings().env_credentials("AISStream")
+
+
+def test_aisstream_coverage_is_honest_about_receivers(client):
+    """Deploying live AIS traded a deployment limitation for a coverage one,
+    and the catalogue must state the new one rather than quietly drop both.
+
+    Measured 2026-09-12: a subscription to the seeded Bay of Bengal theatre
+    returned ZERO messages in 60 s while a globally-bounded subscription on
+    the same key delivered a firehose immediately. AISStream is relayed by
+    volunteer receivers and has effectively none over the northern Indian
+    Ocean, so its archive is not a record of that water.
+    """
+    body = client.get("/api/catalog").json()
+    aisstream = {p["name"]: p for p in body["providers"]}["AISStream"]
+
+    # No longer NOT_DEPLOYED.
+    assert aisstream.get("deployment") != "NOT_DEPLOYED"
+
+    coverage = aisstream["coverage"]
+    # The archive starts when ingestion started here. A scene acquired before
+    # that has no live AIS, and saying so is the difference between a gap and
+    # a silent absence.
+    assert "NOT retroactive" in coverage["temporal"]
+    # And the receiver-coverage caveat, which is why an empty vessel layer
+    # over the Bay of Bengal is not an empty sea.
+    assert "volunteer receivers" in coverage["note"]
+    assert "not necessarily absent" in coverage["note"]
 
 
 # --------------------------------------------------------------------------
@@ -178,7 +219,11 @@ def test_catalog_declares_what_not_deployed_means(client):
     body = client.get("/api/catalog").json()
     by_name = {p["name"]: p for p in body["providers"]}
 
-    for name in ("Sentinel2", "AISStream"):
+    # AISStream was in this list until live AIS was deployed. Sentinel-2 is
+    # still NOT_DEPLOYED and is still the case this test guards: no optical
+    # data is wired into the pipeline and no accuracy has been measured for
+    # it, so `?source=S2` returns 501 rather than an empty list.
+    for name in ("Sentinel2",):
         assert by_name[name]["deployment"] == "NOT_DEPLOYED"
         assert by_name[name]["status"] == "NOT_DEPLOYED"
         # "not deployed" and "does not exist" are different statements, and the
@@ -186,6 +231,11 @@ def test_catalog_declares_what_not_deployed_means(client):
         assert by_name[name]["reason"], f"{name} says NOT_DEPLOYED without a reason"
 
     assert "adapter" in by_name["Sentinel2"]["reason"].lower()
+
+    # A provider that stops being NOT_DEPLOYED must not simply lose its
+    # caveat. AISStream's is now a coverage limitation, asserted by
+    # `test_aisstream_coverage_is_honest_about_receivers`.
+    assert by_name["AISStream"].get("deployment") != "NOT_DEPLOYED"
 
 
 def test_catalog_says_how_each_status_was_measured(client):
@@ -292,29 +342,51 @@ def test_system_health_reports_the_model_files(client):
             assert entry["bytes"] > 0
 
 
-def test_the_keys_page_cannot_offer_an_aisstream_field(client):
-    """The Keys page derives its fields from CREDENTIAL_FIELDS. Removing the
-    provider from the alternatives is what removes the field -- this pins that
-    the two stay connected rather than the UI keeping its own list."""
+def test_the_keys_page_offers_exactly_the_fields_something_reads(client):
+    """The Keys page derives its fields from CREDENTIAL_FIELDS, so the
+    registry is what decides whether a field appears -- not a list the UI
+    keeps of its own.
+
+    This is the invariant that matters, and it holds in both directions: the
+    AISStream field was absent while nothing read the key, and appeared when
+    `services.ais_live` began consuming it. A field the UI offered on its own
+    would let an operator configure nothing; a field missing for a credential
+    something reads would make a working capability unconfigurable.
+    """
+    from backend.core.config import PROVIDER_BY_NAME
     from backend.services.providers.health import CREDENTIAL_FIELDS
 
-    assert "AISStream" not in CREDENTIAL_FIELDS
+    # Every provider the registry says needs credentials must have fields.
+    for name, spec in PROVIDER_BY_NAME.items():
+        if spec.get("deployment") == "NOT_DEPLOYED":
+            assert name not in CREDENTIAL_FIELDS, (
+                f"{name} is NOT_DEPLOYED but offers a credential field, which "
+                f"invites configuring a capability that does not exist")
+            continue
+        if spec.get("needs_credentials"):
+            assert CREDENTIAL_FIELDS.get(name), (
+                f"{name} needs credentials and offers no field, so it cannot "
+                f"be configured through the Keys page")
 
-    listing = client.get("/api/keys")
-    if listing.status_code != 200:
-        pytest.skip("keys endpoint not reachable for this role")
-    payload = listing.json()
-    names = {row.get("provider") for row in
-             (payload if isinstance(payload, list) else payload.get("providers", []))}
-    assert "AISStream" not in names
+    assert "AISStream" in CREDENTIAL_FIELDS
+    assert "Sentinel2" not in CREDENTIAL_FIELDS
 
 
-def test_the_credential_checker_says_not_deployed_rather_than_optional():
-    """"Optional" implies configuring it would enable something."""
+def test_the_credential_checker_reports_the_coverage_limit_not_deployment():
+    """It used to say NOT DEPLOYED. Deploying live AIS traded that caveat for
+    a coverage one, and the pre-demo check must carry the new one rather than
+    reporting a clean pass."""
     import backend.verify_credentials as vc
 
     status, message = vc.check_aisstream()
-    assert "NOT DEPLOYED" in message.upper()
+    assert "NOT DEPLOYED" not in message.upper()
+    # Whichever branch ran, the message must not imply complete coverage.
+    assert ("volunteer receivers" in message or "NOT CONFIGURED" in message)
+    # "optional" still implies configuring it would enable something, which
+    # was the original objection and is still wrong -- the key now enables a
+    # real capability, so the message must be definite either way.
     assert "optional" not in message.lower()
+    # The check is still LISTED, under its own name. A capability that stops
+    # being NOT_DEPLOYED must not drop out of the pre-demo checklist.
     labels = [name for name, _ in vc.CHECKS]
-    assert any("NOT DEPLOYED" in label for label in labels)
+    assert any("AISStream" in label for label in labels)

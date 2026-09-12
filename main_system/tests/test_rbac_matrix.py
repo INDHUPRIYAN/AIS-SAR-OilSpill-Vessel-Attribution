@@ -78,6 +78,15 @@ ELEVATED = {
     # Stamps zones onto historical incidents from the CURRENT boundaries, so
     # it rewrites routing metadata across the register.
     ("POST", "/api/incidents/backfill-zones"): _ADMIN,
+    # --- accounts ------------------------------------------------------
+    # The register and account creation are administrator-and-above. What an
+    # admin may NOT do -- create or modify a privileged account, or grant any
+    # role -- depends on the TARGET, so it is value-guarded (below) and
+    # covered by test_users.py.
+    ("POST", "/api/users"): _ADMIN,
+    ("GET", "/api/users"): _ADMIN,
+    ("GET", "/api/users/{user_id}"): _ADMIN,
+    ("GET", "/api/users/{user_id}/zones"): _ADMIN,
 }
 
 
@@ -96,6 +105,13 @@ VALUE_GUARDED = {
     # Both are enforced by `services.zones.assert_may_edit_zone`, which the
     # routes above call, and both depend on the TARGET rather than the caller.
     ("PATCH", "/api/zones/{zone_id}"),
+    # Three rules a role tuple cannot express, all in test_users.py:
+    #   * only a super_admin may change an account's ROLE (the route also
+    #     legitimately renames an admin, so it cannot be super_admin-guarded);
+    #   * an admin may not modify an admin or a super_admin;
+    #   * an account may always edit its OWN profile, but may not deactivate
+    #     or re-role itself, and the last active super_admin cannot be removed.
+    ("PATCH", "/api/users/{user_id}"),
 }
 
 

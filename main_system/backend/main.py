@@ -36,6 +36,7 @@ from backend.api.alerts import router as alerts_router
 from backend.api.search import router as search_router
 from backend.api.zones import router as zones_router
 from backend.api.ais_live import router as ais_live_router
+from backend.api.users import router as users_router
 from backend.api.tiles import router as tiles_router
 from backend.api.catalog import router as catalog_router
 from backend.api.events import router as events_router
@@ -199,6 +200,7 @@ app.include_router(tiles_router, prefix="/api", dependencies=_authenticated)
 app.include_router(search_router, prefix="/api", dependencies=_authenticated)
 app.include_router(zones_router, prefix="/api", dependencies=_authenticated)
 app.include_router(ais_live_router, prefix="/api", dependencies=_authenticated)
+app.include_router(users_router, prefix="/api", dependencies=_authenticated)
 # Public by necessity: /auth/login is how a session is obtained. The routes in
 # here that need a session (/auth/me, /auth/roles) declare it themselves.
 app.include_router(auth_router, prefix="/api")

@@ -256,6 +256,25 @@ export const api = {
             { method: "POST" }),
   backfillIncidentZones: () =>
     request("/api/incidents/backfill-zones", { method: "POST" }),
+
+  /* --- accounts ---------------------------------------------------------
+   * `listUsers` is administrator-and-above and 403s for everyone else, which
+   * the Officer Assignment page renders as an honest "not available" rather
+   * than an empty table. `roles` is readable by any role, so a user can find
+   * out why a control is disabled. */
+  listUsers: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== "" && v !== null));
+    return request(`/api/users${q.toString() ? `?${q}` : ""}`);
+  },
+  getUser: (id) => request(`/api/users/${id}`),
+  createUser: (body) => request("/api/users", { method: "POST", body }),
+  /* A role change is refused for anyone but a super_admin, and a
+   * deactivation returns a `warning` naming the zones it left unrouted. Both
+   * come back in the response and must be shown, not swallowed. */
+  updateUser: (id, body) => request(`/api/users/${id}`, { method: "PATCH", body }),
+  userZones: (id) => request(`/api/users/${id}/zones`),
+  roles: () => request("/api/roles"),
 };
 
 /* ------------------------------------------------------------------ hooks */
