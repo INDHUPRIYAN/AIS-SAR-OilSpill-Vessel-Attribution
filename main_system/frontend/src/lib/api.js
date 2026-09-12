@@ -217,6 +217,45 @@ export const api = {
             { method: "POST", body: { user_id: userId, is_primary: isPrimary } }),
   unassignZoneOfficer: (id, userId) =>
     request(`/api/zones/${id}/assignments/${userId}`, { method: "DELETE" }),
+
+  /* --- live AIS ---------------------------------------------------------
+   * `liveVessels` is a LIVE layer and the caller is expected to poll it. The
+   * response carries `total_in_view` and `truncated` alongside the rows,
+   * because a client that received 2000 of 4200 vessels has to be able to
+   * say so rather than draw a partial picture as if it were complete. */
+  liveVessels: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== "" && v !== null));
+    return request(`/api/ais/live${q.toString() ? `?${q}` : ""}`);
+  },
+  liveVesselsGeojson: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== "" && v !== null));
+    return request(`/api/ais/live/geojson${q.toString() ? `?${q}` : ""}`);
+  },
+  liveVessel: (mmsi) => request(`/api/ais/live/${mmsi}`),
+  /* Carries `stream.functionally_working` SEPARATELY from `stream.connected`,
+   * and a `note` naming the cause when they disagree. The UI must render the
+   * note: "connected but no data" over water the provider has no receivers
+   * for is a coverage fact, not an empty sea. */
+  aisStatus: () => request("/api/ais/status"),
+  aisZoneSummary: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== "" && v !== null));
+    return request(`/api/ais/zones/summary${q.toString() ? `?${q}` : ""}`);
+  },
+  startAisStream: () => request("/api/ais/stream/start", { method: "POST" }),
+  stopAisStream: () => request("/api/ais/stream/stop", { method: "POST" }),
+  flushAisArchive: () => request("/api/ais/stream/flush", { method: "POST" }),
+
+  /* --- automatic incidents ---------------------------------------------- */
+  previewAutoIncident: (runId) =>
+    request(`/api/incidents/auto/preview/${runId}`),
+  createAutoIncident: (runId, force = false) =>
+    request(`/api/incidents/auto/${runId}${force ? "?force=true" : ""}`,
+            { method: "POST" }),
+  backfillIncidentZones: () =>
+    request("/api/incidents/backfill-zones", { method: "POST" }),
 };
 
 /* ------------------------------------------------------------------ hooks */

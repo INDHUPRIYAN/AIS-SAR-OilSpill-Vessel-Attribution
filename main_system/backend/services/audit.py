@@ -178,6 +178,24 @@ def record(db: Session, action: str, *, request: Optional[Request] = None,
     db.add(row)
     if commit:
         db.commit()
+    else:
+        # MUST flush, and this is not an optimisation.
+        #
+        # `SessionLocal` is configured `autoflush=False`, so a pending row is
+        # invisible to a later query on the same session. Two `record(...,
+        # commit=False)` calls inside one transaction therefore both read the
+        # same "last" row and both stored `prev_hash = GENESIS` -- and the
+        # chain read as BROKEN AT ROW 2 from the moment anything audited two
+        # events atomically.
+        #
+        # Found when automatic incident creation began emitting
+        # `incident.create` and `alert.route` together: `/api/audit/verify`
+        # went to ok=False, which for a tamper-evidence chain is the worst
+        # possible failure -- it makes a working system indistinguishable from
+        # an altered one. Flushing makes the row visible to the next query
+        # without committing the transaction, so the caller keeps its
+        # all-or-nothing write and the chain stays intact.
+        db.flush()
     return row
 
 

@@ -71,6 +71,13 @@ ELEVATED = {
     ("POST", "/api/ais/stream/stop"): _ADMIN,
     ("POST", "/api/ais/stream/flush"): _ADMIN,
     ("POST", "/api/ais/live/prune"): _ADMIN,
+    # --- automatic incidents -------------------------------------------
+    # Same authority as promoting a run by hand: this is the same action,
+    # triggered through the validation gate instead of by judgement.
+    ("POST", "/api/incidents/auto/{run_id}"): _OPS,
+    # Stamps zones onto historical incidents from the CURRENT boundaries, so
+    # it rewrites routing metadata across the register.
+    ("POST", "/api/incidents/backfill-zones"): _ADMIN,
 }
 
 

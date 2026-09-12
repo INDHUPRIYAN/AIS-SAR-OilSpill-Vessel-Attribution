@@ -1,0 +1,390 @@
+/* The command globe and the zone boundary editor.
+ *
+ * Uses the shared tokens from styles.css (--bg-*, --ink-*, --line, --accent).
+ * Nothing here defines a colour that the design system already has a name
+ * for, so the light theme keeps working by inheritance rather than by a
+ * second palette that has to be maintained alongside the first.
+ *
+ * Restraint is deliberate: this is an instrument, not a game. No neon, one
+ * glow (on the active mode button), and motion only where it carries meaning.
+ */
+
+.globe-page {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-0);
+}
+
+.globe-canvas {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  /* The deck.gl canvas fills this; without an explicit background the void
+     around the sphere shows the page through it. */
+  background:
+    radial-gradient(circle at 50% 45%, #0a1424 0%, var(--bg-0) 70%);
+  overflow: hidden;
+}
+
+.globe-wrap { position: absolute; inset: 0; }
+.globe-wrap canvas { outline: none; }
+
+/* --------------------------------------------------------------- mode bar */
+
+.globe-modebar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: calc(100% - 24px);
+  padding: 6px;
+  background: rgba(7, 11, 20, 0.82);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  backdrop-filter: blur(6px);
+}
+
+.globe-modebar-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--line-bright);
+  margin: 0 2px;
+}
+
+/* ------------------------------------------------------- coordinate strip */
+
+/* Bottom-left, always visible, monospaced and tabular. The editor's whole
+   premise is that the operator can read the coordinate they are about to
+   commit, so this never collapses or hides behind a hover. */
+.globe-coords {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 11px;
+  font-size: 11px;
+  line-height: 1.5;
+  background: rgba(7, 11, 20, 0.86);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.globe-coord-pair { display: flex; gap: 8px; align-items: baseline; }
+
+.globe-coord-k {
+  color: var(--ink-3);
+  letter-spacing: 0.6px;
+  min-width: 30px;
+  font-size: 10px;
+}
+
+/* ----------------------------------------------------------------- tooltip */
+
+.globe-tip {
+  position: absolute;
+  z-index: 5;
+  min-width: 190px;
+  max-width: 280px;
+  padding: 8px 10px;
+  background: rgba(7, 11, 20, 0.94);
+  border: 1px solid var(--line-bright);
+  border-radius: var(--r-sm);
+  pointer-events: none;
+  font-size: 11px;
+}
+
+.globe-tip-title {
+  font-weight: 600;
+  color: var(--ink-0);
+  margin-bottom: 5px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--line);
+}
+
+.globe-tip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 1px 0;
+}
+
+.globe-tip-k { color: var(--ink-3); }
+.globe-tip-v { color: var(--ink-1); }
+
+.globe-loading {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  padding: 6px 10px;
+  background: rgba(7, 11, 20, 0.82);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+/* -------------------------------------------------------------------- rail */
+
+.globe-rail {
+  border-left: 1px solid var(--line);
+  background: var(--bg-1);
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.globe-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+.globe-search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--ink-0);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.globe-search input::placeholder { color: var(--ink-3); }
+
+.globe-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.globe-card-editor { border-color: rgba(45, 212, 191, 0.4); }
+
+.globe-card-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-1);
+  background: var(--bg-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.globe-card-head .badge { margin-left: auto; text-transform: none; }
+.globe-card-body { padding: 10px 11px; }
+
+.globe-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 11px;
+  border-bottom: 1px solid rgba(30, 42, 65, 0.4);
+}
+
+.globe-row:last-child { border-bottom: none; }
+.globe-row-k { color: var(--ink-2); }
+.globe-row-v { color: var(--ink-0); }
+
+.globe-layer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 11px;
+  color: var(--ink-1);
+  cursor: pointer;
+}
+
+.globe-layer input { accent-color: var(--accent); cursor: pointer; }
+
+.globe-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.globe-zone-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 3px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--ink-1);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.globe-zone-row:hover { border-color: var(--accent-dim); color: var(--ink-0); }
+
+.globe-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* --------------------------------------------------------- status messages */
+
+/* Three distinct tones, because the three things they say are different:
+   a NOTE is a limitation of the data, an ERROR is something the operator can
+   fix, and OK is a confirmation. Collapsing them into one grey box is how a
+   coverage limitation ends up read as a transient failure. */
+.globe-note {
+  margin-top: 9px;
+  padding: 7px 9px;
+  background: rgba(56, 189, 248, 0.07);
+  border-left: 2px solid var(--accent-dim);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  color: var(--ink-1);
+  line-height: 1.5;
+}
+
+.globe-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 2px solid var(--warn);
+  color: var(--warn);
+  line-height: 1.45;
+}
+
+.globe-inline-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 7px 9px;
+  background: rgba(244, 63, 94, 0.08);
+  border-left: 2px solid var(--danger);
+  color: var(--danger);
+  line-height: 1.5;
+}
+
+.globe-ok {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 7px 9px;
+  background: rgba(16, 185, 129, 0.08);
+  border-left: 2px solid var(--ok);
+  color: var(--ok);
+}
+
+.globe-sublist {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+/* ------------------------------------------------------------------ editor */
+
+.globe-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.globe-field input,
+.globe-field select {
+  padding: 6px 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--ink-0);
+  font-family: var(--mono);
+  font-size: 11px;
+  outline: none;
+}
+
+.globe-field input:focus,
+.globe-field select:focus { border-color: var(--accent-dim); }
+
+.globe-vertices {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-1);
+}
+
+.globe-vertex {
+  display: grid;
+  grid-template-columns: 22px 1fr 1fr 14px;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 7px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(30, 42, 65, 0.5);
+  color: var(--ink-1);
+  text-align: left;
+  cursor: pointer;
+}
+
+.globe-vertex:last-child { border-bottom: none; }
+.globe-vertex:hover { background: var(--bg-2); }
+.globe-vertex.on { background: rgba(45, 212, 191, 0.12); color: var(--ink-0); }
+
+.globe-vertex-n {
+  color: var(--ink-3);
+  font-size: 10px;
+  text-align: right;
+}
+
+.globe-vertex svg { color: var(--ink-3); }
+.globe-vertex svg:hover { color: var(--danger); }
+
+/* ------------------------------------------------------------- responsive */
+
+@media (max-width: 1100px) {
+  .globe-page { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .globe-rail {
+    border-left: none;
+    border-top: 1px solid var(--line);
+    max-height: 42vh;
+  }
+}
+
+/* The OS setting, honoured here as well as in framer-motion: camera flights
+   become cuts. Information is never removed, only motion. */
+@media (prefers-reduced-motion: reduce) {
+  .globe-wrap canvas { transition: none !important; }
+}

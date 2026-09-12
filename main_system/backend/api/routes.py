@@ -402,6 +402,33 @@ def _execute_run_now(run_id: str, investigation_id: Optional[str],
                 vessel_index.index_run(db, run_id, settings.runs_root / run_id)
             except Exception as exc:               # noqa: BLE001
                 print(f"[vessel_index] {run_id}: {type(exc).__name__}: {exc}")
+
+            # Automatic incident creation (spec section 17). The run has just
+            # sealed, so its artefacts are final and the validation gate is
+            # reading evidence rather than work in progress.
+            #
+            # Failure here must never fail the run, and must never be silent:
+            # the run is the evidence and the incident is an index entry over
+            # it, so an un-opened case is recoverable (promote the run by hand)
+            # while a lost run is not. The refusal reason is printed either
+            # way, because "the pipeline found oil and nobody was told" is the
+            # exact failure this feature exists to prevent.
+            try:
+                from backend.services import incident_auto
+
+                outcome = incident_auto.create_incident_from_run(db, run_id)
+                if outcome.get("created"):
+                    print(f"[incident] {run_id} -> {outcome['incident_id']} "
+                          f"({outcome['routing']['routing']}; alert "
+                          f"{outcome.get('alert_id')})")
+                else:
+                    print(f"[incident] {run_id}: no case opened -- "
+                          f"{outcome.get('reason')}")
+                    for reason in (outcome.get("verdict") or {}).get("reasons", []):
+                        print(f"[incident]   {reason}")
+            except Exception as exc:               # noqa: BLE001
+                print(f"[incident] {run_id}: {type(exc).__name__}: {exc}")
+
             jobs_service.sync_progress(db, db.get(Job, job_id))                 if db.get(Job, job_id) else None
             jobs_service.finish(db, job_id, "complete")
     except RunCancelled as exc:

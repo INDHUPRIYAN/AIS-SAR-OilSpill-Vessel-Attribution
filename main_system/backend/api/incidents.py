@@ -91,6 +91,19 @@ def _dict(inc: Incident, runs: int = 0, investigations: int = 0) -> dict:
         "updated_utc": inc.updated_utc,
         "investigations": investigations,
         "runs": runs,
+        # --- zone routing and provenance (spec sections 17, 18) ---------
+        "zone_id": inc.zone_id,
+        "zone_path": inc.zone_path,
+        # "auto" for a case the pipeline opened, "manual" for one a human
+        # promoted, null for rows predating the distinction. It says whether a
+        # person looked at this before it became a case, which is provenance,
+        # not bookkeeping.
+        "origin": inc.origin,
+        "severity": inc.severity,
+        "detection_confidence": inc.detection_confidence,
+        "area_km2": inc.area_km2,
+        "source_run_id": inc.source_run_id,
+        "scene_id": inc.scene_id,
     }
 
 
@@ -262,6 +275,82 @@ def update_incident(request: Request, incident_id: str, body: IncidentPatch,
                              detail=json.dumps(changes, default=str), commit=False)
     db.commit()
     return _dict(inc)
+
+
+@router.get("/incidents/auto/preview/{run_id}")
+def preview_auto_incident(run_id: str, _user: User = Depends(current_user)):
+    """What the validation gate would decide for this run, without acting.
+
+    Readable by any authenticated role, and the reason it exists: a gate whose
+    decision cannot be inspected before it fires is a gate nobody trusts. The
+    verdict lists its reasons on a pass as well as a failure.
+    """
+    from backend.services import incident_auto
+
+    return incident_auto.validate_detection(run_id).as_dict()
+
+
+@router.post("/incidents/auto/{run_id}", status_code=201,
+             dependencies=[Depends(require_role("investigator", "analyst"))])
+def create_auto_incident(request: Request, run_id: str,
+                         force: bool = Query(
+                             False,
+                             description="open the case even though the gate "
+                                         "refused; the refusal is recorded on "
+                                         "the incident either way"),
+                         db: Session = Depends(get_db),
+                         user: User = Depends(current_user)):
+    """Run the automatic path by hand.
+
+    The pipeline calls the same function when a run seals, so this is a retry
+    for a run that completed while the zone table was empty, or before the
+    feature existed -- not a second implementation.
+
+    `force` exists because a human may legitimately overrule the gate. It is a
+    query parameter rather than a silent default, and the verdict that refused
+    is stored on the incident, so a forced case never looks like a validated
+    one.
+    """
+    from backend.services import incident_auto
+
+    outcome = incident_auto.create_incident_from_run(
+        db, run_id, request=request, actor=user, force=force)
+    if not outcome.get("created"):
+        # 409, not 500: the gate refusing is a decision, and the body carries
+        # the reasons so a UI can show them rather than "failed".
+        raise HTTPException(409, detail=outcome)
+    return outcome
+
+
+@router.post("/incidents/backfill-zones",
+             dependencies=[Depends(require_role("admin"))])
+def backfill_incident_zones(request: Request, db: Session = Depends(get_db),
+                            _user: User = Depends(current_user)):
+    """Stamp zones onto incidents that predate the zone model.
+
+    Explicit rather than automatic on read. It resolves against the CURRENT
+    boundaries, and doing that lazily would silently re-attribute closed cases
+    whenever somebody moved a line on a map.
+    """
+    from backend.services import incident_auto
+
+    updated, skipped = [], 0
+    for inc in db.query(Incident).filter(Incident.zone_id.is_(None)).all():
+        zone_id = incident_auto.backfill_zone(db, inc)
+        if zone_id:
+            updated.append({"incident_id": inc.id, "zone_id": zone_id})
+        else:
+            skipped += 1
+    if updated:
+        audit_service.record(
+            db, "incident.status", request=request, resource="incidents",
+            detail=json.dumps({"backfilled_zones": len(updated)}), commit=False)
+    db.commit()
+    return {"updated": updated, "count": len(updated),
+            "skipped": skipped,
+            "note": ("skipped incidents either have no geometry or fall "
+                     "outside every declared zone; neither is backfilled with "
+                     "a nearest guess")}
 
 
 @router.post("/incidents/from_run/{run_id}", status_code=201,

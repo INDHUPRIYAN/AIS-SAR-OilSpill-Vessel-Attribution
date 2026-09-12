@@ -37,7 +37,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from starlette.responses import StreamingResponse
 
-from backend.core.authz import require_role
+from sqlalchemy import or_
+
+from backend.core.authz import current_user, require_role
 from backend.models.db import Alert, SessionLocal, User, get_db, utcnow
 from backend.services import audit as audit_service
 
@@ -73,11 +75,25 @@ def _shape(alert: Alert) -> Dict[str, Any]:
         "status": alert.status, "title": alert.title, "detail": alert.detail,
         "aoi_id": alert.aoi_id, "scene_id": alert.scene_id,
         "run_id": alert.run_id, "investigation_id": alert.investigation_id,
+        "incident_id": alert.incident_id,
         "created_utc": alert.created_utc,
         "acknowledged_utc": alert.acknowledged_utc,
         "assigned_to": alert.assigned_to, "assigned_utc": alert.assigned_utc,
         "dismissed_utc": alert.dismissed_utc,
         "dismiss_reason": alert.dismiss_reason,
+        # --- zone routing (spec section 18) -----------------------------
+        # `routed_to` is what the SYSTEM decided from the coordinates;
+        # `assigned_to` above is what a HUMAN then did. They are separate
+        # fields because collapsing them would erase the evidence that an
+        # alert reached the correct desk before somebody reassigned it.
+        "zone_id": alert.zone_id,
+        "routed_to": alert.routed_to,
+        # zone | escalated | unzoned | unassigned | null (predates routing).
+        # `unzoned` and `unassigned` both mean nobody will see this, and they
+        # are distinguished because the fixes differ: draw a zone, versus
+        # assign an officer to one.
+        "routing": alert.routing,
+        "routing_detail": alert.routing_detail,
         # Computed on read. A stored age is wrong the moment it is written.
         "age_seconds": round(_age_seconds(alert), 1),
     }
@@ -121,12 +137,29 @@ def raise_alert(db: Session, *, kind: str, title: str,
 
 @router.get("/alerts")
 def list_alerts(db: Session = Depends(get_db),
+                user: User = Depends(current_user),
                 status: Optional[str] = Query(
                     None, pattern="^(open|acknowledged|assigned|dismissed)$"),
                 severity: Optional[str] = Query(
                     None, pattern="^(info|warning|critical)$"),
+                zone_id: Optional[str] = None,
+                routing: Optional[str] = Query(
+                    None, pattern="^(zone|escalated|unzoned|unassigned)$"),
+                mine: bool = Query(
+                    False,
+                    description="only alerts routed to you or to a zone you "
+                                "are assigned to"),
                 open_only: bool = True,
                 limit: int = Query(100, ge=1, le=500)):
+    """The alert feed.
+
+    **Unfiltered by default, for every role.** An officer sees the whole
+    queue, because an alert two zones away is situational awareness and
+    hiding it makes them worse at the job (spec section 20). `mine=true` is
+    what narrows it to their own desk -- an opt-in view, not a permission
+    boundary. What IS scoped by role is report access, and that lives in
+    `services.zones.may_read_zone_reports`.
+    """
     query = db.query(Alert)
     if status:
         query = query.filter(Alert.status == status)
@@ -134,23 +167,62 @@ def list_alerts(db: Session = Depends(get_db),
         query = query.filter(Alert.status.in_(OPEN_STATES))
     if severity:
         query = query.filter(Alert.severity == severity)
+    if zone_id:
+        query = query.filter(Alert.zone_id == zone_id)
+    if routing:
+        query = query.filter(Alert.routing == routing)
+    if mine:
+        from backend.services import zones as zsvc
+
+        scope = zsvc.assigned_zone_ids(db, user)
+        # Routed directly to this account, OR to any zone they cover. An
+        # officer who was named personally must still see it even if the zone
+        # was later reassigned.
+        clauses = [Alert.routed_to == user.id, Alert.assigned_to == user.id]
+        if scope:
+            clauses.append(Alert.zone_id.in_(scope))
+        query = query.filter(or_(*clauses))
 
     rows = query.order_by(Alert.created_utc.desc()).limit(limit).all()
     rows.sort(key=lambda a: (SEVERITY_ORDER.get(a.severity, 3),
                              -_age_seconds(a)))
-    return {"alerts": [_shape(a) for a in rows], "count": len(rows)}
+    return {"alerts": [_shape(a) for a in rows], "count": len(rows),
+            "scoped_to_you": bool(mine), "your_role": user.role}
 
 
 @router.get("/alerts/summary")
-def alerts_summary(db: Session = Depends(get_db)):
-    """Counts for the top-bar bell."""
+def alerts_summary(db: Session = Depends(get_db),
+                   user: User = Depends(current_user)):
+    """Counts for the top-bar bell, and for the officer dashboard."""
+    from backend.services import zones as zsvc
+
     rows = db.query(Alert).filter(Alert.status.in_(OPEN_STATES)).all()
     by_severity: Dict[str, int] = {}
+    by_zone: Dict[str, int] = {}
     for row in rows:
         by_severity[row.severity] = by_severity.get(row.severity, 0) + 1
+        key = row.zone_id or "(outside all zones)"
+        by_zone[key] = by_zone.get(key, 0) + 1
+
+    scope = zsvc.assigned_zone_ids(db, user)
+    mine = [r for r in rows
+            if r.routed_to == user.id or r.assigned_to == user.id
+            or (r.zone_id and r.zone_id in scope)]
+
+    # Counted and surfaced rather than left to be noticed. An alert nobody is
+    # responsible for is the failure mode zone routing exists to remove, and a
+    # summary that omitted it would make the queue look handled.
+    unrouted = [r for r in rows if r.routing in ("unzoned", "unassigned")]
+
     oldest = max((_age_seconds(r) for r in rows), default=0.0)
     return {"open": len(rows), "by_severity": by_severity,
-            "oldest_age_seconds": round(oldest, 1)}
+            "by_zone": by_zone,
+            "mine": len(mine),
+            "unrouted": len(unrouted),
+            "unrouted_reasons": sorted({r.routing for r in unrouted}),
+            "oldest_age_seconds": round(oldest, 1),
+            "oldest_mine_age_seconds": round(
+                max((_age_seconds(r) for r in mine), default=0.0), 1)}
 
 
 # --------------------------------------------------------------------------

@@ -271,6 +271,83 @@ def test_no_delete_route_exists(env):
     assert client.delete("/api/audit").status_code in (404, 405)
 
 
+def test_two_uncommitted_records_in_one_transaction_stay_chained(tmp_path):
+    """Regression: the chain broke the first time anything audited two events
+    atomically.
+
+    `SessionLocal` is `autoflush=False`, so a row added with `commit=False`
+    was invisible to the next query on the same session -- both calls read the
+    same "last" row and both stored `prev_hash = GENESIS`. `/api/audit/verify`
+    then reported ok=False, which for a tamper-evidence chain is the worst
+    failure available: it makes an intact system indistinguishable from an
+    altered one.
+
+    Surfaced by automatic incident creation, which emits `incident.create` and
+    `alert.route` in one transaction.
+    """
+    import os
+    import sys
+
+    os.environ["DATABASE_URL"] = f"sqlite:///{(tmp_path / 'chain.db').as_posix()}"
+    os.environ["DATA_ROOT"] = str(tmp_path)
+    os.environ["SECRET_KEY"] = "c" * 64
+    for name in [m for m in list(sys.modules) if m.startswith("backend")]:
+        del sys.modules[name]
+
+    from backend.models.db import AuditLog, SessionLocal, init_db
+    from backend.services import audit as audit_service
+
+    init_db()
+    with SessionLocal() as db:
+        audit_service.record(db, "incident.create", resource="INC-1",
+                             actor="pipeline", commit=False)
+        audit_service.record(db, "alert.route", resource="alert-1",
+                             actor="pipeline", commit=False)
+        db.commit()
+
+    with SessionLocal() as db:
+        rows = db.query(AuditLog).order_by(AuditLog.id).all()
+        assert len(rows) == 2
+        # The second row must chain to the first, not to GENESIS.
+        assert rows[1].prev_hash == rows[0].row_hash
+        assert rows[1].prev_hash != audit_service.GENESIS
+        result = audit_service.verify_chain(db)
+    assert result["ok"] is True, result
+
+    os.environ.pop("DATABASE_URL", None)
+
+
+def test_three_uncommitted_records_chain_in_order(tmp_path):
+    """The same failure would recur at any depth, so the guard is not a
+    special case for two."""
+    import os
+    import sys
+
+    os.environ["DATABASE_URL"] = f"sqlite:///{(tmp_path / 'chain3.db').as_posix()}"
+    os.environ["DATA_ROOT"] = str(tmp_path)
+    os.environ["SECRET_KEY"] = "c" * 64
+    for name in [m for m in list(sys.modules) if m.startswith("backend")]:
+        del sys.modules[name]
+
+    from backend.models.db import AuditLog, SessionLocal, init_db
+    from backend.services import audit as audit_service
+
+    init_db()
+    with SessionLocal() as db:
+        for i in range(3):
+            audit_service.record(db, "zone.change", resource=f"zone-{i}",
+                                 actor="pipeline", commit=False)
+        db.commit()
+
+    with SessionLocal() as db:
+        rows = db.query(AuditLog).order_by(AuditLog.id).all()
+        for earlier, later in zip(rows, rows[1:]):
+            assert later.prev_hash == earlier.row_hash
+        assert audit_service.verify_chain(db)["ok"] is True
+
+    os.environ.pop("DATABASE_URL", None)
+
+
 def test_event_type_vocabulary_is_fixed():
     from backend.services.audit import EVENT_TYPES
 
