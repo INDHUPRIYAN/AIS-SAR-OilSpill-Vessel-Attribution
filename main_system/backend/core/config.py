@@ -126,9 +126,11 @@ class Settings:
             "HYCOM": (),
             "DMA": (),
             "MarineCadastre": (),
-            # AISStream deliberately absent: live AIS is NOT_DEPLOYED, nothing
-            # reads this key, and offering the field invited operators to
-            # configure a capability that does not exist.
+            # AISStream was deliberately absent while live AIS was
+            # NOT_DEPLOYED -- offering a key field for a capability that did
+            # not exist invited operators to configure nothing. The live
+            # ingest worker now consumes this key, so the field is real.
+            "AISStream": ("AISSTREAM_API_KEY",),
         }
         return {name: os.getenv(name) for name in mapping.get(provider, ())}
 
@@ -190,13 +192,22 @@ PROVIDERS: List[dict] = [
          "accuracy has been measured for it. /api/scenes/search?source=S2 "
          "returns 501 rather than an empty list, because an empty list would "
          "read as 'we looked and found none'."},
-    {"name": "AISStream", "purpose": "Live AIS over WebSocket",
-     "owner": "Krishnan", "chain": [], "needs_credentials": False,
-     "kind": "ais", "deployment": "NOT_DEPLOYED",
-     "not_deployed_reason":
-         "Live AIS is stream-only: it cannot answer questions about a scene "
-         "acquired in the past, which is every question this system asks. "
-         "Nothing in the pipeline consumes it and no key field is offered."},
+    # Live AIS was NOT_DEPLOYED on the grounds that a stream "cannot answer
+    # questions about a scene acquired in the past, which is every question
+    # this system asks". That objection was correct about a stream ALONE and
+    # is answered by archiving it: the ingest worker appends every observation
+    # to the same day-partitioned AISStore the historical providers write to,
+    # so today's stream is next month's archive and an investigation can query
+    # it exactly as it queries MarineCadastre.
+    #
+    # It does NOT retroactively cover a past scene. A Bay of Bengal
+    # investigation into an acquisition from before ingestion started still
+    # has no AIS, and PROVIDER_COVERAGE below says so rather than implying the
+    # archive is complete.
+    {"name": "AISStream", "purpose": "Live AIS over WebSocket, archived for "
+                                     "later investigation",
+     "owner": "Krishnan", "chain": ["AISStream"], "needs_credentials": True,
+     "kind": "ais"},
 ]
 
 # Where each provider actually has data. Stated so the catalogue can say "this
@@ -244,9 +255,22 @@ PROVIDER_COVERAGE: Dict[str, dict] = {
     "Sentinel2": {"dataset": "Sentinel-2 L2A (adapter only)",
                   "bbox": [-180, -90, 180, 90], "temporal": "n/a -- not deployed",
                   "resolution": "10 m", "note": "NOT DEPLOYED"},
-    "AISStream": {"dataset": "live AIS WebSocket (not consumed)",
-                  "bbox": None, "temporal": "live only",
-                  "resolution": "n/a", "note": "NOT DEPLOYED"},
+    "AISStream": {"dataset": "live AIS WebSocket, archived to AISStore",
+                  # Bounded by the ingest worker's subscription, not by the
+                  # provider: AISStream is global, but this deployment only
+                  # ever subscribed to the zones it was configured for, so the
+                  # archive covers those and nothing else.
+                  "bbox": None,
+                  "temporal": "from the moment ingestion was first started on "
+                              "this deployment -- see /api/ais/status for the "
+                              "actual archive span. NOT retroactive: a scene "
+                              "acquired before ingestion began has no live AIS.",
+                  "resolution": "2 s .. 3 min reports (Class A), 30 s .. 3 min "
+                                "(Class B)",
+                  "note": "positions are relayed by volunteer receivers, so "
+                          "coverage is dense near coasts and sparse in open "
+                          "ocean; a vessel absent from the archive was not "
+                          "necessarily absent from the water"},
 }
 
 PROVIDER_BY_NAME = {p["name"]: p for p in PROVIDERS}

@@ -825,6 +825,124 @@ class ZoneRevision(Base):
 
 
 # --------------------------------------------------------------------------
+# live AIS
+# --------------------------------------------------------------------------
+
+class AisLiveState(Base):
+    """The current position of one vessel, from the live stream.
+
+    ONE ROW PER MMSI, updated in place. This table is the live picture, not the
+    archive -- the archive is day-partitioned Parquet under `AISStore`, which
+    is what the investigation pipeline already reads, and duplicating it here
+    would give the system two AIS histories that disagree.
+
+    The split matters for the question the system exists to answer. A live
+    table answers "where is everything now", which is a map. The archive
+    answers "who was near this coordinate thirteen hours before the satellite
+    passed", which is an investigation. Trying to serve the second from a
+    row-per-vessel table means keeping every historical row in it, and then
+    the "live" query scans years to draw one frame.
+
+    **Out-of-order reports.** AIS relays deliver late. An update is applied
+    only when its `report_utc` is at or after the stored one, so a message
+    that arrives late cannot drag a vessel backwards on the map. The archive
+    keeps the late message regardless -- it is a real observation, just not the
+    latest one.
+    """
+
+    __tablename__ = "ais_live"
+
+    mmsi = Column(Integer, primary_key=True)
+
+    lat = Column(Float, nullable=False)
+    lon = Column(Float, nullable=False)
+    # Nullable throughout, and that is the contract. AIS transmits 511 for
+    # "heading unavailable" and 1023 for "speed unavailable"; both are stored
+    # as NULL. A zero would read as due north / stopped, which is a fabricated
+    # observation -- this exact bug hit 29,679 of the flagship's 86,830 rows.
+    sog_kn = Column(Float, nullable=True)
+    cog_deg = Column(Float, nullable=True)
+    heading_deg = Column(Float, nullable=True)
+    nav_status = Column(Integer, nullable=True)
+
+    # Identity, from the slower ShipStaticData cycle. Absent until a static
+    # message arrives for this MMSI, and left absent rather than guessed.
+    vessel_name = Column(String(120), nullable=True, index=True)
+    callsign = Column(String(32), nullable=True)
+    imo = Column(Integer, nullable=True)
+    vessel_type = Column(String(24), nullable=True, index=True)
+    ais_ship_type = Column(Integer, nullable=True)
+    length_m = Column(Float, nullable=True)
+    width_m = Column(Float, nullable=True)
+    draught_m = Column(Float, nullable=True)
+    destination = Column(String(120), nullable=True)
+
+    # When the vessel says it was there, versus when we received it. Both are
+    # kept: the difference is relay latency, and a stream whose messages are
+    # arriving 40 minutes late is degraded even though it is connected.
+    report_utc = Column(DateTime(timezone=True), nullable=False, index=True)
+    received_utc = Column(DateTime(timezone=True), nullable=False, index=True)
+    first_seen_utc = Column(DateTime(timezone=True), nullable=False)
+
+    message_count = Column(Integer, nullable=False, default=1)
+    # Which operational zone the vessel is currently in, resolved by
+    # point-in-polygon on update. Cached so the live map can filter by zone
+    # without running 40 polygon tests per vessel per frame. NULL means
+    # outside every declared zone, which is a real answer.
+    zone_id = Column(String(64), ForeignKey("zones.id"), nullable=True, index=True)
+
+    source = Column(String(16), nullable=False, default="real")
+    provider = Column(String(32), nullable=False, default="AISStream")
+
+
+class AisStreamSession(Base):
+    """One period during which the ingest worker held a connection.
+
+    A row per connection attempt rather than a single mutable "status" row,
+    because the useful question is not "are we connected" but "how has this
+    stream behaved". A provider that reconnects every ninety seconds is broken
+    in a way a single status field reports as WORKING.
+
+    This is what makes the AISStream row on the monitoring page distinguish
+    REACHABLE from FUNCTIONALLY WORKING (standing rule 8): a session that
+    connected and then received zero messages is recorded as exactly that.
+    """
+
+    __tablename__ = "ais_stream_sessions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    started_utc = Column(DateTime(timezone=True), default=utcnow, nullable=False,
+                         index=True)
+    ended_utc = Column(DateTime(timezone=True), nullable=True)
+    # connecting | connected | disconnected | failed | stopped
+    status = Column(String(16), nullable=False, default="connecting", index=True)
+
+    messages_received = Column(Integer, nullable=False, default=0)
+    positions_stored = Column(Integer, nullable=False, default=0)
+    statics_stored = Column(Integer, nullable=False, default=0)
+    # JSON of `RejectCounts`. Kept as the breakdown rather than one number so
+    # the monitoring page can say WHY rows were dropped -- "3.8% no position"
+    # is diagnosable and "4.1% rejected" is not.
+    rejects_json = Column(Text, nullable=True)
+    archived_rows = Column(Integer, nullable=False, default=0)
+
+    first_message_utc = Column(DateTime(timezone=True), nullable=True)
+    last_message_utc = Column(DateTime(timezone=True), nullable=True)
+
+    # The subscription actually sent, with the API key redacted. This is the
+    # single most useful artefact when a stream connects and produces nothing,
+    # because the usual cause is a bounding box with its latitude and
+    # longitude transposed.
+    subscription_json = Column(Text, nullable=True)
+    bbox_json = Column(Text, nullable=True)
+
+    close_code = Column(Integer, nullable=True)
+    error_class = Column(String(48), nullable=True)
+    error_detail = Column(Text, nullable=True)
+    reconnect_attempt = Column(Integer, nullable=False, default=0)
+
+
+# --------------------------------------------------------------------------
 # engine / session
 # --------------------------------------------------------------------------
 

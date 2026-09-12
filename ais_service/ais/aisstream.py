@@ -76,6 +76,24 @@ POSITION_TYPES = ("PositionReport", "StandardClassBPositionReport",
 STATIC_TYPES = ("ShipStaticData", "StaticDataReport")
 SUBSCRIBED_TYPES = list(POSITION_TYPES) + list(STATIC_TYPES)
 
+# Frames that are protocol, not data. The provider answers a subscription with
+# `{"MessageType": "SubscriptionConfirmation", "Message": {...}}` before any
+# traffic.
+#
+# This distinction is load-bearing, not tidiness. Counting the confirmation as
+# a received message set "last message" to the moment of connection, and the
+# health check -- "connected and not silent" -- therefore reported a stream as
+# FUNCTIONALLY WORKING when it had delivered the handshake and nothing else.
+# Measured against the Bay of Bengal, which has no receiver coverage, that read
+# as healthy while ingesting zero vessels.
+CONTROL_TYPES = ("SubscriptionConfirmation",)
+
+
+def is_control_frame(frame: Any) -> bool:
+    """True for a handshake/protocol frame that must not count as traffic."""
+    return (isinstance(frame, dict)
+            and frame.get("MessageType") in CONTROL_TYPES)
+
 # AIS ship-type code bands (ITU-R M.1371 table 53), mapped onto the frozen
 # `vessel_type` vocabulary. Only the bands the contract has a word for are
 # named; everything else is "other" rather than a guess.
@@ -407,6 +425,28 @@ def normalise_static(frame: dict,
     meta = frame.get("MetaData") if isinstance(frame.get("MetaData"), dict) else {}
     body = _payload(frame, message_type)
 
+    # `StaticDataReport` (AIS message 24) is transmitted in two halves and the
+    # provider nests them: the name arrives under `ReportA`, and the call sign,
+    # ship type and dimensions under `ReportB`. `ShipStaticData` (message 5)
+    # carries the same fields flat. Reading only the flat shape silently
+    # ignored every Class B vessel's identity -- the fields were simply absent,
+    # which is indistinguishable from a vessel that transmits no name.
+    #
+    # Flattened here so one code path handles both.
+    if message_type == "StaticDataReport":
+        merged = dict(body)
+        for part in ("ReportA", "ReportB"):
+            section = body.get(part)
+            if isinstance(section, dict):
+                for key, value in section.items():
+                    # `Valid` is a per-part flag, not vessel data.
+                    if key != "Valid":
+                        merged.setdefault(key, value)
+        # ReportB spells the type `ShipType`, message 5 spells it `Type`.
+        if "Type" not in merged and "ShipType" in merged:
+            merged["Type"] = merged["ShipType"]
+        body = merged
+
     raw_mmsi = body.get("UserID", meta.get("MMSI", meta.get("mmsi")))
     try:
         mmsi = int(raw_mmsi)
@@ -530,9 +570,13 @@ class StreamBatch:
     statics: list[dict] = field(default_factory=list)
     rejects: RejectCounts = field(default_factory=RejectCounts)
     received: int = 0
+    # Handshake frames. Counted separately from `received` so they inflate
+    # neither the traffic figure nor the reject breakdown.
+    control: int = 0
 
     def summary(self) -> dict:
         return {"received": self.received,
+                "control": self.control,
                 "positions": len(self.positions),
                 "statics": len(self.statics),
                 "rejected": self.rejects.as_dict()}
@@ -548,6 +592,12 @@ def normalise_batch(frames: Iterable[dict],
     """
     batch = StreamBatch()
     for frame in frames:
+        if is_control_frame(frame):
+            # Not traffic. Excluded from `received` so a stream that delivered
+            # only a subscription confirmation reports zero messages, which is
+            # the truth.
+            batch.control += 1
+            continue
         batch.received += 1
         message_type = frame.get("MessageType") if isinstance(frame, dict) else None
         if message_type in STATIC_TYPES:

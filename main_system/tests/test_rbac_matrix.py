@@ -63,6 +63,14 @@ ELEVATED = {
     ("DELETE", "/api/zones/{zone_id}"): _ADMIN,
     ("POST", "/api/zones/{zone_id}/assignments"): _ADMIN,
     ("DELETE", "/api/zones/{zone_id}/assignments/{user_id}"): _ADMIN,
+    # --- live AIS ------------------------------------------------------
+    # Reading the live picture is open to every authenticated role (global
+    # situational awareness). Turning the tap on opens an outbound connection
+    # and writes continuously to disk, so it is an administrator action.
+    ("POST", "/api/ais/stream/start"): _ADMIN,
+    ("POST", "/api/ais/stream/stop"): _ADMIN,
+    ("POST", "/api/ais/stream/flush"): _ADMIN,
+    ("POST", "/api/ais/live/prune"): _ADMIN,
 }
 
 
