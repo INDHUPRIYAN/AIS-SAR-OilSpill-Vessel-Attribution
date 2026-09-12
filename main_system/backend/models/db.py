@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import (Boolean, Column, DateTime, Float, ForeignKey, Integer,
-                        String, Text, create_engine, func)
+                        String, Text, UniqueConstraint, create_engine, func)
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 from backend.core.config import get_settings
@@ -366,6 +366,23 @@ class Alert(Base):
     run_id = Column(String(64), ForeignKey("runs.id"), nullable=True, index=True)
     investigation_id = Column(String(64), ForeignKey("investigations.id"),
                               nullable=True, index=True)
+    incident_id = Column(String(32), ForeignKey("incidents.id"), nullable=True,
+                         index=True)
+
+    # --- zone routing (spec section 18) --------------------------------
+    # Which zone's officer this alert is FOR. Distinct from `assigned_to`,
+    # which is who picked it up: routing is what the system decided, assignment
+    # is what a human did, and collapsing the two would erase the evidence that
+    # an alert reached the correct desk and was then reassigned.
+    zone_id = Column(String(64), ForeignKey("zones.id"), nullable=True, index=True)
+    routed_to = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    # How routing resolved. "zone" -- a zone owned the coordinates and had an
+    # officer; "escalated" -- the zone had none and a parent's officer took it;
+    # "unrouted" -- no zone covered the point, or no officer was assigned
+    # anywhere above it. An unrouted alert is shown as unrouted in the queue.
+    # It is never silently handed to an administrator so the queue looks clean.
+    routing = Column(String(16), nullable=True, index=True)
+    routing_detail = Column(Text)
 
     created_utc = Column(DateTime(timezone=True), default=utcnow, nullable=False,
                          index=True)
@@ -573,6 +590,33 @@ class Incident(Base):
     assignee_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     region = Column(String(120), nullable=True, index=True)
     notes = Column(Text, nullable=True)
+
+    # Which operational zone the incident's own coordinates fall in, resolved
+    # once at creation by point-in-polygon rather than joined at read time. It
+    # is stamped because a zone boundary can be redrawn afterwards, and an
+    # incident must keep saying which desk it was actually routed to -- a
+    # live join would silently re-attribute closed cases when somebody moved a
+    # line on a map.
+    #
+    # NULL is a real answer: open ocean outside every declared zone. It is
+    # never backfilled with a nearest guess.
+    zone_id = Column(String(64), ForeignKey("zones.id"), nullable=True, index=True)
+    # The zone chain as resolved, outermost first, e.g. "zone-bob/zone-bob-03".
+    # Denormalised text so a report can print "Bay of Bengal / Zone 03" without
+    # walking a parent chain that may since have changed.
+    zone_path = Column(String(400), nullable=True)
+    # How the incident came to exist: "auto" for the detection pipeline's own
+    # validated output, "manual" for a human promoting a run. The distinction
+    # is provenance, not bookkeeping -- it says whether a person looked at it
+    # before it became a case.
+    origin = Column(String(16), nullable=True, index=True)
+    # Detection confidence that cleared the validation gate, for auto
+    # incidents. NULL for manual ones: absent, not a fabricated 1.0.
+    detection_confidence = Column(Float, nullable=True)
+    area_km2 = Column(Float, nullable=True)
+    severity = Column(String(16), nullable=True, index=True)
+    source_run_id = Column(String(64), nullable=True, index=True)
+    scene_id = Column(String(200), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_utc = Column(DateTime(timezone=True), default=utcnow)
     updated_utc = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
@@ -584,11 +628,39 @@ class Incident(Base):
 # identity
 # --------------------------------------------------------------------------
 
-# The five roles from the production spec. Kept as a plain tuple rather than a
-# DB enum: SQLite does not enforce enums anyway, and a CHECK constraint would
-# have to be rewritten to add a role, which is exactly the kind of migration
-# this schema is trying to avoid.
-ROLES = ("admin", "investigator", "analyst", "reviewer", "auditor")
+# The roles from the production spec. Kept as a plain tuple rather than a DB
+# enum: SQLite does not enforce enums anyway, and a CHECK constraint would have
+# to be rewritten to add a role, which is exactly the kind of migration this
+# schema is trying to avoid.
+#
+# `super_admin` and `zone_officer` were added for the operational-zone model.
+# Two properties of that addition matter:
+#
+#   * `super_admin` is a STRICT superset of `admin`. `require_role` grants it
+#     implicitly everywhere it grants `admin`, so no existing route changed
+#     meaning when it appeared. What `admin` does NOT get is the handful of
+#     routes guarded by `require_super_admin` -- protected jurisdiction
+#     boundaries, role grants, and anything that can change what the platform
+#     itself is allowed to do.
+#
+#   * `zone_officer` is NOT a weaker investigator. It is a different axis:
+#     global read, jurisdiction-scoped write. An officer sees every zone,
+#     incident and vessel in the system for situational awareness, and may act
+#     only inside the zones assigned to them. That scoping cannot be expressed
+#     as a role tuple, so it lives in `services.zones.assert_may_edit_zone`
+#     and in the per-resource checks that consult it.
+ROLES = ("super_admin", "admin", "investigator", "analyst", "reviewer",
+         "auditor", "zone_officer")
+
+# Roles that pass every `require_role` check without being named. `admin` was
+# always implicit; `super_admin` joins it so that adding the role did not
+# silently demote it below the accounts it supervises.
+IMPLICIT_ROLES = frozenset({"admin", "super_admin"})
+
+# An officer's authority is scoped to their assigned zones, so a route cannot
+# decide the question from the role alone. Named here so the scoping logic and
+# the route guards agree on who is subject to it.
+ZONE_SCOPED_ROLES = frozenset({"zone_officer"})
 
 
 class User(Base):
@@ -610,6 +682,146 @@ class User(Base):
     active = Column(Boolean, nullable=False, default=True)
     created_utc = Column(DateTime(timezone=True), default=utcnow)
     last_login_utc = Column(DateTime(timezone=True), nullable=True)
+
+
+# --------------------------------------------------------------------------
+# operational zones
+# --------------------------------------------------------------------------
+
+# A zone is one of exactly two things, and conflating them is the bug this
+# column exists to prevent:
+#
+#   "jurisdiction"  a maritime area a country or authority owns. Its outer
+#                   boundary is not an operational decision -- it is a fact
+#                   about the world that this system does not get to redraw.
+#   "operational"   a division drawn INSIDE a jurisdiction so that work can be
+#                   handed to a named officer. This is the shape an operator is
+#                   expected to draw, move and split.
+ZONE_KINDS = ("jurisdiction", "operational")
+ZONE_STATUSES = ("active", "inactive")
+
+
+class Zone(Base):
+    """One monitored area, and who is answerable for it.
+
+    This is NOT a second `Aoi`. An AOI answers "where should the scheduler
+    search for new scenes", and its identity is a search footprint. A zone
+    answers "whose desk does this incident land on", and its identity is a
+    boundary plus an officer. The two overlap geographically and are otherwise
+    unrelated: deleting an AOI must not orphan an incident's routing, and
+    re-drawing an operational zone must not change what the scheduler searches.
+
+    Geometry is a GeoJSON Polygon in WGS84, **longitude first**, stored as
+    text -- the same frozen convention as `Aoi.geometry_json`. It is text
+    rather than a PostGIS geometry column because this deployment runs SQLite
+    and the predicates are computed in Shapely, which behaves identically on
+    both. `bbox_json` is a derived cache, recomputed on every write, purely so
+    a point lookup can reject most zones without parsing a polygon.
+
+    `protected` is the teeth of the jurisdiction rule. It is set on
+    jurisdiction zones and checked in `services.zones`, not in the UI: a
+    boundary that only the frontend refuses to move is not protected.
+    """
+
+    __tablename__ = "zones"
+
+    id = Column(String(64), primary_key=True)            # zone-bob, zone-bob-03
+    name = Column(String(200), nullable=False)
+    kind = Column(String(16), nullable=False, default="operational", index=True)
+
+    # Self-referential: an operational zone names the jurisdiction it divides,
+    # and a sub-zone names the operational zone it splits. NULL only for a
+    # top-level jurisdiction.
+    parent_id = Column(String(64), ForeignKey("zones.id"), nullable=True, index=True)
+
+    # GeoJSON Polygon, WGS84, LONGITUDE FIRST. Not nullable: a zone with no
+    # boundary cannot route anything, and a NULL here would make
+    # point-in-polygon silently answer "not in any zone".
+    geometry_json = Column(Text, nullable=False)
+    # [lon_min, lat_min, lon_max, lat_max]. Derived from geometry_json.
+    bbox_json = Column(Text, nullable=False)
+
+    # ISO 3166-1 alpha-3 where the zone belongs to a state, else a free slug
+    # for an international or multi-state authority. Inherited from the parent
+    # on create so an operational zone cannot claim a different country than
+    # the jurisdiction it sits inside.
+    jurisdiction = Column(String(16), nullable=True, index=True)
+    protected = Column(Boolean, nullable=False, default=False)
+
+    status = Column(String(16), nullable=False, default="active", index=True)
+    # Geodesic, from pyproj on the WGS84 ellipsoid. Cached because the zone
+    # list shows it and recomputing 40 polygons per page load is waste.
+    area_km2 = Column(Float)
+    notes = Column(Text, default="")
+
+    # Monotonic, bumped on every geometry change. A client that drew against
+    # revision 4 and submits against revision 5 is editing a boundary somebody
+    # else already moved, and is rejected rather than silently overwriting it.
+    revision = Column(Integer, nullable=False, default=1)
+
+    source = Column(String(16), default="api")           # api | seed
+    created_utc = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_utc = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    parent = relationship("Zone", remote_side=[id], backref="children")
+
+
+class ZoneAssignment(Base):
+    """Which officer is answerable for which zone.
+
+    A join table rather than a `zones.officer_id` column, for two reasons that
+    both showed up in the routing design: a zone can legitimately have a
+    primary officer and a deputy, and an officer can cover several zones during
+    a handover. There is deliberately NO denormalised officer on `Zone` -- two
+    places recording the same fact is how alert routing ends up disagreeing
+    with the zone list about whose incident it is.
+
+    `is_primary` is what alert routing uses. At most one primary per zone is
+    enforced in the service layer, not by a partial unique index, because
+    SQLite and Postgres disagree on the syntax for that.
+    """
+
+    __tablename__ = "zone_assignments"
+    __table_args__ = (UniqueConstraint("zone_id", "user_id",
+                                       name="uq_zone_assignment"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    zone_id = Column(String(64), ForeignKey("zones.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    is_primary = Column(Boolean, nullable=False, default=True)
+    assigned_utc = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+
+class ZoneRevision(Base):
+    """Append-only history of one zone's boundary.
+
+    A boundary edit is an authority decision: it changes who receives an
+    alert, and it changes it retroactively for everything routed afterwards.
+    Storing only the current polygon would make "who moved Zone 03 and why"
+    unanswerable, which is exactly the question an audit asks first.
+
+    Rows are never updated or deleted. `geometry_before` is NULL for the
+    creating revision -- absent, not a fabricated empty polygon.
+    """
+
+    __tablename__ = "zone_revisions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    zone_id = Column(String(64), ForeignKey("zones.id"), nullable=False, index=True)
+    revision = Column(Integer, nullable=False)
+    # created | geometry | metadata | assignment | status
+    change = Column(String(24), nullable=False)
+    geometry_before = Column(Text)
+    geometry_after = Column(Text)
+    area_before_km2 = Column(Float)
+    area_after_km2 = Column(Float)
+    reason = Column(Text)
+    actor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    actor_role = Column(String(32))
+    changed_utc = Column(DateTime(timezone=True), default=utcnow, nullable=False,
+                         index=True)
 
 
 # --------------------------------------------------------------------------

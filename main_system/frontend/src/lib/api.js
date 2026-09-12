@@ -182,6 +182,41 @@ export const api = {
   setKey: (body) => request("/api/keys", { method: "PUT", body }),
   testKey: (p) => request(`/api/keys/${p}/test`, { method: "POST" }),
   keyAudit: () => request("/api/keys/audit"),
+
+  /* --- operational zones ------------------------------------------------
+   * `listZones` omits polygons by default and `zonesGeojson` returns them,
+   * mirroring the two server routes. The split is not premature: the Zone
+   * Management table renders five text columns, and shipping forty polygons
+   * to do that is what makes a dashboard feel slow for no reason. */
+  listZones: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== "" && v !== null));
+    return request(`/api/zones${q.toString() ? `?${q}` : ""}`);
+  },
+  zonesGeojson: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== "" && v !== null));
+    return request(`/api/zones/geojson${q.toString() ? `?${q}` : ""}`);
+  },
+  myZones: () => request("/api/zones/mine"),
+  getZone: (id) => request(`/api/zones/${id}`),
+  zoneRevisions: (id, limit = 50) =>
+    request(`/api/zones/${id}/revisions?limit=${limit}`),
+  /* Which zone owns a coordinate, and whose desk it lands on. The boundary
+   * editor calls this on click so an operator sees the routing consequence
+   * of a point BEFORE saving a polygon. */
+  lookupZone: (lon, lat) => request(`/api/zones/lookup?lon=${lon}&lat=${lat}`),
+  createZone: (body) => request("/api/zones", { method: "POST", body }),
+  /* `revision` is mandatory in `body` whenever `geometry` is present -- the
+   * server rejects a geometry edit without it rather than letting two
+   * officers silently overwrite each other. */
+  updateZone: (id, body) => request(`/api/zones/${id}`, { method: "PATCH", body }),
+  deleteZone: (id) => request(`/api/zones/${id}`, { method: "DELETE" }),
+  assignZoneOfficer: (id, userId, isPrimary = true) =>
+    request(`/api/zones/${id}/assignments`,
+            { method: "POST", body: { user_id: userId, is_primary: isPrimary } }),
+  unassignZoneOfficer: (id, userId) =>
+    request(`/api/zones/${id}/assignments/${userId}`, { method: "DELETE" }),
 };
 
 /* ------------------------------------------------------------------ hooks */

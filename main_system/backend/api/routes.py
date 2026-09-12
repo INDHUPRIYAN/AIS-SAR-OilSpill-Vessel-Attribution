@@ -39,9 +39,9 @@ from backend.core.config import PROVIDER_BY_NAME, PROVIDERS, get_settings
 from backend.core.security import (encryption_available, encrypt, is_encrypted,
                                    last_four, mask, resolve_credential,
                                    verify_admin)
-from backend.models.db import (VERDICTS, ApiCall, ApiKey, ApiProvider,
-                               AuditLog, Decision, Investigation, Job, Run,
-                               get_db, utcnow)
+from backend.models.db import (IMPLICIT_ROLES, VERDICTS, ApiCall, ApiKey,
+                               ApiProvider, AuditLog, Decision, Investigation,
+                               Job, Run, get_db, utcnow)
 from backend.services import audit as audit_service
 from backend.services import jobs as jobs_service
 from backend.services.pipeline import provenance
@@ -167,7 +167,13 @@ def require_admin(request: Request,
 
     user = optional_user(request, db)
     if user is not None:
-        if user.role != "admin":
+        # IMPLICIT_ROLES, not a literal "admin". This guard is hand-written
+        # rather than built by `require_role`, so when `super_admin` was added
+        # it did not inherit the implicit grant and a super administrator was
+        # locked out of credential management -- which the production spec
+        # explicitly gives them. Sharing the tuple is what keeps the two
+        # guards from drifting again.
+        if user.role not in IMPLICIT_ROLES:
             raise HTTPException(403, f"role '{user.role}' may not manage credentials")
         return user.email
 
@@ -180,7 +186,7 @@ def require_admin(request: Request,
 # Same marker `require_role` sets, so the route-table audit sees this guard
 # too. Without it these routes read as "no role guard declared", which is
 # indistinguishable from having forgotten one.
-require_admin.allowed_roles = frozenset({"admin"})
+require_admin.allowed_roles = frozenset(IMPLICIT_ROLES)
 
 
 # --------------------------------------------------------------------------

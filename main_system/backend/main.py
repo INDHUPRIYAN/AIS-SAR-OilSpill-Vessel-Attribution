@@ -34,6 +34,7 @@ from backend.api.routes import router  # noqa: E402
 from backend.api.scenes import router as scenes_router  # noqa: E402
 from backend.api.alerts import router as alerts_router
 from backend.api.search import router as search_router
+from backend.api.zones import router as zones_router
 from backend.api.tiles import router as tiles_router
 from backend.api.catalog import router as catalog_router
 from backend.api.events import router as events_router
@@ -91,6 +92,24 @@ async def lifespan(app: FastAPI):
     note = bootstrap_admin()
     if note:
         print(f"[auth] {note}")
+
+    # Operational zones. Seeded ONLY into a database with no zones at all, for
+    # the same reason the AOI YAML is migrated once: a seed that re-ran every
+    # boot would resurrect a zone an operator deleted and undo a boundary they
+    # moved. A deployment that wants a different theatre deletes these and
+    # draws its own; nothing here will put them back.
+    from backend.services.zone_seed import seed_if_empty
+
+    with SessionLocal() as db:
+        try:
+            zone_note = seed_if_empty(db)
+        except Exception as exc:                   # noqa: BLE001
+            # A bad seed polygon must not stop the API from serving. It shows
+            # up as an empty zone list, which the UI reports honestly.
+            zone_note = None
+            print(f"[zones] seed failed: {type(exc).__name__}: {exc}")
+    if zone_note:
+        print(f"[zones] {zone_note}")
     if settings.admin_token_is_ephemeral:
         # Printed once, never logged again. Without this a fresh checkout would
         # either have no admin auth or a guessable default -- both worse.
@@ -177,6 +196,7 @@ app.include_router(catalog_router, prefix="/api", dependencies=_authenticated)
 app.include_router(alerts_router, prefix="/api", dependencies=_authenticated)
 app.include_router(tiles_router, prefix="/api", dependencies=_authenticated)
 app.include_router(search_router, prefix="/api", dependencies=_authenticated)
+app.include_router(zones_router, prefix="/api", dependencies=_authenticated)
 # Public by necessity: /auth/login is how a session is obtained. The routes in
 # here that need a session (/auth/me, /auth/roles) declare it themselves.
 app.include_router(auth_router, prefix="/api")

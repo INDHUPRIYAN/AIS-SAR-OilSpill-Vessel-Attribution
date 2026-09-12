@@ -27,7 +27,7 @@ from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from backend.core.config import get_settings
-from backend.models.db import ROLES, User, get_db
+from backend.models.db import IMPLICIT_ROLES, ROLES, User, get_db
 
 settings = get_settings()
 
@@ -167,14 +167,20 @@ def authenticated(request: Request,
 def require_role(*roles: str):
     """Dependency asserting the caller holds one of `roles`.
 
-    `admin` passes every check: the alternative is listing it in every call
-    site, which is the kind of repetition that eventually omits it somewhere.
-    Unknown role names raise at import rather than silently never matching.
+    `admin` and `super_admin` pass every check: the alternative is listing
+    them at every call site, which is the kind of repetition that eventually
+    omits one somewhere. Unknown role names raise at import rather than
+    silently never matching.
+
+    `super_admin` being implicit here is deliberate and is the reason adding
+    the role changed no existing route's meaning. The routes `super_admin`
+    holds *exclusively* are the ones that use `require_super_admin` below --
+    it is defined by what `admin` cannot reach, not by a longer grant list.
     """
     unknown = [r for r in roles if r not in ROLES]
     if unknown:
         raise ValueError(f"unknown role(s) {unknown}; valid roles are {list(ROLES)}")
-    allowed = set(roles) | {"admin"}
+    allowed = set(roles) | set(IMPLICIT_ROLES)
 
     def _guard(user: User = Depends(current_user)) -> User:
         if user.role not in allowed:
@@ -191,6 +197,32 @@ def require_role(*roles: str):
     # test that probed them live would be starting real work to find out who
     # was allowed to start real work.
     _guard.allowed_roles = frozenset(allowed)
+    return _guard
+
+
+def require_super_admin():
+    """Dependency admitting `super_admin` and nobody else.
+
+    This is the one guard `require_role` cannot express, because `require_role`
+    grants `admin` implicitly -- `require_role("super_admin")` would admit
+    `admin` too, which is the opposite of the intent.
+
+    What sits behind it is everything that changes the platform's own rules
+    rather than the work it is doing: modifying a protected jurisdiction
+    boundary, granting or revoking a role, and deactivating another
+    administrator. An operational administrator runs the operation; they do
+    not get to redraw an international boundary or promote themselves.
+    """
+
+    def _guard(user: User = Depends(current_user)) -> User:
+        if user.role != "super_admin":
+            raise HTTPException(
+                status_code=403,
+                detail=f"role '{user.role}' may not perform this action; "
+                       "super_admin is required")
+        return user
+
+    _guard.allowed_roles = frozenset({"super_admin"})
     return _guard
 
 

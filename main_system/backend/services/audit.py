@@ -49,6 +49,30 @@ EVENT_TYPES = (
     "key.set",
     "model.change",
     "data.export",
+    # --- operational zones -------------------------------------------------
+    # A boundary edit is the one action here that changes who *receives* future
+    # work, so it is audited separately from the record edit that renames a
+    # zone. "zone.geometry" is the row an audit looks for when asking who moved
+    # a line; "zone.change" covers the rest.
+    "zone.create",
+    "zone.geometry",
+    "zone.change",
+    "zone.delete",
+    "zone.assign",
+    "zone.unassign",
+    # --- identity ----------------------------------------------------------
+    # Split from the pre-existing "user.change" because granting a role is a
+    # privilege escalation and deactivating an account is a lockout, and an
+    # auditor filtering for either should not have to read every profile edit.
+    "user.create",
+    "role.change",
+    "user.deactivate",
+    # --- live AIS ----------------------------------------------------------
+    "ais.stream.start",
+    "ais.stream.stop",
+    # --- alert routing -----------------------------------------------------
+    "alert.route",
+    "alertrule.change",
 )
 
 GENESIS = "0" * 64

@@ -30,21 +30,39 @@ PUBLIC = {"/", "/health", "/healthz", "/readyz", "/docs", "/redoc",
 
 # Routes that need more than "signed in", from the role matrix in master plan
 # section 8. Everything not listed is readable by any authenticated role.
+# `super_admin` appears in EVERY entry below, and that is the assertion rather
+# than boilerplate: `require_role` grants it implicitly (see IMPLICIT_ROLES),
+# so adding the role must not have narrowed any existing route. If someone
+# writes a guard that excludes it, this table fails.
+_OPS = {"investigator", "analyst", "admin", "super_admin"}
+_ADMIN = {"admin", "super_admin"}
+# The zone editor. `zone_officer` is admitted at the route and then narrowed to
+# their own assignment inside the handler by `assert_may_edit_zone` -- a
+# route-level guard cannot express "only zones you are assigned to", so that
+# half is covered by test_zones.py and declared in VALUE_GUARDED below.
+_DRAW = {"zone_officer", "admin", "super_admin"}
+
 ELEVATED = {
-    ("POST", "/api/investigations"): {"investigator", "analyst", "admin"},
-    ("POST", "/api/investigations/{investigation_id}/run"): {"investigator", "analyst", "admin"},
-    ("POST", "/api/investigations/{investigation_id}/replay"): {"investigator", "analyst", "admin"},
-    ("POST", "/api/runs/{run_id}/decisions"): {"investigator", "analyst", "admin"},
-    ("POST", "/api/aois/poll"): {"investigator", "analyst", "admin"},
-    ("POST", "/api/aois/{aoi_id}/poll"): {"investigator", "analyst", "admin"},
-    ("POST", "/api/apis/{provider}/test"): {"analyst", "admin"},
-    ("POST", "/api/apis/test-all"): {"analyst", "admin"},
-    ("POST", "/api/incidents"): {"investigator", "analyst", "admin"},
-    ("POST", "/api/incidents/from_run/{run_id}"): {"investigator", "analyst", "admin"},
-    ("GET", "/api/keys"): {"admin"},
-    ("PUT", "/api/keys"): {"admin"},
-    ("GET", "/api/keys/audit"): {"admin"},
-    ("POST", "/api/keys/{provider}/test"): {"admin"},
+    ("POST", "/api/investigations"): _OPS,
+    ("POST", "/api/investigations/{investigation_id}/run"): _OPS,
+    ("POST", "/api/investigations/{investigation_id}/replay"): _OPS,
+    ("POST", "/api/runs/{run_id}/decisions"): _OPS,
+    ("POST", "/api/aois/poll"): _OPS,
+    ("POST", "/api/aois/{aoi_id}/poll"): _OPS,
+    ("POST", "/api/apis/{provider}/test"): {"analyst", "admin", "super_admin"},
+    ("POST", "/api/apis/test-all"): {"analyst", "admin", "super_admin"},
+    ("POST", "/api/incidents"): _OPS,
+    ("POST", "/api/incidents/from_run/{run_id}"): _OPS,
+    ("GET", "/api/keys"): _ADMIN,
+    ("PUT", "/api/keys"): _ADMIN,
+    ("GET", "/api/keys/audit"): _ADMIN,
+    ("POST", "/api/keys/{provider}/test"): _ADMIN,
+    # --- operational zones ---------------------------------------------
+    ("POST", "/api/zones"): _DRAW,
+    ("PATCH", "/api/zones/{zone_id}"): _DRAW,
+    ("DELETE", "/api/zones/{zone_id}"): _ADMIN,
+    ("POST", "/api/zones/{zone_id}/assignments"): _ADMIN,
+    ("DELETE", "/api/zones/{zone_id}/assignments/{user_id}"): _ADMIN,
 }
 
 
@@ -56,6 +74,13 @@ VALUE_GUARDED = {
     # An investigator may move a case to `investigating`, but only a reviewer
     # may conclude it as `attributed`/`closed`. See test_incidents.py.
     ("PATCH", "/api/incidents/{incident_id}"),
+    # Two rules a role tuple cannot express, both in test_zones.py:
+    #   * a protected jurisdiction boundary moves only for super_admin, while
+    #     the same route renames it for an admin;
+    #   * a zone_officer may edit only the zones assigned to them.
+    # Both are enforced by `services.zones.assert_may_edit_zone`, which the
+    # routes above call, and both depend on the TARGET rather than the caller.
+    ("PATCH", "/api/zones/{zone_id}"),
 }
 
 
@@ -145,7 +170,8 @@ def _call(client, method: str, path: str):
     """
     concrete = path
     for param in ("run_id", "investigation_id", "aoi_id", "provider",
-                  "layer", "scene_id", "mmsi"):
+                  "layer", "scene_id", "mmsi", "zone_id", "user_id",
+                  "report_id", "alert_id", "incident_id", "job_id"):
         concrete = concrete.replace("{" + param + "}", "probe")
     if "{" in concrete:
         return None
@@ -185,7 +211,9 @@ def test_public_routes_stay_public(env):
     assert "invalid email or password" in r.text
 
 
-@pytest.mark.parametrize("role", ["investigator", "analyst", "reviewer", "auditor", "admin"])
+@pytest.mark.parametrize("role", ["investigator", "analyst", "reviewer",
+                                 "auditor", "admin", "super_admin",
+                                 "zone_officer"])
 def test_role_matrix(env, role):
     """Each role against every elevated route, read from the route table.
 
@@ -255,7 +283,8 @@ def test_every_role_can_read(env):
     """Reading runs is common to all five roles; an auditor who cannot read
     the evidence cannot audit it."""
     client, _ = env
-    for role in ("investigator", "analyst", "reviewer", "auditor", "admin"):
+    for role in ("investigator", "analyst", "reviewer", "auditor", "admin",
+                 "super_admin", "zone_officer"):
         client.cookies.clear()
         client.post("/api/auth/login",
                     json={"email": f"{role}@example.invalid", "password": PASSWORD})
