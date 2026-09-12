@@ -12,8 +12,27 @@ discovered later is an impeachment. Per-module detail lives in
 ## Data availability
 
 1. **No public bulk historic AIS exists for Indian waters.** MarineCadastre covers US
-   waters, DMA covers Danish/Baltic waters; AISStream is live-only. This is a
-   data-availability fact, not an engineering gap. **Any run over Indian waters uses
+   waters, DMA covers Danish/Baltic waters. This is a data-availability fact, not an
+   engineering gap.
+
+   **Live AIS is now ingested and archived, and it does not close this gap.**
+   AISStream is consumed by `backend/services/ais_live.py`, which writes both a
+   live vessel table and the same day-partitioned `AISStore` the bulk providers
+   feed — so today's stream is next month's archive. Two limits survive, and
+   both were measured on 2026-09-12:
+
+   - **It is not retroactive.** A scene acquired before ingestion first ran on
+     a deployment has no live AIS. `/api/ais/status` reports the actual
+     archive span; anything earlier is absent, not empty.
+   - **AISStream has effectively no receiver coverage of the Bay of Bengal.**
+     A subscription to the seeded theatre (80.5–95.3 E, 5.5–21.5 N) returned
+     **zero messages in 60 s**, while a globally-bounded subscription on the
+     same key delivered a firehose immediately (Denmark, Canada, Spain,
+     Finland, the Netherlands). AISStream is relayed by volunteer receivers.
+     The subscription mechanism works; the receivers do not exist there.
+     **An empty live vessel layer over the Bay of Bengal is a coverage limit,
+     not an empty sea** — there are ships there and nothing is listening to
+     them. The UI renders that sentence rather than an empty map. **Any run over Indian waters uses
    synthetic AIS, labelled SYNTHETIC everywhere including the UI.** Runs over US waters
    use real MarineCadastre archives: the flagship run
    `inv-gulf-flagship-20230108-2day` ingested the 2023-01-07 and 2023-01-08 archives
@@ -108,14 +127,23 @@ discovered later is an impeachment. Per-module detail lives in
 - **Speckle filtering** is deliberately absent from the calibration chain: it softens
   slick edges, and the slick geometry feeds attribution. Offered as an ablation, not a
   default.
-- **3D globe mode is deferred, not built.** The UX spec describes a `3D · 2D ·
-  MAP · SAT` mode switcher over a deck.gl `_GlobeView`. Architect decision D3
-  names the globe "optional polish, last in, first out… If the schedule
-  tightens, drop 3D entirely; the audit and the master plan both name it first
-  to cut, and nothing depends on it." It has been dropped rather than
-  half-built: there is no mode switcher and no globe view. The map is 2D, and
-  the measure tool that runs on it measures on the sphere (great-circle), so
-  no number in the product depends on the missing mode.
+- **The 3D globe is built, without a basemap morph.** It was previously
+  deferred under architect decision D3. It now exists at `/globe`: a deck.gl
+  `_GlobeView` with a sphere mesh occluding the far hemisphere, a graticule,
+  and the same layer definitions the 2D view uses — plus the zone boundary
+  editor on the same canvas.
+
+  What D3 struck remains struck, for a reason that is not schedule: the OSINT
+  spec's 450 ms projection morph between a MapLibre basemap and a globe
+  **cannot be built**, because `_GlobeView` cannot host a MapLibre basemap.
+  Switching is a canvas swap that preserves camera, timeline and selection.
+  The globe's basemap is raster (ArcGIS dark canvas or imagery); the 2D view
+  keeps its vector style. 2D remains the default and the fallback.
+
+  No number in the product depends on the globe. Areas shown on it are
+  geodesic figures computed server-side by `pyproj`; the planar degree-areas
+  the editor computes while a ring is being dragged are used only to detect a
+  self-intersecting boundary and are never displayed as an area.
 - **The command palette reaches routes, entities and the mounted view's own
   actions — not camera state.** `⌘K` covers every screen, every run, incident,
   investigation, vessel and scene, plus the workspace's layer toggles, measure

@@ -27,6 +27,7 @@ import {
  * and from the palette, but do not earn a top-bar slot. */
 export const ROUTES = [
   { to: "/globe", label: "Globe", nav: true },
+  { to: "/my-desk", label: "My Desk", nav: true },
   { to: "/zones", label: "Zones", nav: true },
   { to: "/officers", label: "Officers", nav: false },
   { to: "/incident", label: "Incident Replay", nav: true },

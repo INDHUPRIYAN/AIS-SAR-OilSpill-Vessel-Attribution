@@ -9,6 +9,7 @@ shows current state rather than whatever the last user action happened to hit.
 """
 from __future__ import annotations
 
+import logging
 import sys
 import threading
 from contextlib import asynccontextmanager
@@ -37,6 +38,7 @@ from backend.api.search import router as search_router
 from backend.api.zones import router as zones_router
 from backend.api.ais_live import router as ais_live_router
 from backend.api.users import router as users_router
+from backend.api.ops import router as ops_router
 from backend.api.tiles import router as tiles_router
 from backend.api.catalog import router as catalog_router
 from backend.api.events import router as events_router
@@ -47,6 +49,7 @@ from backend.core.config import get_settings  # noqa: E402
 from backend.models.db import SessionLocal, init_db, utcnow  # noqa: E402
 
 settings = get_settings()
+log = logging.getLogger("oceantrace.boot")
 _health_stop = threading.Event()
 _watcher = None
 
@@ -67,12 +70,20 @@ def _health_loop() -> None:
             with SessionLocal() as db:
                 health.probe_all(db)
         except Exception as exc:                      # pragma: no cover
-            print(f"[health] sweep failed: {type(exc).__name__}: {exc}")
+            log.error("provider health sweep failed: %s: %s",
+                      type(exc).__name__, exc)
         _health_stop.wait(settings.health_interval_seconds)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Installed FIRST, before anything else logs, so the System Logs page has
+    # the boot diagnostics in it. A buffer attached after init_db() would miss
+    # the schema catch-up and the zone seed -- the two things most worth
+    # reading when a deployment comes up wrong.
+    from backend.services import logbuffer
+
+    logbuffer.install()
     init_db()
     # Nothing is running at boot. Any row that says otherwise belongs to a
     # process that died; mark it failed with the reason rather than let the UI
@@ -83,17 +94,19 @@ async def lifespan(app: FastAPI):
     with SessionLocal() as db:
         swept = jobs_service.sweep_dead_runs(db)
     if swept["swept"]:
-        print(f"[jobs] marked {len(swept['swept'])} dead in-flight run(s) failed: "
-              f"{', '.join(swept['swept'])}")
+        log.warning("marked %d dead in-flight run(s) failed: %s",
+                    len(swept["swept"]), ", ".join(swept["swept"]))
     if swept["sealed_but_unmarked"]:
-        print(f"[jobs] {len(swept['sealed_but_unmarked'])} run(s) sealed but still marked "
-              f"in-flight; run backfill_runs --refresh: {', '.join(swept['sealed_but_unmarked'])}")
+        log.warning("%d run(s) sealed but still marked in-flight; run "
+                    "backfill_runs --refresh: %s",
+                    len(swept["sealed_but_unmarked"]),
+                    ", ".join(swept["sealed_but_unmarked"]))
     # First-run administrator, only when both env vars are set and the
     # user table is empty. A checkout with neither gets no account at all
     # rather than a well-known one.
     note = bootstrap_admin()
     if note:
-        print(f"[auth] {note}")
+        log.info("auth: %s", note)
 
     # Operational zones. Seeded ONLY into a database with no zones at all, for
     # the same reason the AOI YAML is migrated once: a seed that re-ran every
@@ -109,12 +122,19 @@ async def lifespan(app: FastAPI):
             # A bad seed polygon must not stop the API from serving. It shows
             # up as an empty zone list, which the UI reports honestly.
             zone_note = None
-            print(f"[zones] seed failed: {type(exc).__name__}: {exc}")
+            log.error("zone seed failed: %s: %s", type(exc).__name__, exc)
     if zone_note:
-        print(f"[zones] {zone_note}")
+        log.info("zones: %s", zone_note)
     if settings.admin_token_is_ephemeral:
         # Printed once, never logged again. Without this a fresh checkout would
         # either have no admin auth or a guessable default -- both worse.
+        #
+        # These five lines stay `print()` DELIBERATELY while every other boot
+        # diagnostic became a logging call. The log buffer feeding /api/logs is
+        # attached to the root logger and is readable by any authenticated
+        # role, so `log.info(admin_token)` would publish a live credential to
+        # every signed-in user. It goes to the operator's terminal and nowhere
+        # else. Do not "tidy" this into the logger.
         print("\n" + "=" * 62)
         print("  ADMIN TOKEN (ephemeral, set ADMIN_TOKEN in .env to fix it):")
         print(f"    {settings.admin_token}")
@@ -136,11 +156,12 @@ async def lifespan(app: FastAPI):
         try:
             _watcher = build_watcher()
             _watcher.start(settings.scheduler_interval_seconds)
-            print(f"[scheduler] AOI watcher started "
-                  f"(wakes every {settings.scheduler_interval_seconds}s)")
+            log.info("AOI watcher started (wakes every %ss)",
+                     settings.scheduler_interval_seconds)
         except Exception as exc:
             # A broken AOI registry must not stop the API from serving.
-            print(f"[scheduler] not started: {type(exc).__name__}: {exc}")
+            log.error("scheduler not started: %s: %s",
+                      type(exc).__name__, exc)
 
     try:
         yield
@@ -201,6 +222,7 @@ app.include_router(search_router, prefix="/api", dependencies=_authenticated)
 app.include_router(zones_router, prefix="/api", dependencies=_authenticated)
 app.include_router(ais_live_router, prefix="/api", dependencies=_authenticated)
 app.include_router(users_router, prefix="/api", dependencies=_authenticated)
+app.include_router(ops_router, prefix="/api", dependencies=_authenticated)
 # Public by necessity: /auth/login is how a session is obtained. The routes in
 # here that need a session (/auth/me, /auth/roles) declare it themselves.
 app.include_router(auth_router, prefix="/api")

@@ -11,10 +11,11 @@ import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
 import {
   Activity, BarChart3, BookOpen, Command, Database, Film, FolderOpen, KeyRound,
-  Globe2, Map, Moon, Radar, Sun, Users, Waves,
+  Globe2, Inbox, Map, Moon, Radar, Sun, Users, Waves,
 } from "lucide-react";
 
 import GlobeViewPage from "./pages/GlobeView";
+import OfficerDashboard from "./pages/OfficerDashboard";
 import OfficersPage from "./pages/Officers";
 import ZonesPage from "./pages/Zones";
 import Incident from "./pages/Incident";
@@ -45,7 +46,7 @@ const THEME_KEY = "oceantrace.theme";
  * table. A screen with no icon still gets a nav slot -- it just gets the
  * default mark, which is better than being invisible. */
 const NAV_ICONS = {
-  "/globe": Globe2, "/zones": Map, "/officers": Users, "/incident": Film, "/dashboard": FolderOpen, "/investigation": Radar,
+  "/globe": Globe2, "/my-desk": Inbox, "/zones": Map, "/officers": Users, "/incident": Film, "/dashboard": FolderOpen, "/investigation": Radar,
   "/analytics": BarChart3, "/monitoring": Activity, "/catalog": Database,
   "/alerts": AlertBell, "/keys": KeyRound, "/about": BookOpen,
 };
@@ -120,6 +121,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/incident" replace />} />
           <Route path="/globe" element={<GlobeViewPage />} />
+          <Route path="/my-desk" element={<OfficerDashboard />} />
           <Route path="/zones" element={<ZonesPage />} />
           <Route path="/officers" element={<OfficersPage />} />
           <Route path="/incident" element={<Incident />} />

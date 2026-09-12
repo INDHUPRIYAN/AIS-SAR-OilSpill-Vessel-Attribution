@@ -87,6 +87,11 @@ ELEVATED = {
     ("GET", "/api/users"): _ADMIN,
     ("GET", "/api/users/{user_id}"): _ADMIN,
     ("GET", "/api/users/{user_id}/zones"): _ADMIN,
+    # --- operations ----------------------------------------------------
+    # Reading logs and worker state is open to every authenticated role:
+    # operational diagnostics name no suspect, and an analyst debugging a
+    # failed run needs them. Discarding them is not.
+    ("POST", "/api/logs/clear"): _ADMIN,
 }
 
 
