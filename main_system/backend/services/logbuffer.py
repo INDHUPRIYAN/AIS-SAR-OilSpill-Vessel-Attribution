@@ -36,10 +36,9 @@ from __future__ import annotations
 
 import logging
 import threading
-import time
 from collections import deque
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Optional
 
 # ~1 MB of records at typical size. Large enough to hold a full pipeline run's
 # diagnostics (a run logs on the order of a hundred lines), small enough to be
@@ -149,11 +148,31 @@ def install(capacity: int = DEFAULT_CAPACITY,
     with _lock:
         if _handler is not None:
             return _handler
+
+        root = logging.getLogger()
+        # Detach any buffer left by a PREVIOUS import of this module before
+        # attaching a new one.
+        #
+        # The module-level `_handler` guard is not sufficient. The root logger
+        # is not in `sys.modules`, so a process that re-imports `backend.*`
+        # -- which every test module here does, deliberately, to pick up a
+        # fresh DATABASE_URL -- gets a fresh `_handler = None` while the old
+        # handler is STILL attached to the root logger. Without this sweep the
+        # handlers accumulate one per re-import, each holding up to `capacity`
+        # records, and every log call fans out to all of them.
+        # Matched by class NAME, not with `isinstance`. After a
+        # `sys.modules` purge the re-imported `RingBufferHandler` is a
+        # DIFFERENT class object from the one the stale handlers were built
+        # from, so `isinstance(existing, RingBufferHandler)` is False for
+        # exactly the handlers this sweep exists to remove -- the fix would
+        # have looked right and done nothing.
+        for existing in list(root.handlers):
+            if type(existing).__name__ == "RingBufferHandler":
+                root.removeHandler(existing)
+
         handler = RingBufferHandler(capacity)
         handler.setLevel(level)
-        handler.setFormatter(
-            logging.Formatter("%(message)s"))
-        root = logging.getLogger()
+        handler.setFormatter(logging.Formatter("%(message)s"))
         root.addHandler(handler)
         # Only raise the root level if it is currently higher, so a deployment
         # that deliberately set DEBUG keeps it.

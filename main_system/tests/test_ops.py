@@ -265,6 +265,42 @@ def test_a_handler_error_never_propagates_to_the_caller(env):
         "the handler stopped accepting records after one bad one")
 
 
+def test_reinstalling_does_not_leak_handlers_onto_the_root_logger(env):
+    """Every test module here purges `sys.modules` to pick up a fresh
+    DATABASE_URL, which re-imports this module and resets its `_handler`
+    guard -- while the previous handler is still attached to the root logger,
+    because the root logger is not in `sys.modules`.
+
+    Without the sweep in `install()` the handlers accumulate one per
+    re-import, each holding up to `capacity` records, and every log call fans
+    out to all of them.
+
+    The sweep matches by class NAME rather than `isinstance`, because after a
+    purge the re-imported class is a different object and `isinstance` is
+    False for exactly the handlers being swept -- a fix that looks right and
+    does nothing.
+    """
+    import logging as stdlib_logging
+
+    def buffers():
+        return [h for h in stdlib_logging.getLogger().handlers
+                if type(h).__name__ == "RingBufferHandler"]
+
+    from backend.services import logbuffer
+
+    before = len(buffers())
+    assert before == 1, f"expected one buffer on the root logger, found {before}"
+
+    # Simulate what the next test module does.
+    for name in [m for m in list(sys.modules) if m.startswith("backend.services.logbuffer")]:
+        del sys.modules[name]
+    from backend.services import logbuffer as reimported
+
+    reimported.install()
+    assert len(buffers()) == 1, (
+        f"re-importing leaked handlers: {len(buffers())} attached to root")
+
+
 # --------------------------------------------------------------------------
 # the credential
 # --------------------------------------------------------------------------
