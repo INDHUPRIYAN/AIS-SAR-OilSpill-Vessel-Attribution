@@ -16,8 +16,12 @@
 }
 .ws-health:hover { border-color: var(--accent-dim); color: var(--ink-0); }
 
+.ws-pipestrip {
+  top: 62px; left: 12px; right: 12px; padding: 9px 12px;
+}
+
 .ws-left {
-  top: 66px; left: 12px; bottom: 88px; width: 278px;
+  top: 128px; left: 12px; bottom: 88px; width: 278px;
   display: flex; flex-direction: column; gap: 10px;
   /* The column scrolls rather than compressing its panels. Opening the
    * measure tool used to squeeze the Layers panel to zero height -- the
@@ -27,7 +31,7 @@
 .ws-left::-webkit-scrollbar { display: none; }
 .ws-left > * { flex-shrink: 0; }
 .ws-right {
-  top: 66px; right: 12px; bottom: 88px; width: 330px;
+  top: 128px; right: 12px; bottom: 88px; width: 330px;
   display: flex; flex-direction: column;
 }
 .ws-bottom { left: 12px; right: 12px; bottom: 12px; }
@@ -156,7 +160,7 @@
 
 /* toasts + empty */
 .ws-toasts {
-  position: absolute; top: 66px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: 132px; left: 50%; transform: translateX(-50%);
   z-index: 30; display: flex; flex-direction: column; gap: 8px; max-width: 480px;
 }
 .ws-toast { padding: 10px 14px; font-size: 12px; }
@@ -260,3 +264,34 @@
 }
 .spin { animation: ws-spin 0.9s linear infinite; }
 @keyframes ws-spin { to { transform: rotate(360deg); } }
+
+/* ===================================================================== */
+/* The pipeline bar. Executed stages are solid; derived facts are        */
+/* outlined, so an output can never be mistaken for an execution.        */
+/* ===================================================================== */
+
+.ws-pipeline { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ws-pipeline .pipe { align-items: stretch; }
+.pipe-sep { display: flex; align-items: center; color: var(--ink-3); flex-shrink: 0; padding: 0 1px; }
+.pipe-ico {
+  width: 14px; height: 14px; border-radius: 50%; display: inline-grid; place-items: center;
+  background: var(--bg-3); color: var(--ink-2); flex-shrink: 0;
+}
+.pipe-ok .pipe-ico { background: var(--ok-soft); color: var(--ok); }
+.pipe-fallback .pipe-ico { background: var(--warn-soft); color: var(--warn); }
+.pipe-mock .pipe-ico { background: var(--mock-soft); color: var(--mock); }
+.pipe-failed .pipe-ico { background: var(--danger-soft); color: var(--danger); }
+.pipe-running .pipe-ico { background: var(--accent-soft); color: var(--accent); }
+.pipe-step { text-align: left; }
+.pipe-step .pipe-meta .badge { height: 15px; padding: 0 5px; font-size: 9px; }
+
+/* A derived node is a READING, not a run: dashed top rule, no status dot. */
+.pipe-derived { background: transparent; border-style: dashed; }
+.pipe-derived::after { background: repeating-linear-gradient(90deg,
+  var(--line-bright) 0 3px, transparent 3px 6px); }
+.pipe-derived.has::after { background: repeating-linear-gradient(90deg,
+  var(--accent) 0 3px, transparent 3px 6px); }
+.pipe-derived .pipe-name { color: var(--ink-2); }
+.pipe-derived.has .pipe-name { color: var(--ink-1); }
+
+.ws-pipeline-foot { display: flex; align-items: center; gap: 10px; }

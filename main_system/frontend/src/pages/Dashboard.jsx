@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FolderOpen, Plus, PlayCircle, WifiOff, Layers, FileCheck } from "lucide-react";
 
-import { Badge, Card, Dot, Spinner, Stat, Empty } from "../components/ui";
+import { Badge, Card, Dot, PageHeader, Spinner, Stat, Empty } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
 
 export default function Dashboard() {
@@ -47,13 +47,8 @@ export default function Dashboard() {
 
   return (
     <div className="page">
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-        <FolderOpen size={19} color="var(--accent)" />
-        <div>
-          <div style={{ fontSize: 17, fontWeight: 700 }}>Investigations</div>
-          <div className="tiny muted">Every pipeline run, with its provenance</div>
-        </div>
-      </div>
+      <PageHeader icon={<FolderOpen size={17} />} kicker="Analysis" title="Investigations"
+        sub="Every pipeline run, with the provenance of what produced it." />
 
       <div className="grid grid-4" style={{ marginBottom: 18 }}>
         <Card><Stat label="Investigations" value={invs?.length ?? "—"} /></Card>

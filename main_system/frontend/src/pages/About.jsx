@@ -5,7 +5,7 @@
  */
 
 import { BookOpen, Cpu, Database, GitBranch, ShieldAlert } from "lucide-react";
-import { Card } from "../components/ui";
+import { Card, PageHeader } from "../components/ui";
 
 const STAGES = [
   ["Scene", "Sentinel-1 GRD from CDSE, ASF fallback, local cache", "Pavitra"],
@@ -44,15 +44,8 @@ const LIMITS = [
 export default function About() {
   return (
     <div className="page">
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-        <BookOpen size={19} color="var(--accent)" />
-        <div>
-          <div style={{ fontSize: 17, fontWeight: 700 }}>About OceanTrace</div>
-          <div className="tiny muted">
-            SIH 2026 · Problem Statement 26143 · NTRO · Space Technology
-          </div>
-        </div>
-      </div>
+      <PageHeader icon={<BookOpen size={17} />} kicker="System" title="About OceanTrace"
+        sub="SIH 2026 · Problem Statement 26143 · NTRO · Space Technology" />
 
       <Card title="What the system does" style={{ marginBottom: 16 }}>
         <p className="tiny" style={{ margin: 0, lineHeight: 1.65, color: "var(--ink-1)" }}>

@@ -72,6 +72,8 @@ export default function Investigation() {
   // the numbers are measured on the globe rather than on the projection.
   const [measuring, setMeasuring] = useState(false);
   const [measurePoints, setMeasurePoints] = useState([]);
+  // Which pipeline node the analyst clicked, so a stage can explain itself.
+  const [pipeFocus, setPipeFocus] = useState(null);
 
   /* Precedence matters and is not obvious. A `?run=` in the URL used to lose
    * to `status.run_id`, which is the *selected investigation's* latest run --
@@ -425,6 +427,24 @@ export default function Investigation() {
         </div>
       </div>
 
+      {/* ------------------------------------------------------ pipeline --- */}
+      {/* Across the top, because the workflow reads left to right and a
+        * six-stage chain squeezed into a 278 px rail reads as a list. */}
+      <div className="map-overlay ws-pipestrip panel" data-testid="ws-pipeline">
+        <StageStepper
+          stages={status?.stages}
+          layers={{
+            sceneMeta: layers.scene_meta, slick: layers.slick,
+            origin: layers.origin_cloud, forecast: layers.forecast,
+            suspects: layers.suspects,
+          }}
+          runRow={runRow}
+          seconds={status?.seconds}
+          selected={pipeFocus}
+          onSelect={(id) => setPipeFocus((v) => (v === id ? null : id))}
+        />
+      </div>
+
       {/* --------------------------------------------------- left column --- */}
       <div className="map-overlay ws-left">
         <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }}
@@ -489,12 +509,6 @@ export default function Investigation() {
               <FileText size={12} /> Report
             </Link>
           </div>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.05 }} className="panel" style={{ padding: 13 }}>
-          <div className="ws-panel-title"><Activity size={13} /> Pipeline</div>
-          <StageStepper stages={status?.stages} />
         </motion.div>
 
         <motion.div initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }}

@@ -13,7 +13,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { KeyRound, Lock, LockOpen, Save, ShieldCheck, History, AlertTriangle } from "lucide-react";
 
-import { Badge, Card, Spinner } from "../components/ui";
+import { Badge, Card, PageHeader, Spinner } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
 import { useSession } from "../lib/session";
 
@@ -73,16 +73,9 @@ function KeyManager({ onLogout }) {
 
   return (
     <div className="page">
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-        <KeyRound size={19} color="var(--accent)" />
-        <div>
-          <div style={{ fontSize: 17, fontWeight: 700 }}>API Key Management</div>
-          <div className="tiny muted">
-            Credentials are write-only here — the server returns only the last four characters
-          </div>
-        </div>
-        <button className="btn" style={{ marginLeft: "auto" }} onClick={onLogout}>Sign out</button>
-      </div>
+      <PageHeader icon={<KeyRound size={17} />} kicker="System" title="Credentials"
+        sub="Write-only from the browser — the server returns only the last four characters of any secret."
+        actions={<button className="btn btn-sm" onClick={onLogout}>Sign out</button>} />
 
       {enc && !enc.available && (
         <div className="card" style={{ marginBottom: 16, borderColor: "rgba(245,158,11,.45)" }}>

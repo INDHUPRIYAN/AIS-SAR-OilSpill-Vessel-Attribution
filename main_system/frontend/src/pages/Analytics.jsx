@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { AlertTriangle, BarChart3, Crosshair, Info, Radar as RadarIcon, Waves } from "lucide-react";
 
-import { Card, Spinner, Stat, useThemeColors } from "../components/ui";
+import { Card, PageHeader, Spinner, Stat, useThemeColors } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
 
 const mkAxis = (c) => ({ fill: c.ink2, fontSize: 10 });
@@ -38,15 +38,8 @@ export default function Analytics() {
 
   return (
     <div className="page">
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-        <BarChart3 size={19} color="var(--accent)" />
-        <div>
-          <div style={{ fontSize: 17, fontWeight: 700 }}>Analytics &amp; Metrics</div>
-          <div className="tiny muted">
-            Measured results only — every figure traces to a run on disk
-          </div>
-        </div>
-      </div>
+      <PageHeader icon={<BarChart3 size={17} />} kicker="Analysis" title="Analytics"
+        sub="Measured results only — every figure traces to a run on disk." />
 
       {(data?.notes || []).map((n, i) => (
         <div key={i} className="card" style={{ marginBottom: 14, borderColor: "rgba(245,158,11,.4)" }}>

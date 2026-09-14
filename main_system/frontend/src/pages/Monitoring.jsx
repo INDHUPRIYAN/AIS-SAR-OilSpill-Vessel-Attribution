@@ -18,7 +18,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
 
-import { Badge, Card, Dot, Stat, Spinner, useThemeColors } from "../components/ui";
+import { Badge, Card, Dot, PageHeader, Stat, Spinner, useThemeColors } from "../components/ui";
 import { api, fmt, statusTone, useApi } from "../lib/api";
 
 const KIND_ICON = {
@@ -54,18 +54,13 @@ export default function Monitoring() {
 
   return (
     <div className="page">
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-        <Activity size={19} color="var(--accent)" />
-        <div>
-          <div style={{ fontSize: 17, fontWeight: 700 }}>API Monitoring</div>
-          <div className="tiny muted">
-            Live probes of every external dependency · refreshed every 15s
-          </div>
-        </div>
-        <button className="btn" style={{ marginLeft: "auto" }} onClick={testAll} disabled={testing}>
-          {testing ? <Spinner /> : <RefreshCw size={13} />} Test all now
-        </button>
-      </div>
+      <PageHeader icon={<Activity size={17} />} kicker="System" title="API &amp; Data Source Monitor"
+        sub="Measured probes of every external dependency, its fallback chain, and which member is serving right now."
+        actions={
+          <button className="btn btn-sm" onClick={testAll} disabled={testing}>
+            {testing ? <Spinner /> : <RefreshCw size={12} />} Test all now
+          </button>
+        } />
 
       <div className="grid grid-4" style={{ marginBottom: 18 }}>
         <Card><Stat label="Working" value={counts.ok || 0} tone="ok"
