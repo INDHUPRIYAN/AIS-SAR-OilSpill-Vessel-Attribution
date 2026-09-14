@@ -275,6 +275,35 @@ export const api = {
   updateUser: (id, body) => request(`/api/users/${id}`, { method: "PATCH", body }),
   userZones: (id) => request(`/api/users/${id}/zones`),
   roles: () => request("/api/roles"),
+
+  /* --- ops surfaces -----------------------------------------------------
+   * `/logs` is a bounded live buffer and says so in its own response; the
+   * durable, hash-chained record is `/audit`. The two are never presented as
+   * the same thing. `/workers` reports the threads this process really runs
+   * and reports GPU as NOT measured rather than as zero. */
+  logs: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== "" && v !== null));
+    return request(`/api/logs${q.toString() ? `?${q}` : ""}`);
+  },
+  clearLogs: () => request("/api/logs/clear", { method: "POST" }),
+  workers: () => request("/api/workers"),
+  audit: (params = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== "" && v !== null));
+    return request(`/api/audit${q.toString() ? `?${q}` : ""}`);
+  },
+  auditVerify: () => request("/api/audit/verify"),
+  hindcastModels: () => request("/api/models/hindcast"),
+  attributionWeights: () => request("/api/attribution/weights"),
+  verifyRun: (runId) => request(`/api/runs/${runId}/verify`),
+  runDecisions: (runId) => request(`/api/runs/${runId}/decisions`),
+  recordDecision: (runId, body) =>
+    request(`/api/runs/${runId}/decisions`, { method: "POST", body }),
+  decisions: (limit = 100) => request(`/api/decisions?limit=${limit}`),
+  localScene: (id) => request(`/api/scenes/local/${encodeURIComponent(id)}`),
+  tilesInfo: (runId) => request(`/api/tiles/${runId}/info`),
+  authRoles: () => request("/api/auth/roles"),
 };
 
 /* ------------------------------------------------------------------ hooks */

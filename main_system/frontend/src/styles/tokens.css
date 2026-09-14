@@ -1,0 +1,180 @@
+/* OceanTrace design tokens.
+ *
+ * One vocabulary for the whole console. Every colour a page uses has a name
+ * here, and the light theme is a second, DESIGNED palette under the same
+ * names -- not an inversion. The names in the first block are the ones the
+ * existing components already read (--bg-*, --ink-*, --line, --accent, …),
+ * so restyling the system did not require touching every consumer at once.
+ *
+ * Colour carries meaning and nothing else:
+ *   cyan     the accent -- selection, live, active control, forecast on maps
+ *   teal     secondary -- "mine", origin, ocean current
+ *   green    an operational OK that was MEASURED
+ *   amber    warning, fallback, oil / observed slick
+ *   red      danger, failure, the prime candidate
+ *   violet   SYNTHETIC / MOCK provenance (loud on purpose)
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* --- surfaces ------------------------------------------------------- */
+  --bg-0: #060a12;          /* page ground: near-black navy */
+  --bg-1: #0a1019;          /* panels */
+  --bg-2: #0e1621;          /* panel heads, table heads, raised */
+  --bg-3: #142031;          /* controls, hover */
+  --bg-4: #1a293d;          /* pressed / selected control */
+  --line: #1b2b42;          /* hairline -- blue-gray, meant to be seen */
+  --line-bright: #294263;   /* control border, dividers that must read */
+  --glass: rgba(8, 13, 22, 0.86);
+  --glass-strong: rgba(8, 13, 22, 0.94);
+  --scrim: rgba(3, 6, 12, 0.66);
+
+  /* --- ink ------------------------------------------------------------ */
+  --ink-0: #e8eef8;
+  --ink-1: #aab9cf;
+  --ink-2: #728499;
+  --ink-3: #4b5b71;
+
+  /* --- semantics ------------------------------------------------------ */
+  --accent: #22c3ee;
+  --accent-dim: #0ea5c9;
+  --accent-soft: rgba(34, 195, 238, 0.12);
+  --accent-line: rgba(34, 195, 238, 0.42);
+  --teal: #2dd4bf;
+  --teal-soft: rgba(45, 212, 191, 0.12);
+  --ok: #2fbf71;
+  --ok-soft: rgba(47, 191, 113, 0.14);
+  --warn: #f5a524;
+  --warn-soft: rgba(245, 165, 36, 0.14);
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.14);
+  --mock: #a78bfa;
+  --mock-soft: rgba(167, 139, 250, 0.16);
+  --oil: #f59e0b;
+  --oil-dim: #b45309;
+
+  /* map / data colours the layer legends reference */
+  --c-slick: #dc2626;
+  --c-forecast: #f59e0b;
+  --c-hindcast: #c026d3;
+  --c-origin: #fbbf24;
+  --c-vessel: #22d3ee;
+  --c-candidate: #fb923c;
+  --c-suspect: #ef4444;
+  --c-zone: #22c3ee;
+  --c-zone-mine: #2dd4bf;
+  --c-protected: #94a3b8;
+  --c-incident: #ef4444;
+
+  /* --- effects -------------------------------------------------------- */
+  --glow-accent: 0 0 18px rgba(34, 195, 238, 0.28);
+  --glow-oil: 0 0 18px rgba(245, 158, 11, 0.28);
+  --glow-danger: 0 0 18px rgba(239, 68, 68, 0.32);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 8px 28px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 18px 60px rgba(0, 0, 0, 0.6);
+
+  /* --- geometry ------------------------------------------------------- */
+  --r-xs: 2px;
+  --r-sm: 3px;
+  --r-md: 4px;
+  --r-lg: 6px;
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 28px;
+
+  /* --- type ----------------------------------------------------------- */
+  --mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Consolas, monospace;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --fs-xs: 10px;
+  --fs-sm: 11px;
+  --fs-md: 12.5px;
+  --fs-lg: 14px;
+  --fs-xl: 18px;
+  --fs-2xl: 24px;
+
+  /* --- shell ---------------------------------------------------------- */
+  --header-h: 48px;
+  --statusbar-h: 26px;
+  --nav-w: 208px;
+  --nav-w-collapsed: 54px;
+  --context-w: 340px;
+
+  /* --- z-index -------------------------------------------------------- */
+  --z-map-overlay: 5;
+  --z-drawer: 40;
+  --z-modal: 60;
+  --z-palette: 90;
+  --z-toast: 100;
+
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --t-fast: 120ms;
+  --t-med: 220ms;
+}
+
+/* ======================================================================= */
+/* Light theme -- designed, not inverted.                                  */
+/* Off-white ground, white panels, slate ink, ocean-blue accent. Every     */
+/* semantic keeps its hue family so a status reads the same in both modes. */
+/* ======================================================================= */
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-0: #eef2f6;
+  --bg-1: #f7f9fc;
+  --bg-2: #ffffff;
+  --bg-3: #e4eaf1;
+  --bg-4: #d6dfe9;
+  --line: #d5dde7;
+  --line-bright: #b9c6d5;
+  --glass: rgba(255, 255, 255, 0.9);
+  --glass-strong: rgba(255, 255, 255, 0.96);
+  --scrim: rgba(15, 26, 43, 0.42);
+
+  --ink-0: #0f1a2b;
+  --ink-1: #2f4158;
+  --ink-2: #5d6f86;
+  --ink-3: #8a9ab0;
+
+  --accent: #0369a1;
+  --accent-dim: #0284c7;
+  --accent-soft: rgba(3, 105, 161, 0.1);
+  --accent-line: rgba(3, 105, 161, 0.4);
+  --teal: #0f766e;
+  --teal-soft: rgba(15, 118, 110, 0.1);
+  --ok: #15803d;
+  --ok-soft: rgba(21, 128, 61, 0.1);
+  --warn: #b45309;
+  --warn-soft: rgba(180, 83, 9, 0.11);
+  --danger: #b91c1c;
+  --danger-soft: rgba(185, 28, 28, 0.1);
+  --mock: #6d28d9;
+  --mock-soft: rgba(109, 40, 217, 0.1);
+  --oil: #b45309;
+  --oil-dim: #92400e;
+
+  --c-slick: #b91c1c;
+  --c-forecast: #b45309;
+  --c-hindcast: #86198f;
+  --c-origin: #a16207;
+  --c-vessel: #0e7490;
+  --c-candidate: #c2410c;
+  --c-suspect: #b91c1c;
+  --c-zone: #0369a1;
+  --c-zone-mine: #0f766e;
+  --c-protected: #64748b;
+  --c-incident: #b91c1c;
+
+  --glow-accent: 0 2px 12px rgba(2, 132, 199, 0.18);
+  --glow-oil: 0 2px 12px rgba(180, 83, 9, 0.16);
+  --glow-danger: 0 2px 12px rgba(185, 28, 28, 0.18);
+  --shadow-1: 0 1px 2px rgba(15, 26, 43, 0.08);
+  --shadow-2: 0 6px 22px rgba(15, 26, 43, 0.12);
+  --shadow-3: 0 16px 48px rgba(15, 26, 43, 0.18);
+}

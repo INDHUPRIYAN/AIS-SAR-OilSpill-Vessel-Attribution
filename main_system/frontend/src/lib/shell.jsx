@@ -23,26 +23,64 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from "react";
 
-/* Every screen in the shell. `nav: false` entries are reachable by deep link
- * and from the palette, but do not earn a top-bar slot. */
+/* Every screen in the shell.
+ *
+ * `section` groups the left navigation; `icon` names a lucide glyph the nav
+ * resolves; `roles`, when present, is the set of roles the nav SHOWS the entry
+ * to. That is presentation only -- the server is what enforces, and every
+ * route stays reachable by deep link and from the palette so a user told
+ * "not available to your role" sees the server's own 403 rather than a
+ * missing screen. `nav: false` entries are reachable but earn no nav slot. */
 export const ROUTES = [
-  { to: "/globe", label: "Globe", nav: true },
-  { to: "/my-desk", label: "My Desk", nav: true },
-  { to: "/zones", label: "Zones", nav: true },
-  { to: "/officers", label: "Officers", nav: false },
-  { to: "/incident", label: "Incident Replay", nav: true },
-  { to: "/dashboard", label: "Investigations", nav: true },
-  { to: "/investigation", label: "Workspace", nav: true },
-  { to: "/analytics", label: "Analytics", nav: true },
-  { to: "/monitoring", label: "Monitoring", nav: true },
-  { to: "/catalog", label: "Data & Models", nav: true },
-  { to: "/alerts", label: "Alerts", nav: true },
-  { to: "/keys", label: "Keys", nav: true },
-  { to: "/about", label: "About", nav: true },
-  { to: "/incidents", label: "Incident register", nav: false },
-  { to: "/vessels", label: "Vessel index", nav: false },
+  // -- operations ---------------------------------------------------------
+  { to: "/", label: "Overview", section: "Operations", icon: "LayoutDashboard", nav: true,
+    hint: "global maritime picture" },
+  { to: "/alerts", label: "Alerts", section: "Operations", icon: "Siren", nav: true },
+  { to: "/incidents", label: "Incidents", section: "Operations", icon: "ClipboardList", nav: true },
+  { to: "/incident", label: "Incident Replay", section: "Operations", icon: "Film", nav: true },
+  { to: "/my-desk", label: "My Desk", section: "Operations", icon: "Inbox", nav: true },
+  // -- intelligence -------------------------------------------------------
+  { to: "/globe", label: "Global View", section: "Intelligence", icon: "Globe2", nav: true,
+    hint: "3D globe · zone splitting" },
+  { to: "/vessels", label: "Vessels", section: "Intelligence", icon: "Ship", nav: true },
+  { to: "/satellite", label: "Satellite", section: "Intelligence", icon: "Satellite", nav: true },
+  { to: "/environment", label: "Environment", section: "Intelligence", icon: "Wind", nav: true },
+  { to: "/zones", label: "Zones", section: "Intelligence", icon: "Map", nav: true },
+  // -- analysis -----------------------------------------------------------
+  { to: "/investigation", label: "Workspace", section: "Analysis", icon: "Radar", nav: true },
+  { to: "/dashboard", label: "Investigations", section: "Analysis", icon: "FolderOpen", nav: true,
+    hint: "runs and cases" },
+  { to: "/reports", label: "Reports", section: "Analysis", icon: "FileText", nav: true },
+  { to: "/analytics", label: "Analytics", section: "Analysis", icon: "BarChart3", nav: true },
+  // -- system -------------------------------------------------------------
+  { to: "/monitoring", label: "API Monitor", section: "System", icon: "Activity", nav: true },
+  { to: "/catalog", label: "Data Sources", section: "System", icon: "Database", nav: true },
+  { to: "/models", label: "ML Models", section: "System", icon: "BrainCircuit", nav: true },
+  { to: "/system", label: "System Ops", section: "System", icon: "Server", nav: true,
+    hint: "jobs · workers · logs" },
+  { to: "/audit", label: "Audit Trail", section: "System", icon: "ScrollText", nav: true,
+    roles: ["reviewer", "auditor", "admin", "super_admin"] },
+  { to: "/officers", label: "Users & Roles", section: "System", icon: "Users", nav: true,
+    roles: ["admin", "super_admin"] },
+  { to: "/keys", label: "Credentials", section: "System", icon: "KeyRound", nav: true,
+    roles: ["admin", "super_admin"] },
+  { to: "/about", label: "About", section: "System", icon: "BookOpen", nav: true },
+  // -- deep-link only -----------------------------------------------------
   { to: "/report", label: "Report", nav: false },
 ];
+
+export const NAV_SECTIONS = ["Operations", "Intelligence", "Analysis", "System"];
+
+/** The route entry for a pathname, longest prefix first, so `/incidents`
+ *  does not resolve to `/incident` and `/` only matches itself. */
+export function routeFor(pathname) {
+  if (!pathname) return null;
+  const exact = ROUTES.find((r) => r.to === pathname);
+  if (exact) return exact;
+  return ROUTES
+    .filter((r) => r.to !== "/" && pathname.startsWith(`${r.to}/`))
+    .sort((a, b) => b.to.length - a.to.length)[0] || null;
+}
 
 /* Shortcuts. `scope: "global"` entries carry a `test` and are dispatched by
  * the shell's key handler; the rest are documented here because the overlay

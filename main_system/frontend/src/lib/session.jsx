@@ -64,7 +64,24 @@ export function useSession() {
  */
 export function useHasRole(...roles) {
   const { user } = useSession();
+  return hasRole(user, ...roles);
+}
+
+/* Mirrors `IMPLICIT_ROLES` on the server: both administrator roles pass every
+ * `require_role` check. The previous version knew only about `admin`, which
+ * locked a super_admin out of the credential page the server would have let
+ * them into. */
+export const IMPLICIT_ROLES = new Set(["admin", "super_admin"]);
+
+/** Pure form of useHasRole, for places that already hold the user. */
+export function hasRole(user, ...roles) {
   if (!user) return false;
-  if (user.role === "admin") return true;
+  if (IMPLICIT_ROLES.has(user.role)) return true;
   return roles.includes(user.role);
+}
+
+/** True only for the platform-authority role. `require_super_admin` on the
+ *  server admits nobody else -- not even admin. */
+export function isSuperAdmin(user) {
+  return user?.role === "super_admin";
 }

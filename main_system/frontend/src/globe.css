@@ -1,386 +1,173 @@
-/* The command globe and the zone boundary editor.
+/* Globe surfaces: the Global View, the Operations overview, and the zone
+ * boundary editor. Uses only the shared tokens, so the light theme keeps
+ * working by inheritance rather than by a second palette.
  *
- * Uses the shared tokens from styles.css (--bg-*, --ink-*, --line, --accent).
- * Nothing here defines a colour that the design system already has a name
- * for, so the light theme keeps working by inheritance rather than by a
- * second palette that has to be maintained alongside the first.
- *
- * Restraint is deliberate: this is an instrument, not a game. No neon, one
- * glow (on the active mode button), and motion only where it carries meaning.
- */
+ * Restraint is deliberate: this is an instrument, not a game. One glow (the
+ * atmosphere rim, drawn in GL), no neon chrome, and motion only where it
+ * carries meaning. */
 
-.globe-page {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  height: 100%;
-  min-height: 0;
-  background: var(--bg-0);
-}
+/* ------------------------------------------------------------- canvas ---- */
 
-.globe-canvas {
-  position: relative;
-  min-width: 0;
-  min-height: 0;
-  /* The deck.gl canvas fills this; without an explicit background the void
-     around the sphere shows the page through it. */
-  background:
-    radial-gradient(circle at 50% 45%, #0a1424 0%, var(--bg-0) 70%);
-  overflow: hidden;
-}
+.globe-root { position: absolute; inset: 0; overflow: hidden; background: var(--bg-0); }
 
 .globe-wrap { position: absolute; inset: 0; }
 .globe-wrap canvas { outline: none; }
-
-/* --------------------------------------------------------------- mode bar */
-
-.globe-modebar {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  max-width: calc(100% - 24px);
-  padding: 6px;
-  background: rgba(7, 11, 20, 0.82);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  backdrop-filter: blur(6px);
+/* The void around the sphere: a deep field with a faint blue breath behind
+   the planet. Light theme gets a paper field instead. */
+.globe-dark {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(34, 195, 238, 0.06) 0%, transparent 42%),
+    radial-gradient(ellipse at 50% 120%, #0b1424 0%, var(--bg-0) 60%);
+}
+.globe-light {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(3, 105, 161, 0.08) 0%, transparent 44%),
+    linear-gradient(180deg, #e7edf4, #d9e3ee);
 }
 
-.globe-modebar-sep {
-  width: 1px;
-  height: 18px;
-  background: var(--line-bright);
-  margin: 0 2px;
-}
+/* --------------------------------------------------------------- HUD ------ */
 
-/* ------------------------------------------------------- coordinate strip */
-
-/* Bottom-left, always visible, monospaced and tabular. The editor's whole
-   premise is that the operator can read the coordinate they are about to
-   commit, so this never collapses or hides behind a hover. */
-.globe-coords {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 8px 11px;
-  font-size: 11px;
-  line-height: 1.5;
-  background: rgba(7, 11, 20, 0.86);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  backdrop-filter: blur(6px);
-  pointer-events: none;
-}
-
+.globe-coords { bottom: 12px; left: 12px; }
 .globe-coord-pair { display: flex; gap: 8px; align-items: baseline; }
 
-.globe-coord-k {
-  color: var(--ink-3);
-  letter-spacing: 0.6px;
-  min-width: 30px;
-  font-size: 10px;
+.gv-toolbar { position: absolute; top: 12px; left: 12px; z-index: var(--z-map-overlay); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; max-width: calc(100% - 380px); }
+.gv-controls { position: absolute; bottom: 12px; right: 364px; z-index: var(--z-map-overlay); }
+.gv-controls.rail-hidden { right: 12px; }
+.gv-loading { position: absolute; top: 12px; right: 364px; z-index: var(--z-map-overlay); padding: 5px 9px; }
+.gv-loading.rail-hidden { right: 12px; }
+
+/* ------------------------------------------------------------ side rail --- */
+
+.gv-rail {
+  position: absolute; top: 12px; right: 12px; bottom: 12px; width: 340px;
+  z-index: var(--z-map-overlay); display: flex; flex-direction: column; gap: 10px;
+  overflow-y: auto; scrollbar-width: none; padding-right: 2px;
 }
+.gv-rail::-webkit-scrollbar { display: none; }
+.gv-rail > * { flex-shrink: 0; }
+.gv-rail.hidden { display: none; }
+.gv-rail-toggle { position: absolute; top: 12px; right: 12px; z-index: calc(var(--z-map-overlay) + 1); }
+.gv-rail .panel { background: var(--glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-color: var(--line-bright); box-shadow: var(--shadow-2); }
+.gv-rail .panel-head { background: transparent; }
 
-/* ----------------------------------------------------------------- tooltip */
-
-.globe-tip {
-  position: absolute;
-  z-index: 5;
-  min-width: 190px;
-  max-width: 280px;
-  padding: 8px 10px;
-  background: rgba(7, 11, 20, 0.94);
-  border: 1px solid var(--line-bright);
-  border-radius: var(--r-sm);
-  pointer-events: none;
-  font-size: 11px;
+.gv-left {
+  position: absolute; top: 12px; left: 12px; bottom: 12px; width: 300px;
+  z-index: var(--z-map-overlay); display: flex; flex-direction: column; gap: 10px;
+  overflow-y: auto; scrollbar-width: none;
 }
+.gv-left::-webkit-scrollbar { display: none; }
+.gv-left > * { flex-shrink: 0; }
+.gv-left .panel { background: var(--glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-color: var(--line-bright); box-shadow: var(--shadow-2); }
+.gv-left .panel-head { background: transparent; }
+.gv-left.hidden { display: none; }
 
-.globe-tip-title {
-  font-weight: 600;
-  color: var(--ink-0);
-  margin-bottom: 5px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid var(--line);
+/* When both columns are present, the toolbar and HUD sit beside the left column. */
+.globe-root.with-left .gv-toolbar { left: 324px; }
+.globe-root.with-left .globe-coords { left: 324px; }
+
+.gv-layer { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: var(--fs-md); color: var(--ink-1); }
+.gv-layer .switch { padding: 2px 0; flex: 1; min-width: 0; }
+.gv-layer .badge { margin-left: auto; }
+
+.gv-zone-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%;
+  padding: 5px 8px; margin-bottom: 3px; background: var(--bg-1); border: 1px solid var(--line);
+  border-radius: var(--r-sm); color: var(--ink-1); font-size: var(--fs-sm); text-align: left; cursor: pointer;
 }
+.gv-zone-row:hover { border-color: var(--accent-line); color: var(--ink-0); }
+.gv-zone-row.on { border-color: var(--accent-line); background: var(--accent-soft); color: var(--ink-0); }
+.gv-zone-swatch { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 
-.globe-tip-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 1px 0;
-}
+.gv-search { display: flex; align-items: center; gap: 7px; padding: 0 8px; height: 30px; background: var(--bg-0); border: 1px solid var(--line-bright); border-radius: var(--r-sm); }
+.gv-search input { flex: 1; min-width: 0; background: none; border: none; height: 100%; padding: 0; font-family: var(--mono); font-size: var(--fs-sm); box-shadow: none; }
+.gv-search input:focus { box-shadow: none; }
 
-.globe-tip-k { color: var(--ink-3); }
-.globe-tip-v { color: var(--ink-1); }
+/* --------------------------------------------------------------- editor --- */
 
-.globe-loading {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 3;
-  padding: 6px 10px;
-  background: rgba(7, 11, 20, 0.82);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-}
+.globe-card-editor, .gv-editor { border-color: rgba(45, 212, 191, 0.5) !important; }
+.gv-editor .panel-head { border-bottom-color: rgba(45, 212, 191, 0.3); }
+.gv-editor .panel-title svg { color: var(--teal); }
 
-/* -------------------------------------------------------------------- rail */
+.globe-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; font-size: var(--fs-xs); color: var(--ink-2); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+.globe-field input, .globe-field select { height: 28px; padding: 0 8px; font-family: var(--mono); font-size: var(--fs-sm); letter-spacing: 0; text-transform: none; font-weight: 400; }
 
-.globe-rail {
-  border-left: 1px solid var(--line);
-  background: var(--bg-1);
-  overflow-y: auto;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
-}
-
-.globe-search {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 9px;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-}
-
-.globe-search input {
-  flex: 1;
-  min-width: 0;
-  background: none;
-  border: none;
-  outline: none;
-  color: var(--ink-0);
-  font-family: var(--mono);
-  font-size: 11px;
-}
-
-.globe-search input::placeholder { color: var(--ink-3); }
-
-.globe-card {
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  overflow: hidden;
-}
-
-.globe-card-editor { border-color: rgba(45, 212, 191, 0.4); }
-
-.globe-card-head {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 11px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--ink-1);
-  background: var(--bg-3);
-  border-bottom: 1px solid var(--line);
-}
-
-.globe-card-head .badge { margin-left: auto; text-transform: none; }
-.globe-card-body { padding: 10px 11px; }
-
-.globe-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 3px 0;
-  font-size: 11px;
-  border-bottom: 1px solid rgba(30, 42, 65, 0.4);
-}
-
-.globe-row:last-child { border-bottom: none; }
-.globe-row-k { color: var(--ink-2); }
-.globe-row-v { color: var(--ink-0); }
-
-.globe-layer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  font-size: 11px;
-  color: var(--ink-1);
-  cursor: pointer;
-}
-
-.globe-layer input { accent-color: var(--accent); cursor: pointer; }
-
-.globe-swatch {
-  width: 11px;
-  height: 11px;
-  border-radius: 2px;
-  flex: 0 0 auto;
-}
-
-.globe-zone-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 6px 8px;
-  margin-bottom: 3px;
-  background: var(--bg-1);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  color: var(--ink-1);
-  font-size: 11px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.globe-zone-row:hover { border-color: var(--accent-dim); color: var(--ink-0); }
-
-.globe-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
-/* --------------------------------------------------------- status messages */
-
-/* Three distinct tones, because the three things they say are different:
-   a NOTE is a limitation of the data, an ERROR is something the operator can
-   fix, and OK is a confirmation. Collapsing them into one grey box is how a
-   coverage limitation ends up read as a transient failure. */
-.globe-note {
-  margin-top: 9px;
-  padding: 7px 9px;
-  background: rgba(56, 189, 248, 0.07);
-  border-left: 2px solid var(--accent-dim);
-  border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  color: var(--ink-1);
-  line-height: 1.5;
-}
-
-.globe-warn {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin-top: 8px;
-  padding: 6px 8px;
-  background: rgba(245, 158, 11, 0.08);
-  border-left: 2px solid var(--warn);
-  color: var(--warn);
-  line-height: 1.45;
-}
-
-.globe-inline-error {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin-top: 8px;
-  padding: 7px 9px;
-  background: rgba(244, 63, 94, 0.08);
-  border-left: 2px solid var(--danger);
-  color: var(--danger);
-  line-height: 1.5;
-}
-
-.globe-ok {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  padding: 7px 9px;
-  background: rgba(16, 185, 129, 0.08);
-  border-left: 2px solid var(--ok);
-  color: var(--ok);
-}
-
-.globe-sublist {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-}
-
-/* ------------------------------------------------------------------ editor */
-
-.globe-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
-  font-size: 11px;
-  color: var(--ink-2);
-}
-
-.globe-field input,
-.globe-field select {
-  padding: 6px 8px;
-  background: var(--bg-1);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  color: var(--ink-0);
-  font-family: var(--mono);
-  font-size: 11px;
-  outline: none;
-}
-
-.globe-field input:focus,
-.globe-field select:focus { border-color: var(--accent-dim); }
-
-.globe-vertices {
-  max-height: 220px;
-  overflow-y: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: var(--bg-1);
-}
-
+.globe-vertices { max-height: 190px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg-0); }
 .globe-vertex {
-  display: grid;
-  grid-template-columns: 22px 1fr 1fr 14px;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 4px 7px;
-  background: none;
-  border: none;
-  border-bottom: 1px solid rgba(30, 42, 65, 0.5);
-  color: var(--ink-1);
-  text-align: left;
-  cursor: pointer;
+  display: grid; grid-template-columns: 22px 1fr 1fr 16px; align-items: center; gap: 6px;
+  width: 100%; padding: 4px 7px; background: none; border: none; border-bottom: 1px solid var(--line);
+  color: var(--ink-1); text-align: left; cursor: pointer; font-size: var(--fs-sm);
 }
-
 .globe-vertex:last-child { border-bottom: none; }
 .globe-vertex:hover { background: var(--bg-2); }
-.globe-vertex.on { background: rgba(45, 212, 191, 0.12); color: var(--ink-0); }
-
-.globe-vertex-n {
-  color: var(--ink-3);
-  font-size: 10px;
-  text-align: right;
-}
-
+.globe-vertex.on { background: var(--teal-soft); color: var(--ink-0); }
+.globe-vertex-n { color: var(--ink-3); font-size: var(--fs-xs); text-align: right; }
 .globe-vertex svg { color: var(--ink-3); }
 .globe-vertex svg:hover { color: var(--danger); }
 
-/* ------------------------------------------------------------- responsive */
+.globe-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.globe-sublist { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
 
-@media (max-width: 1100px) {
-  .globe-page { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-  .globe-rail {
-    border-left: none;
-    border-top: 1px solid var(--line);
-    max-height: 42vh;
-  }
+.gv-editor-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin: 8px 0; }
+.gv-editor-stat { padding: 6px 8px; background: var(--bg-0); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.gv-editor-stat .k { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.gv-editor-stat .v { font-family: var(--mono); font-size: var(--fs-md); color: var(--ink-0); margin-top: 2px; }
+.gv-editor-stat.bad .v { color: var(--danger); }
+.gv-editor-stat.good .v { color: var(--ok); }
+
+.gv-mode-banner {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: var(--z-map-overlay);
+  display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: var(--r-sm);
+  background: var(--teal-soft); border: 1px solid rgba(45, 212, 191, 0.5); color: var(--teal);
+  font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; pointer-events: none;
+}
+
+/* -------------------------------------------------------------- legacy --- */
+/* Zone Management, Officer Assignment and the officer desk still use these. */
+
+.globe-card { background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.globe-card-head { display: flex; align-items: center; gap: 7px; padding: 0 11px; min-height: 30px; font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-1); background: var(--bg-2); border-bottom: 1px solid var(--line); }
+.globe-card-head .badge { margin-left: auto; }
+.globe-card-body { padding: 10px 11px; }
+.globe-zone-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; padding: 5px 8px; margin-bottom: 3px; background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--ink-1); font-size: var(--fs-sm); text-align: left; cursor: pointer; }
+.globe-zone-row:hover { border-color: var(--accent-line); color: var(--ink-0); }
+
+/* ----------------------------------------------------------- operations --- */
+
+.ops-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ops-tile { padding: 8px 10px; background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--r-sm); min-width: 0; }
+.ops-tile .k { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); font-weight: 600; }
+.ops-tile .v { font-family: var(--mono); font-size: 24px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; margin-top: 2px; color: var(--accent); }
+.ops-tile .v.danger { color: var(--danger); } .ops-tile .v.warn { color: var(--warn); } .ops-tile .v.ok { color: var(--ok); } .ops-tile .v.accent { color: var(--accent); }
+.ops-tile .s { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 3px; display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+a.ops-tile { display: block; text-decoration: none; color: inherit; }
+a.ops-tile:hover { border-color: var(--accent-line); }
+
+.ops-scene { position: relative; aspect-ratio: 16 / 9; background: var(--bg-0); border-radius: var(--r-sm); overflow: hidden; border: 1px solid var(--line); }
+.ops-scene img { width: 100%; height: 100%; object-fit: cover; display: block; filter: contrast(1.05); }
+.ops-scene-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 8px; background: linear-gradient(180deg, transparent, rgba(4, 8, 16, 0.85)); color: #e8eef8; font-size: var(--fs-xs); font-family: var(--mono); display: flex; justify-content: space-between; gap: 8px; }
+.ops-scene-tag { position: absolute; top: 6px; left: 6px; }
+
+.gv-sel-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.gv-sel-ico { width: 28px; height: 28px; border-radius: var(--r-sm); display: grid; place-items: center; background: var(--bg-3); color: var(--ink-1); flex-shrink: 0; }
+.gv-sel-ico.danger { background: var(--danger-soft); color: var(--danger); }
+.gv-sel-ico.accent { background: var(--accent-soft); color: var(--accent); }
+.gv-sel-ico.teal { background: var(--teal-soft); color: var(--teal); }
+.gv-sel-title { font-weight: 600; font-size: var(--fs-md); color: var(--ink-0); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gv-sel-sub { font-size: var(--fs-xs); color: var(--ink-3); font-family: var(--mono); }
+
+/* --------------------------------------------------------- responsive ---- */
+
+@media (max-width: 1300px) {
+  .gv-rail { width: 300px; }
+  .gv-controls { right: 324px; } .gv-loading { right: 324px; }
+  .gv-left { width: 270px; }
+  .globe-root.with-left .gv-toolbar, .globe-root.with-left .globe-coords { left: 294px; }
+}
+@media (max-width: 1000px) {
+  .gv-left { display: none; }
+  .globe-root.with-left .gv-toolbar, .globe-root.with-left .globe-coords { left: 12px; }
+  .gv-rail { width: 280px; top: 56px; }
+  .gv-controls { right: 12px; bottom: 60px; }
 }
 
 /* The OS setting, honoured here as well as in framer-motion: camera flights
@@ -389,55 +176,148 @@
   .globe-wrap canvas { transition: none !important; }
 }
 
-/* ------------------------------------------------------- admin tables --- */
+/* ===================================================================== */
+/* Globe chrome: compass, scale bar, camera readout, transport, tool rail */
+/* ===================================================================== */
 
-/* Zone Management and Officer Assignment share this. Added here rather than
-   reusing `.cat-table` or `.al-table`: those carry page-specific padding and
-   row states, and widening one of them for a third page is how a shared style
-   quietly changes two screens nobody was looking at. */
-.ot-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
+.gc-camera { top: 12px; right: 364px; flex-direction: column; }
+.gc-camera.rail-hidden { right: 12px; }
+.gc-camera span { display: flex; gap: 8px; align-items: baseline; }
+
+/* ------------------------------------------------------------- compass --- */
+
+.gc-compass {
+  position: relative; width: 56px; height: 56px; display: grid; place-items: center;
+  background: var(--glass); border: 1px solid var(--line-bright); border-radius: 50%;
+  color: var(--ink-2); box-shadow: var(--shadow-2); backdrop-filter: blur(8px);
+}
+.gc-compass:hover { border-color: var(--accent-line); }
+.gc-compass-dial { position: relative; width: 40px; height: 40px; display: grid; place-items: center; transition: transform var(--t-med) var(--ease); }
+.gc-compass-dial > span { position: absolute; font-size: 8px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-3); font-family: var(--mono); }
+.gc-compass-n { top: -3px; color: var(--accent) !important; }
+.gc-compass-s { bottom: -3px; }
+.gc-compass-e { right: -4px; }
+.gc-compass-w { left: -4px; }
+.gc-ring { fill: none; stroke: var(--line-bright); stroke-width: 1; }
+.gc-needle-n { fill: var(--accent); }
+.gc-needle-s { fill: var(--ink-3); }
+.gc-compass-pitch { position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%); font-size: 9px; color: var(--ink-3); }
+
+/* ----------------------------------------------------------- scale bar --- */
+
+.gc-scale { display: flex; align-items: center; gap: 8px; font-size: var(--fs-xs); color: var(--ink-2); }
+.gc-scale-bar { display: flex; height: 6px; border: 1px solid var(--line-bright); border-top: none; }
+.gc-scale-bar i { flex: 1; border-left: 1px solid var(--line-bright); }
+.gc-scale-bar i:first-child { border-left: none; }
+
+/* ----------------------------------------------------------- transport --- */
+
+.gc-transport {
+  display: flex; align-items: center; gap: 14px; padding: 8px 14px;
+  min-height: 54px;
+}
+.gc-transport-controls { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.gc-tbtn {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--r-sm);
+  border: 1px solid var(--line-bright); background: var(--bg-3); color: var(--ink-1);
+}
+.gc-tbtn:hover:not(:disabled) { border-color: var(--accent-line); color: var(--ink-0); }
+.gc-tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.gc-tbtn-play {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent-dim); border-color: transparent; color: #04121f;
+  box-shadow: var(--glow-accent);
+}
+:root[data-theme="light"] .gc-tbtn-play { color: #fff; }
+.gc-tbtn-play:hover { background: var(--accent); }
+
+.gc-transport-clock { flex-shrink: 0; min-width: 104px; line-height: 1.2; }
+.gc-clock-date { font-size: var(--fs-xs); letter-spacing: 0.1em; color: var(--ink-3); }
+.gc-clock-time { font-size: 15px; font-weight: 600; color: var(--ink-0); }
+
+.gc-rail-wrap { flex: 1; min-width: 0; padding: 0 4px; }
+.gc-rail { position: relative; height: 30px; cursor: pointer; user-select: none; touch-action: none; }
+.gc-rail:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; border-radius: var(--r-xs); }
+.gc-rail-line { position: absolute; left: 0; right: 0; top: 13px; height: 2px; background: var(--line-bright); border-radius: 1px; }
+.gc-rail-past { position: absolute; left: 0; top: 13px; height: 2px; background: var(--accent); border-radius: 1px; opacity: 0.55; }
+.gc-rail-now { position: absolute; top: 6px; width: 2px; height: 16px; background: var(--oil); transform: translateX(-1px); }
+.gc-rail-head {
+  position: absolute; top: 8px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--bg-1); box-shadow: 0 0 8px var(--accent);
+  transform: translateX(-6px); pointer-events: none;
+}
+.gc-rail-tick { position: absolute; top: 15px; transform: translateX(-50%); text-align: center; pointer-events: none; }
+.gc-rail-tick i { display: block; width: 1px; height: 4px; background: var(--line-bright); margin: 0 auto; }
+.gc-rail-tick em { font-style: normal; font-size: 9px; color: var(--ink-3); }
+.gc-rail-tick.now em { color: var(--oil); font-weight: 700; }
+.gc-rail-event {
+  position: absolute; top: 3px; width: 7px; height: 7px; border-radius: 50%; padding: 0;
+  transform: translateX(-3.5px); border: 1px solid var(--bg-1); background: var(--ink-2);
+}
+.gc-rail-event:hover { transform: translateX(-3.5px) scale(1.35); }
+.gc-rail-event.danger { background: var(--danger); }
+.gc-rail-event.warn { background: var(--warn); }
+.gc-rail-event.ok { background: var(--ok); }
+.gc-rail-event.accent { background: var(--accent); }
+
+.gc-speed { display: flex; gap: 1px; flex-shrink: 0; }
+.gc-speed-b { padding: 3px 6px; font-size: var(--fs-xs); border-radius: var(--r-xs); background: none; border: none; color: var(--ink-3); }
+.gc-speed-b:hover { color: var(--ink-0); }
+.gc-speed-b.on { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+
+/* ---------------------------------------------------------- tool rail ---- */
+
+.gc-toolrail {
+  display: flex; flex-direction: column; gap: 4px; padding: 5px;
+  background: var(--glass); border: 1px solid var(--line-bright); border-radius: 20px;
+  backdrop-filter: blur(8px); box-shadow: var(--shadow-2);
+}
+.gc-tool {
+  position: relative; width: 30px; height: 30px; display: grid; place-items: center;
+  border-radius: 50%; border: 1px solid transparent; background: transparent; color: var(--ink-2);
+}
+.gc-tool:hover:not(:disabled) { background: var(--bg-3); color: var(--ink-0); }
+.gc-tool.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
+.gc-tool:disabled { opacity: 0.35; cursor: not-allowed; }
+.gc-tool-badge {
+  position: absolute; top: -1px; right: -1px; min-width: 13px; height: 13px; padding: 0 3px;
+  border-radius: 7px; background: var(--danger); color: #fff; font-size: 8.5px; font-weight: 700;
+  display: grid; place-items: center; font-family: var(--mono);
 }
 
-.ot-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 8px 10px;
-  text-align: left;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  background: var(--bg-3);
-  border-bottom: 1px solid var(--line-bright);
-  white-space: nowrap;
+/* -------------------------------------------------------- placement ----- */
+
+.gv-compass { position: absolute; top: 84px; right: 372px; z-index: var(--z-map-overlay); }
+.gv-compass.rail-hidden { right: 20px; }
+.gv-scale { position: absolute; bottom: 14px; left: 12px; z-index: var(--z-map-overlay); }
+.globe-root.with-left .gv-scale { left: 324px; }
+.gv-transport { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: var(--z-map-overlay); width: min(720px, calc(100% - 760px)); min-width: 460px; }
+.gv-toolrail { position: absolute; top: 50%; right: 360px; transform: translateY(-50%); z-index: calc(var(--z-map-overlay) + 1); }
+.gv-toolrail.rail-hidden { right: 12px; }
+
+@media (max-width: 1500px) {
+  .gv-transport { width: min(600px, calc(100% - 700px)); min-width: 380px; }
+}
+@media (max-width: 1300px) {
+  .gc-camera { right: 324px; } .gv-compass { right: 332px; } .gv-toolrail { right: 320px; }
+  .gv-transport { min-width: 340px; }
+}
+@media (max-width: 1000px) {
+  .globe-root.with-left .gv-scale { left: 12px; }
+  .gv-transport { width: calc(100% - 24px); min-width: 0; left: 12px; transform: none; }
+  .gv-toolrail { display: none; }
+  .gc-camera { top: 56px; }
 }
 
-.ot-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--line);
-  vertical-align: top;
-  color: var(--ink-1);
+/* The honesty banner shown when the transport is scrubbed off the present. */
+.gv-timewarn {
+  position: absolute; bottom: 74px; left: 50%; transform: translateX(-50%);
+  z-index: var(--z-map-overlay); display: flex; align-items: flex-start; gap: 7px;
+  max-width: min(680px, calc(100% - 760px)); padding: 7px 11px;
+  border-left: 2px solid var(--warn); color: var(--warn);
+  font-size: var(--fs-sm); line-height: 1.5;
 }
-
-.ot-table tbody tr:hover > td { background: rgba(56, 189, 248, 0.04); }
-
-/* Numbers right-aligned and tabular, so a column of areas scans as a column
-   rather than as ragged text. */
-.ot-table .num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.ot-table .badge { margin-left: 4px; }
-
-.ot-table select.btn {
-  padding: 3px 6px;
-  font-size: 11px;
-  max-width: 140px;
-}
+.gv-timewarn svg { flex-shrink: 0; margin-top: 2px; }
+.gv-timewarn a { color: inherit; text-decoration: underline; }
+@media (max-width: 1300px) { .gv-timewarn { max-width: calc(100% - 700px); } }
+@media (max-width: 1000px) { .gv-timewarn { max-width: calc(100% - 24px); left: 12px; transform: none; bottom: 78px; } }

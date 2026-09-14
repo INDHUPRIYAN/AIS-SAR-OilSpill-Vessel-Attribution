@@ -96,3 +96,21 @@ export function formatMeasurement(points) {
     text: `${km.toFixed(2)} km · ${kmToNm(km).toFixed(2)} nm · ${bearing.toFixed(0)}°`,
   };
 }
+
+/** Area of a lon/lat ring on a sphere, in km², by spherical excess (the
+ *  l'Huilier / Chamberlain–Duquette signed-area method). Used by the zone
+ *  editor to show a LIVE estimate while a boundary is drawn; the authoritative
+ *  geodesic figure is the server's, computed on save. Labelled "approx."
+ *  wherever it is shown, because that is what it is. */
+export function sphericalAreaKm2(ring) {
+  if (!ring || ring.length < 3) return 0;
+  const pts = ring;
+  const n = pts.length;
+  let sum = 0;
+  for (let i = 0; i < n; i += 1) {
+    const [lon1, lat1] = pts[i];
+    const [lon2, lat2] = pts[(i + 1) % n];
+    sum += toRad(lon2 - lon1) * (2 + Math.sin(toRad(lat1)) + Math.sin(toRad(lat2)));
+  }
+  return Math.abs((sum * EARTH_RADIUS_KM * EARTH_RADIUS_KM) / 2);
+}
