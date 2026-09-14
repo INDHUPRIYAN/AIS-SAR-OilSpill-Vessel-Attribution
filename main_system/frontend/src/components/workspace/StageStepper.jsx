@@ -66,12 +66,22 @@ export default function StageStepper({ stages, layers = {}, runRow, seconds, sel
    * SOURCE is the interesting part -- synthetic AIS is the loudest fact a run
    * can carry. */
   const attribution = byName.attribution;
+  /* The AIS node's provenance is the provenance of the AIS DATA, which the
+   * sealed manifest records in `manifest.ais.data_source`. It is NOT the
+   * attribution stage's `source`, which is execution provenance -- that stage
+   * really ran, on data that may have been synthesised. Reading the wrong one
+   * put a green REAL on the AIS node of a run whose header strip correctly
+   * shouted AIS SYNTHETIC: the two most important provenance claims in the
+   * product, disagreeing on one screen. */
+  const aisSource = runRow?.manifest?.ais?.data_source
+    || attribution?.data_source || attribution?.source;
   byName.ais = attribution && {
     stage: "ais",
     status: attribution.status === "running" ? "running" : attribution.status,
-    engine_used: attribution.source === "synthetic" ? "fallback" : attribution.engine_used,
-    data_source: attribution.source,
-    source: attribution.source,
+    engine_used: aisSource === "synthetic" ? "fallback" : attribution.engine_used,
+    data_source: aisSource,
+    source: aisSource,
+    detail: runRow?.manifest?.ais?.detail,
     warnings: (attribution.warnings || []).filter((w) => /AIS|vessel/i.test(w)),
     seconds: null,
     error_class: null,
@@ -200,7 +210,11 @@ function ExecNode({ spec, row, selected, onSelect, after }) {
             </span>
           )}
           {row?.seconds > 0 && <span className="mono">{row.seconds.toFixed(1)}s</span>}
-          {status === "pending" && <span className="dim">pending</span>}
+          {/* `pending` means queued. With no row at all the honest word is
+              that nothing was reported for this stage. */}
+          {status === "pending" && (
+            <span className="dim">{row ? "pending" : "not reported"}</span>
+          )}
         </span>
       </button>
       {after && <Sep />}

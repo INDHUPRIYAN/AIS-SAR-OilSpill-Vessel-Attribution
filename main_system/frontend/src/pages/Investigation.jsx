@@ -328,7 +328,13 @@ export default function Investigation() {
   }
 
   /* ----------------------------------------------------------- rendering -- */
-  if (invs && !invs.length) {
+  /* A run deep-linked with `?run=` renders even when no investigation exists.
+   * That is not a corner case: a run produced outside the API (a CLI run,
+   * reconciled into the registry from its sealed manifest afterwards) belongs
+   * to no investigation at all, and the page already knows how to show one --
+   * it labels it UNFILED RUN. Short-circuiting to "create an investigation"
+   * hid every such run behind a button that would not have opened it. */
+  if (invs && !invs.length && !runId) {
     return (
       <div className="ws-empty-page" data-testid="no-investigation">
         <Empty icon={<Crosshair size={30} color="var(--ink-3)" />}
@@ -408,12 +414,14 @@ export default function Investigation() {
             <Activity size={11} />
             <span className="mono">{workingN}/{providers.length || "—"} APIs</span>
           </Link>
-          <select value={invId ?? ""} data-testid="inv-select"
-            onChange={(e) => setParams({ inv: e.target.value })}>
-            {(invs ?? []).map((x) => (
-              <option key={x.id} value={x.id}>{x.name} · {x.id}</option>
-            ))}
-          </select>
+          {(invs ?? []).length > 0 && (
+            <select value={invId ?? ""} data-testid="inv-select"
+              onChange={(e) => setParams({ inv: e.target.value })}>
+              {invs.map((x) => (
+                <option key={x.id} value={x.id}>{x.name} · {x.id}</option>
+              ))}
+            </select>
+          )}
           <button className={`btn btn-icon ${measuring ? "btn-on" : ""}`}
             title="Measure distance on the map (M) — great-circle km and nm"
             aria-pressed={measuring}
@@ -432,7 +440,12 @@ export default function Investigation() {
         * six-stage chain squeezed into a 278 px rail reads as a list. */}
       <div className="map-overlay ws-pipestrip panel" data-testid="ws-pipeline">
         <StageStepper
-          stages={status?.stages}
+          /* The live status endpoint is keyed by investigation, so an UNFILED
+           * run (produced outside the API and reconciled from its manifest)
+           * has no rows there. The sealed manifest does record them, and it is
+           * the same evidence -- falling back to it beats printing "pending"
+           * over five stages that finished. */
+          stages={status?.stages?.length ? status.stages : (runRow?.manifest?.stages || [])}
           layers={{
             sceneMeta: layers.scene_meta, slick: layers.slick,
             origin: layers.origin_cloud, forecast: layers.forecast,
