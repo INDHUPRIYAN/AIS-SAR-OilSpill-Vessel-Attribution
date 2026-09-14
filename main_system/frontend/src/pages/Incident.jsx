@@ -14,7 +14,7 @@ import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { FlyToInterpolator } from "@deck.gl/core";
 import {
-  ChevronRight, Crosshair, Layers, Map as MapIcon, Play, Satellite,
+  ChevronRight, Crosshair, Globe2, Layers, Map as MapIcon, Play, Satellite,
   AlertTriangle,
 } from "lucide-react";
 
@@ -25,6 +25,8 @@ import {
   MAP_MODES, MODE_PRESETS,
 } from "../lib/replay";
 import CommandMap, { SEMANTIC } from "../components/CommandMap";
+import ReplayGlobe from "../components/ReplayGlobe";
+import { useGlobeCamera } from "../components/globe/GlobeScene";
 import IntelPanel from "../components/IntelPanel";
 import ReplayControls from "../components/ReplayControls";
 import { Spinner } from "../components/ui";
@@ -154,6 +156,19 @@ export default function Incident() {
   const [selectedMmsi, setSelectedMmsi] = useState(null);
   const [hoverInfo, setHoverInfo] = useState(null);
   const [frame, setFrame] = useState({ stepIdx: 0, stepT: 0, simT: 0, tick: 0 });
+  /* MAP or GLOBE. The replay is a geographic reconstruction, so it belongs on
+   * a globe -- except for the SAR raster, the detection mask and the scan
+   * line, which are Web Mercator images deck.gl cannot curve onto a sphere.
+   * Those stay MAP-only and the toggle says so rather than dropping them
+   * silently.
+   *
+   * MAP is the default because the per-step cameras frame a scene-scale slick
+   * -- often a couple of km across -- and a globe zoomed that far in is a
+   * coarse flat close-up, which is the worst of both. GLOBE is for the wide
+   * geographic story: where in the world, which traffic, where the drift came
+   * from. Its camera is capped short of that close-up for the same reason. */
+  const [surface, setSurface] = useState("map");
+  const [globeHover, setGlobeHover] = useState(null);
   const [appTheme, setAppTheme] = useState(
     () => document.documentElement.getAttribute("data-theme") || "dark");
   useEffect(() => {
@@ -174,13 +189,29 @@ export default function Incident() {
   const [view, setView] = useState({
     longitude: 78, latitude: 12, zoom: 4.4, pitch: 0, bearing: 0,
   });
+  // The globe keeps its own camera (different projection, different zoom
+  // scale). It follows the step cameras too, so switching surface mid-replay
+  // does not lose the shot.
+  const globeCam = useGlobeCamera(
+    { longitude: 88, latitude: 13, zoom: 3.4, minZoom: 0.4, maxZoom: 12 },
+    { parallax: true, strength: 0.5 });
   const flyTo = useCallback((cam, ms = 1800) => {
     setView((v) => ({
       ...v, ...cam,
       transitionDuration: ms,
       transitionInterpolator: new FlyToInterpolator({ curve: 1.35 }),
     }));
-  }, []);
+    // The globe view's zoom scale differs from web-mercator's; back it off so
+    // a step that frames a 40 km slick on the map frames it on the globe too.
+    /* Capped at 6.5: past that the globe stops reading as a planet and the
+     * coastline geometry (a 0.2 deg grid) turns blocky. The close-up belongs
+     * to MAP view, which has the SAR raster to fill it. The globe marks the
+     * incident with a locator instead, so the position stays legible at a
+     * zoom where the slick itself is smaller than a pixel. */
+    globeCam.flyTo({ longitude: cam.longitude, latitude: cam.latitude,
+                     zoom: Math.min(5.4, Math.max(1.5, (cam.zoom ?? 8) - 2.6)) }, ms);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [globeCam.flyTo]);
 
   const gotoStep = useCallback((i, { fly = true } = {}) => {
     const idx = Math.max(0, Math.min(STEPS.length - 1, i));
@@ -418,13 +449,20 @@ export default function Incident() {
       <div className="incident-main">
         {/* ---------------------------------------------------- left rail -- */}
         <div className="rail">
-          <div className="rail-section">
+          <div className="rail-section" data-inactive={String(surface === "globe")}>
             <div className="rail-title"><MapIcon size={11} /> MAP MODE</div>
             {MAP_MODES.map((m) => (
               <button key={m.id}
-                className={`rail-item ${mode === m.id ? "on" : ""}`}
+                className={`rail-item ${mode === m.id && surface === "map" ? "on" : ""}`}
+                disabled={surface === "globe"}
+                title={surface === "globe" ? "Map modes apply to MAP view" : m.label}
                 onClick={() => setMode(m.id)}>{m.label}</button>
             ))}
+            {surface === "globe" && (
+              <div className="tiny dim" style={{ padding: "4px 9px", lineHeight: 1.5 }}>
+                Basemap modes apply to MAP view.
+              </div>
+            )}
           </div>
           <div className="rail-section">
             <div className="rail-title"><Layers size={11} /> LAYERS</div>
@@ -447,20 +485,54 @@ export default function Incident() {
 
         {/* --------------------------------------------------------- map --- */}
         <div className="stage">
-          <CommandMap
-            bundle={bundle} frame={frame} effects={effects}
-            mode={mode} toggles={toggles}
-            view={view}
-            onViewChange={({ viewState }) => setView(viewState)}
-            windParts={toggles.wind ? windParts.current : null}
-            currentParts={toggles.currents ? currentParts.current : null}
-            driftFwd={effects.fcAlpha > 0 ? driftFwd.current : null}
-            selectedMmsi={selectedMmsi}
-            onSelect={(m) => setSelectedMmsi((s) => (s === m ? null : m))}
-            onHoverInfo={setHoverInfo}
-            runId={runId}
-            appTheme={appTheme}
-          />
+          {surface === "globe" ? (
+            <ReplayGlobe
+              bundle={bundle} frame={frame} effects={effects} toggles={toggles}
+              viewState={globeCam.viewState}
+              onViewStateChange={globeCam.onViewStateChange}
+              onPointerMove={globeCam.onPointerMove}
+              onPointerLeave={globeCam.onPointerLeave}
+              theme={appTheme}
+              selectedMmsi={selectedMmsi}
+              onSelect={(m) => setSelectedMmsi((s) => (s === m ? null : m))}
+              hover={globeHover}
+              onHover={setGlobeHover}
+            />
+          ) : (
+            <CommandMap
+              bundle={bundle} frame={frame} effects={effects}
+              mode={mode} toggles={toggles}
+              view={view}
+              onViewChange={({ viewState }) => setView(viewState)}
+              windParts={toggles.wind ? windParts.current : null}
+              currentParts={toggles.currents ? currentParts.current : null}
+              driftFwd={effects.fcAlpha > 0 ? driftFwd.current : null}
+              selectedMmsi={selectedMmsi}
+              onSelect={(m) => setSelectedMmsi((s) => (s === m ? null : m))}
+              onHoverInfo={setHoverInfo}
+              runId={runId}
+              appTheme={appTheme}
+            />
+          )}
+
+          {/* Surface switch. Sits on the canvas so it is where the picture is. */}
+          <div className="replay-surface map-panel">
+            <button className={`seg-b ${surface === "globe" ? "on" : ""}`}
+              onClick={() => setSurface("globe")} data-testid="surface-globe">
+              <Globe2 size={11} /> Globe
+            </button>
+            <button className={`seg-b ${surface === "map" ? "on" : ""}`}
+              onClick={() => setSurface("map")} data-testid="surface-map">
+              <MapIcon size={11} /> Map
+            </button>
+          </div>
+          {surface === "globe" && (toggles.sar || effects.sarAlpha > 0) && (
+            /* Said rather than silently dropped. */
+            <div className="replay-surface-note map-panel tiny">
+              SAR imagery, the detection mask and the scan line are Web Mercator
+              rasters and are drawn in MAP view only.
+            </div>
+          )}
 
           {/* step banner */}
           <div className="stage-banner">

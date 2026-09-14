@@ -290,3 +290,24 @@
   padding: 4px 8px; font-size: 12px; width: auto; max-width: 300px;
 }
 .stage-callout-final { pointer-events: auto; }
+
+/* ------------------------------------------------------- replay surface --- */
+
+/* Above the pre-play hero (z-index 8): the surface choice should be
+   available before the replay starts, not only after. */
+.replay-surface {
+  position: absolute; top: 14px; left: 14px; z-index: 9;
+  display: inline-flex; border-radius: var(--r-sm); overflow: hidden; padding: 0;
+}
+.replay-surface .seg-b { border-right: 1px solid var(--line); height: 26px; }
+.replay-surface .seg-b:last-child { border-right: none; }
+
+.replay-surface-note {
+  position: absolute; top: 46px; left: 14px; z-index: 9; max-width: 260px;
+  padding: 6px 9px; color: var(--ink-2); line-height: 1.5;
+  border-left: 2px solid var(--warn);
+}
+
+/* A rail section whose controls do not apply to the current surface. */
+.rail-section[data-inactive="true"] .rail-item { opacity: 0.4; cursor: not-allowed; }
+.rail-section[data-inactive="true"] .rail-title { opacity: 0.6; }
