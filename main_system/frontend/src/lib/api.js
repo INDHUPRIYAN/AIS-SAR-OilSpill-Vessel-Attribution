@@ -21,6 +21,20 @@ export class Unauthenticated extends Error {
   }
 }
 
+/* Read the server's own `detail` off a response body, or null.
+ *
+ * Worth the extra await on the 401 path: the two 401s this API returns mean
+ * completely different things -- "your session is gone" and "that password is
+ * wrong" -- and only the body distinguishes them. */
+async function detailOf(res) {
+  try {
+    const body = await res.json();
+    return body?.detail || null;
+  } catch {
+    return null;   // not JSON; the status is all we have
+  }
+}
+
 async function request(path, { method = "GET", body } = {}) {
   const headers = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -32,7 +46,14 @@ async function request(path, { method = "GET", body } = {}) {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
-  if (res.status === 401) throw new Unauthenticated();
+  if (res.status === 401) {
+    /* Keep the server's message. Throwing a bare Unauthenticated here told a
+     * user with a mistyped password that authentication was "required" -- a
+     * sentence about an expired session -- while the server had plainly said
+     * "invalid email or password". The sign-in form shows this verbatim, so
+     * the two cases have to stay distinguishable. */
+    throw new Unauthenticated(await detailOf(res) || "authentication required");
+  }
 
   if (!res.ok) {
     let detail = `HTTP ${res.status}`;
