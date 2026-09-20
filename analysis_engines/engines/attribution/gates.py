@@ -146,6 +146,10 @@ def build_origin_context(
         properties = feature.get("properties") or {}
         if properties.get("kind") != "confidence_ellipse":
             continue
+        # Secondary display contours (the 50 % ellipse) are nested inside the
+        # primary one and must not take part in the gate.
+        if properties.get("role") == "contour":
+            continue
         geometry = shape(feature["geometry"])
         all_ellipses.append(geometry)
         stamp = properties.get("time_utc")

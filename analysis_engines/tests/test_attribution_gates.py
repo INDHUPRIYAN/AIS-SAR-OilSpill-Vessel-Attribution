@@ -306,3 +306,28 @@ def test_a_wider_buffer_lets_more_vessels_through(scenario, gated):
     passed = sum(1 for t in tracks if apply_gates(t, context, generous).passed)
     strict = sum(1 for r in gated["results"].values() if r.passed)
     assert passed > strict
+
+
+# ---------------------------------------------------------- display contours -------
+def test_display_contours_take_no_part_in_the_gate(scenario):
+    """The 0.5 contours Engine B writes beside the 0.9 ellipse are for drawing.
+    The origin region -- and so every gate verdict -- is that of a cloud without them."""
+    document = scenario["document"]
+    contours = [
+        f for f in document["features"] if f["properties"].get("role") == "contour"
+    ]
+    assert contours, "the scenario's hindcast should carry display contours"
+
+    without = {
+        **document,
+        "features": [f for f in document["features"] if f not in contours],
+    }
+    with_ctx, _ = build_origin_context(document, scenario["gate_config"])
+    bare_ctx, _ = build_origin_context(without, scenario["gate_config"])
+    assert with_ctx.region_m.equals(bare_ctx.region_m)
+
+    tracks, _ = load_vessels(scenario["truth"]["vessels_path"])
+    for track in tracks:
+        a = apply_gates(track, with_ctx, scenario["gate_config"])
+        b = apply_gates(track, bare_ctx, scenario["gate_config"])
+        assert (a.passed, a.failed, a.metrics) == (b.passed, b.failed, b.metrics), track.mmsi

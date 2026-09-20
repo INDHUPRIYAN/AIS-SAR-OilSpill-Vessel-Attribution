@@ -10,6 +10,9 @@ drift:
   leeway: 0.03             # wind leeway = 3% of the 10 m wind (handbook §2.1)
   diffusion_m2_s: 5.0      # turbulent diffusion; 0 makes the run exactly reversible
   confidence_level: 0.9    # per-timestep uncertainty ellipse
+  contour_levels: [0.5]    # extra per-timestep contours written beside it, for display only:
+                           # the origin window, the uncertainty radius and the attribution
+                           # gate are computed from confidence_level alone
   output_every_h: 1.0      # thinning of particle features in the output file
   window_fraction: 0.10    # origin window = timesteps within 10% of minimum spread
   grid_margin_deg: 0.05    # met-ocean coverage required around the slick bbox, on top

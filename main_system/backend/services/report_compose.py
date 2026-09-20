@@ -195,9 +195,13 @@ def _origin(cloud: Optional[dict]) -> Optional[dict]:
     md = cloud.get("metadata") or {}
     if not md.get("origin_window_start_utc"):
         return None
-    ellipses = [f["properties"].get("semi_major_m")
-                for f in cloud.get("features", [])
-                if f.get("properties", {}).get("feature_type") == "ellipse"]
+    ellipse_props = [f["properties"] for f in cloud.get("features", [])
+                     if f.get("properties", {}).get("feature_type") == "ellipse"]
+    # A cloud may carry more than one contour per step (0.5 beside 0.9). The
+    # report states the widest -- the uncertainty ellipse -- as it always has.
+    top = max((p.get("confidence_level") or 0 for p in ellipse_props), default=0)
+    ellipses = [p.get("semi_major_m") for p in ellipse_props
+                if (p.get("confidence_level") or 0) == top]
     ellipses = [e for e in ellipses if e is not None]
     return {
         "kind": "origin", "title": "Hindcast and origin",

@@ -343,3 +343,76 @@ def test_cli_routes_each_mode_to_its_own_writer(inputs, tmp_path, capsys):
         ])
         assert code == 0, mode
         assert key in json.loads(capsys.readouterr().out)["outputs"]
+
+
+# ---------------------------------------------------------- display contours -------
+def _ellipses(document, role):
+    return [
+        f for f in document["features"]
+        if f["properties"].get("kind") == "confidence_ellipse"
+        and f["properties"].get("role", "primary") == role
+    ]
+
+
+def test_the_50_percent_contour_is_written_beside_the_primary_ellipse(run):
+    """One nested 0.5 contour per timestep, tagged so nothing mistakes it for the
+    uncertainty ellipse (UX programme backend exception G1)."""
+    _, document = run
+    primary, contours = _ellipses(document, "primary"), _ellipses(document, "contour")
+    assert primary and len(contours) == len(primary)
+    assert {f["properties"]["level"] for f in primary} == {0.9}
+    assert {f["properties"]["level"] for f in contours} == {0.5}
+
+    by_step = {f["properties"]["timestep_h"]: f["properties"] for f in primary}
+    for contour in contours:
+        p, outer = contour["properties"], by_step[contour["properties"]["timestep_h"]]
+        # Same covariance fit at a smaller quantile: same bearing, and the axes
+        # scale by sqrt(chi2(0.5) / chi2(0.9)) exactly.
+        assert p["orientation_deg"] == pytest.approx(outer["orientation_deg"], abs=1e-3)
+        ratio = math.sqrt(1.3863 / 4.6052)
+        assert p["semi_major_m"] == pytest.approx(outer["semi_major_m"] * ratio, rel=1e-3)
+        assert p["semi_minor_m"] == pytest.approx(outer["semi_minor_m"] * ratio, rel=1e-3)
+
+
+def test_contours_change_nothing_the_engine_concludes(inputs, tmp_path):
+    """The window, the peak and the uncertainty radius are those of a run that
+    writes no contours at all."""
+    import yaml
+
+    base = yaml.safe_load(Path(DRIFT_CONFIG).read_text(encoding="utf-8"))
+    base["drift"]["contour_levels"] = []
+    bare_config = tmp_path / "drift_no_contours.yaml"
+    bare_config.write_text(yaml.safe_dump(base), encoding="utf-8")
+
+    documents = {}
+    for name, config in (("with", DRIFT_CONFIG), ("without", bare_config)):
+        out = tmp_path / f"{name}.geojson"
+        assert hindcast(
+            inputs["slick"], out,
+            currents_path=inputs["met"]["currents_eddy"],
+            wind_path=inputs["met"]["wind_uniform"], config_path=str(config),
+        )["ok"]
+        documents[name] = json.loads(out.read_text(encoding="utf-8"))
+
+    assert not _ellipses(documents["without"], "contour")
+    strip = lambda d: [f for f in d["features"] if f["properties"].get("role") != "contour"]  # noqa: E731
+    assert strip(documents["with"]) == strip(documents["without"])
+    assert documents["with"]["metadata"] == documents["without"]["metadata"]
+
+
+def test_an_untabulated_contour_level_is_refused_not_mislabelled(inputs, tmp_path):
+    import yaml
+
+    base = yaml.safe_load(Path(DRIFT_CONFIG).read_text(encoding="utf-8"))
+    base["drift"]["contour_levels"] = [0.75]
+    config = tmp_path / "drift_bad_level.yaml"
+    config.write_text(yaml.safe_dump(base), encoding="utf-8")
+    out = tmp_path / "bad_level.geojson"
+    status = hindcast(
+        inputs["slick"], out,
+        currents_path=inputs["met"]["currents_eddy"],
+        wind_path=inputs["met"]["wind_uniform"], config_path=str(config),
+    )
+    assert status["ok"]
+    assert any("0.75" in w for w in status["warnings"])
+    assert not _ellipses(json.loads(out.read_text(encoding="utf-8")), "contour")

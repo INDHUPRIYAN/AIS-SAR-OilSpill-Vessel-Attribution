@@ -27,7 +27,13 @@ from ..common.timeutil import format_utc, parse_utc
 from ..schemas.forecast import validate_forecast
 from ..schemas.origin_cloud import validate_origin_cloud
 from .backends import AUTO, DriftRequest, select_backend
-from .cloud import build_clouds, origin_window
+from .cloud import (
+    build_clouds,
+    confidence_ellipse,
+    ellipse_axes_m,
+    origin_window,
+    supported_level,
+)
 from .euler_fallback import BACKWARD, FORWARD, DriftRun, seed_particles
 from .forecast import DEFAULT_HORIZONS, DEFAULT_LEVELS, build_forecast
 from .weathering import DEFAULT_OIL_TYPE, weathering_series
@@ -47,6 +53,7 @@ DEFAULTS: dict[str, Any] = {
     "leeway": 0.03,
     "diffusion_m2_s": 5.0,
     "confidence_level": 0.9,
+    "contour_levels": [0.5],
     "output_every_h": 1.0,
     "window_fraction": 0.10,
     "grid_margin_deg": 0.05,
@@ -336,6 +343,50 @@ def _ellipse_features(clouds, level: float) -> list[dict[str, Any]]:
     return features
 
 
+def _contour_features(clouds, levels, primary: float, status) -> list[dict[str, Any]]:
+    """Extra per-timestep contours (e.g. the 50 % ellipse) beside the primary one.
+
+    Display only. Each is the same covariance fit as the primary ellipse at a
+    smaller chi-square quantile, so it is nested inside it; it is tagged
+    ``role: "contour"`` and the attribution gate skips it, which keeps the origin
+    region -- and therefore every candidate, score and rank -- exactly what it
+    was before these were written.
+    """
+    features: list[dict[str, Any]] = []
+    for level in levels or []:
+        level = float(level)
+        if round(level, 2) == round(primary, 2):
+            continue
+        if not supported_level(level):
+            status.warn(
+                f"contour level {level} has no tabulated chi-square quantile; "
+                "not written rather than drawn at the wrong size"
+            )
+            continue
+        for cloud in clouds:
+            ring = confidence_ellipse(cloud.lons, cloud.lats, level)
+            axes = ellipse_axes_m(cloud.lons, cloud.lats, level)
+            if not ring or not axes:
+                continue
+            features.append(
+                {
+                    "type": "Feature",
+                    "geometry": {"type": "Polygon", "coordinates": [[list(pt) for pt in ring]]},
+                    "properties": {
+                        "kind": "confidence_ellipse",
+                        "role": "contour",
+                        "level": level,
+                        "timestep_h": cloud.elapsed_h,
+                        "time_utc": _utc(cloud.time_s),
+                        "semi_major_m": axes[0],
+                        "semi_minor_m": axes[1],
+                        "orientation_deg": axes[2],
+                    },
+                }
+            )
+    return features
+
+
 # Empirical calibration of how far the hindcast origin sits from the true release point,
 # fitted on 1,665 closed-loop scenarios across 24 real forcing fields
 # (docs/qa/evidence/ml_hindcast/origin_uncertainty_calibration.json):
@@ -431,6 +482,7 @@ def hindcast(
             "features": [
                 *_particle_features(clouds),
                 *_ellipse_features(clouds, level),
+                *_contour_features(clouds, prep.config.get("contour_levels"), level, status),
                 _window_feature(window, clouds, run.engine),
             ],
         }

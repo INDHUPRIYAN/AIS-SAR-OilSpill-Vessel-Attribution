@@ -40,6 +40,17 @@ from ..common.geo import LocalFrame
 # Chi-square quantiles with 2 degrees of freedom, for covariance-ellipse scaling.
 _CHI2_2DF = {0.50: 1.3863, 0.68: 2.2789, 0.90: 4.6052, 0.95: 5.9915, 0.99: 9.2103}
 
+
+def supported_level(level: float) -> bool:
+    """True when ``level`` has a tabulated chi-square quantile.
+
+    `_ellipse_geometry` falls back to the 0.90 quantile for a level it does not
+    know, which is harmless for the primary ellipse (0.9 is the default) and
+    would be a lie for a secondary contour: a ring labelled 0.75 drawn at 0.90.
+    """
+    return round(float(level), 2) in _CHI2_2DF
+
+
 # Below this relative variation in cloud spread there is no usable convergence signal.
 FLAT_SPREAD_THRESHOLD = 0.05
 
