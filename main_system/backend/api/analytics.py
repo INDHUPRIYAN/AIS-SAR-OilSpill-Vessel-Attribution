@@ -246,7 +246,15 @@ def vessels_geojson(run_id: str, max_vessels: int = Query(200, le=2000),
 
     features: List[dict] = []
     kept, culled = 0, 0
-    for mmsi, grp in list(df.groupby("mmsi"))[:max_vessels]:
+    # `max_vessels` used to slice the groups in MMSI order, so on a busy scene
+    # the cap fell on whichever vessels happened to have large MMSIs: the Gulf
+    # flagship (200+ vessels) lost three of its four ranked candidates,
+    # including #1, and the map drew a ranking with no tracks under it. The cap
+    # now spends its budget on what the analyst is looking at first: ranked
+    # candidates, then the vessels the gates excluded, then background traffic.
+    groups = list(df.groupby("mmsi"))
+    groups.sort(key=lambda g: (0 if int(g[0]) in suspects else 1 if int(g[0]) in filtered else 2))
+    for mmsi, grp in groups[:max_vessels]:
         coords = [[float(r.lon), float(r.lat)] for r in grp.itertuples()]
         if len(coords) < 2:
             continue

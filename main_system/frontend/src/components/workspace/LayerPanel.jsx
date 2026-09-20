@@ -9,7 +9,8 @@ const ROWS = [
   { key: "sar", label: "SAR scene", swatch: "linear-gradient(90deg,#233,#889)", layer: "scene_meta", stage: "detect" },
   { key: "slick", label: "Detected slick", swatch: css(WS.slick), layer: "slick", stage: "characterise" },
   { key: "geometry", label: "Geometry (ellipse · centroid)", swatch: css(WS.geometry), layer: "slick", stage: "characterise" },
-  { key: "forecast", label: "Forecast +6/+12/+24 h", swatch: css(WS.forecast), layer: "forecast", stage: "drift_forecast" },
+  { key: "forecast", label: "Forecast envelopes", swatch: css(WS.forecast), layer: "forecast", stage: "drift_forecast",
+    hint: "particle-density envelopes at each forecast horizon the run wrote" },
   { key: "hindcast", label: "Hindcast cloud", swatch: css(WS.hindcast), layer: "origin_cloud", stage: "drift_hindcast" },
   { key: "origin", label: "Probable origin zone", swatch: css(WS.origin), layer: "origin_cloud", stage: "drift_hindcast" },
   { key: "vessels", label: "AIS tracks", swatch: css(WS.vessel), layer: "vessels", stage: "attribution" },
@@ -17,6 +18,10 @@ const ROWS = [
     swatch: `repeating-linear-gradient(45deg, ${css(WS.lookalike, 0.75)} 0 2px, transparent 2px 4px)`,
     layer: "detect", stage: "detect",
     hint: "look-alike — reported, not counted as oil" },
+  { key: "wind", label: "Wind vectors", swatch: css(WS.wind), layer: "origin_cloud", stage: "drift_hindcast",
+    hint: "10 m wind the drift integrated; arrow length is relative, not distance" },
+  { key: "currents", label: "Current vectors", swatch: css(WS.current), layer: "origin_cloud", stage: "drift_hindcast",
+    hint: "surface currents the drift integrated; arrow length is relative, not distance" },
 ];
 
 export default function LayerPanel({ show, onToggle, present, stages }) {
@@ -59,6 +64,7 @@ export default function LayerPanel({ show, onToggle, present, stages }) {
           ["Candidate", css(WS.candidate)],
           ["Top suspect", css(WS.suspect)],
           ["Excluded vessel", css(WS.filtered, 0.6)],
+          ["Wind / current (relative length)", css(WS.current)],
           ["Look-alike (reported, not oil)",
            `repeating-linear-gradient(45deg, ${css(WS.lookalike, 0.75)} 0 2px, transparent 2px 4px)`]].map(([label, c]) => (
           <div key={label} className="legend-row">

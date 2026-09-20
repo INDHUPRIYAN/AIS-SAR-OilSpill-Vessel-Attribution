@@ -99,11 +99,11 @@ export const STEPS = [
   { id: "origin", n: 8, title: "PROBABLE ORIGIN", dur: 6,
     blurb: () => `Origin region identified. Uncertainty is the model's own confidence ellipse — not implied precision.` },
   { id: "filter", n: 9, title: "AIS FILTERING", dur: 8,
-    blurb: (b) => `Gating ${b.vesselCount} vessels against the origin region, time window and slick axis. Eliminated vessels stay visible, dimmed, with their reason.` },
+    blurb: (b) => `Gating ${b.consideredCount ?? b.vesselCount} vessels against the origin region, time window and slick axis. Eliminated vessels stay visible, dimmed, with their reason.` },
   { id: "attribution", n: 10, title: "VESSEL ATTRIBUTION", dur: 7,
     blurb: (b) => `Scoring ${b.candidateCount} candidates on proximity, timing, trajectory and behaviour. Weighted, explainable — no black box.` },
   { id: "evidence", n: 11, title: "FINAL EVIDENCE", dur: 8,
-    blurb: () => `Highest attribution likelihood with the complete evidence trail. Every claim traces to a data point.` },
+    blurb: () => `The top-ranked vessel with its complete evidence trail. A rank is an ordering of evidence, not a finding. Every claim traces to a data point.` },
 ];
 
 export const stepIndexById = Object.fromEntries(STEPS.map((s, i) => [s.id, i]));
@@ -241,7 +241,12 @@ export function prepareBundle({ sceneMeta, slick, origin, forecast, suspects,
     suspectsList,
     top: suspectsList[0] ?? null,
     candidateCount: suspectsList.length,
+    // Every AIS track in the run's vessel layer -- the traffic reconstructed
+    // around the scene. NOT the number attribution considered; that is
+    // consideredCount, from suspects.json.
     vesselCount: tracks.length,
+    consideredCount: suspects?.total_vessels_considered ?? null,
+    originUncertaintyKm: md.origin_uncertainty_km ?? null,
     aisWindowH: (aisEnd - aisStart) / 3.6e6,
     nParticles: md.n_particles,
     driftEngine: md.forcing?.engine ?? "drift engine",

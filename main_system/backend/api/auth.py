@@ -22,7 +22,8 @@ from sqlalchemy.orm import Session
 
 from backend.core import security
 from backend.core.authz import (SessionConfigError, clear_session_cookie,
-                                current_user, issue_token, set_session_cookie)
+                                current_user, is_evaluator, issue_token,
+                                set_session_cookie)
 from backend.core.config import get_settings
 from backend.models.db import ROLES, User, get_db, utcnow
 from backend.services import audit as audit_service
@@ -70,11 +71,15 @@ class UserOut(BaseModel):
     display_name: Optional[str] = None
     role: str
     active: bool
+    # True for the password-less public evaluator (OT_PUBLIC_EVALUATOR). The UI
+    # labels the session as such and offers a real sign-in beside it.
+    evaluator: bool = False
 
     @classmethod
     def of(cls, user: User) -> "UserOut":
         return cls(id=user.id, email=user.email, display_name=user.display_name,
-                   role=user.role, active=bool(user.active))
+                   role=user.role, active=bool(user.active),
+                   evaluator=is_evaluator(user))
 
 
 @router.post("/auth/login")
@@ -139,8 +144,20 @@ def logout(request: Request, response: Response,
 
 @router.get("/auth/me")
 def me(user: User = Depends(current_user)):
-    """The signed-in user. 401 when there is no valid session."""
+    """The signed-in user. 401 when there is no valid session.
+
+    In the public evaluator view a visitor without a session gets the
+    evaluator account here instead of a 401.
+    """
     return UserOut.of(user).model_dump()
+
+
+@router.get("/auth/mode")
+def mode():
+    """Whether this deployment serves a public evaluator view. Public: the
+    sign-in screen reads it to offer a way back to the evaluator view."""
+    return {"public_evaluator": settings.public_evaluator,
+            "evaluator_role": settings.evaluator_role if settings.public_evaluator else None}
 
 
 def bootstrap_admin() -> Optional[str]:

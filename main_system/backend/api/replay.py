@@ -21,6 +21,7 @@ from __future__ import annotations
 import io
 import json
 import math
+import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -173,11 +174,96 @@ def _field_json(path: Path, kind: str,
         return None
 
 
+def _recorded_forcing(d: Path) -> Dict[str, dict]:
+    """What the drift stage recorded about its forcing, from the run's own
+    origin cloud (else forecast) metadata: provider, file name and the
+    grid's normalisation stamp -- the NetCDF ``history`` attribute."""
+    for name in ("origin_cloud.geojson", "forecast.geojson"):
+        f = d / name
+        if not f.exists():
+            continue
+        try:
+            forcing = (json.loads(f.read_text(encoding="utf-8"))
+                       .get("metadata", {}).get("forcing") or {})
+        except Exception:
+            continue
+        out = {k: forcing[k] for k in ("currents", "wind")
+               if isinstance(forcing.get(k), dict)}
+        if out:
+            return out
+    return {}
+
+
+def _history(path: Path) -> Optional[str]:
+    try:
+        import xarray as xr
+        with xr.open_dataset(path) as ds:
+            return ds.attrs.get("history")
+    except Exception:
+        return None
+
+
+def _find_recorded_grid(pattern: str, stamp: Optional[str], d: Path,
+                        scene_id: str) -> Optional[Path]:
+    """The grid file whose normalisation stamp equals the one the drift
+    recorded -- i.e. the exact field it integrated -- or None."""
+    if not stamp:
+        return None
+    from backend.services.pipeline.run import METOCEAN_CACHE, REPO_ROOT
+    roots = [d, REPO_ROOT / "data" / "metocean" / scene_id,
+             REPO_ROOT / "data" / "metocean", METOCEAN_CACHE]
+    seen = set()
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for f in sorted(root.glob(f"**/{pattern}")):
+            key = f.resolve()
+            if key in seen:
+                continue
+            seen.add(key)
+            if _history(f) == stamp:
+                return key
+    return None
+
+
 @router.get("/runs/{run_id}/forcing_field")
 def forcing_field(run_id: str):
-    """Wind and current grids for this run, resolved as the pipeline resolves
-    them. A null section means that forcing was genuinely unavailable to the
-    drift engine too -- the UI states that instead of animating a fiction."""
+    """Wind and current grids for this run.
+
+    The grid served is the one the drift INTEGRATED whenever that can be
+    established: the run records each grid's normalisation stamp, and the
+    file carrying the same stamp is found and served (``matches_run: true``).
+    Only when no file carries it does this fall back to resolving forcing the
+    way the pipeline would today -- which can pick a different grid if the
+    cache has changed since the run -- and then says so (``matches_run:
+    false``, or ``null`` when the run recorded nothing to compare against).
+    A null section means no forcing was available at all; the UI states that
+    instead of animating a fiction.
+    """
+    # HDF5 is not thread-safe in this build. Pipeline runs are serialised by
+    # routes._pipeline_gate for exactly that reason, but this endpoint opened
+    # the same NetCDF grids outside it: asked for while a run's drift stage
+    # was integrating (the workspace does that the moment a live run is handed
+    # to it), the process died with a segmentation fault. So it takes the gate
+    # too -- without waiting, because a run can hold it for minutes -- and
+    # answers 503 instead, which the workspace retries.
+    from backend.api.routes import _pipeline_gate
+
+    if not _pipeline_gate.acquire(blocking=False):
+        raise HTTPException(
+            503, "a pipeline run is reading the forcing grids; they are served once it finishes",
+            headers={"Retry-After": "5"})
+    try:
+        with _FORCING_LOCK:
+            return _forcing_field_now(run_id)
+    finally:
+        _pipeline_gate.release()
+
+
+_FORCING_LOCK = threading.Lock()
+
+
+def _forcing_field_now(run_id: str):
     from backend.services.pipeline.run import resolve_metocean
 
     d = _run_dir(run_id)
@@ -185,10 +271,35 @@ def forcing_field(run_id: str):
     mp = d / "scene_meta.json"
     if mp.exists():
         meta = json.loads(mp.read_text(encoding="utf-8"))
-    currents, wind = resolve_metocean(meta, d)
+    scene_id = (meta or {}).get("scene_id", "")
+    recorded = _recorded_forcing(d)
+    resolved_currents, resolved_wind = resolve_metocean(meta, d)
+
+    def section(kind: str, pattern: str, resolved: Optional[Path]):
+        rec = recorded.get(kind) or {}
+        stamp = rec.get("normalised")
+        exact = _find_recorded_grid(pattern, stamp, d, scene_id)
+        path = exact or resolved
+        if path is None:
+            return None
+        field = _field_json(path, kind)
+        if field is None:
+            return None
+        if exact is not None:
+            matches = True
+        elif stamp:
+            matches = _history(path) == stamp
+        else:
+            matches = None
+        field.update({
+            "provider": rec.get("provider"),
+            "recorded_normalised": stamp,
+            "matches_run": matches,
+        })
+        return field
 
     return {
         "run_id": run_id,
-        "wind": _field_json(wind, "wind") if wind else None,
-        "currents": _field_json(currents, "currents") if currents else None,
+        "wind": section("wind", "wind*.nc", resolved_wind),
+        "currents": section("currents", "currents*.nc", resolved_currents),
     }

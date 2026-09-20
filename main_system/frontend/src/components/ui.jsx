@@ -360,9 +360,12 @@ export function MapTip({ x, y, title, icon, rows, style, testid }) {
  *  strong signal reads at a glance without consulting the number. When the
  *  factor's weight is known it is printed under the name (×0.25), so the
  *  weighted scoring is auditable right where the factor is drawn. */
-export function FactorBar({ name, value, weight }) {
+export function FactorBar({ name, value, weight, tone }) {
   const v = Math.max(0, Math.min(1, Number(value) || 0));
-  const colour = v > 0.7 ? "var(--danger)" : v > 0.4 ? "var(--oil)" : "var(--accent-dim)";
+  // `tone` pins the fill colour (the workspace draws every factor cyan, as
+  // the frames do); without it the colour tracks magnitude as before.
+  const colour = tone ? `var(--${tone})`
+    : v > 0.7 ? "var(--danger)" : v > 0.4 ? "var(--oil)" : "var(--accent-dim)";
   return (
     <div className="factor">
       <span className="factor-name">

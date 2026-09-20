@@ -136,3 +136,172 @@
 .rp-hash { font-size: 10px; word-break: break-all; }
 
 @media print { .rp-noprint { display: none !important; } }
+
+/* ------------------------------------------------- incident report document
+ * The eight-section paper document rendered by components/report/
+ * IncidentReport.jsx. Dense by design: 11.5px body, 10px tables, thin rules,
+ * a two-column grid that collapses to one in `.ir-compact` (the ~340px side
+ * panel preview) and on narrow screens. Colours are fixed, not themed: this is
+ * paper, on screen and in print.
+ */
+.rp-sr {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+.ir-doc {
+  --ir-ink: #16202e; --ir-muted: #5a6a80; --ir-rule: #cbd5e1; --ir-rule-soft: #e5eaf1;
+  --ir-band: #f2f5f9; --ir-accent: #0b7285;
+  position: relative; z-index: 1;
+  color: var(--ir-ink); font-size: 11.5px; line-height: 1.45;
+}
+.ir-doc .mono { font-family: var(--mono); }
+.ir-muted { color: var(--ir-muted); }
+.ir-break { word-break: break-all; }
+.ir-num { text-align: right; }
+
+/* header */
+.ir-head {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+  padding-bottom: 8px; border-bottom: 1.5px solid var(--ir-ink);
+}
+.ir-brand { display: flex; align-items: center; gap: 8px; }
+.ir-brand-mark {
+  width: 26px; height: 26px; border-radius: 50%; flex: none;
+  border: 3px solid var(--ir-accent); border-right-color: transparent;
+}
+.ir-brand-name { font-size: 15px; font-weight: 800; letter-spacing: 1.5px; line-height: 1.1; }
+.ir-brand-sub { font-size: 7.5px; letter-spacing: 2px; color: var(--ir-muted); }
+.ir-head-meta { text-align: right; font-size: 9.5px; color: var(--ir-muted); line-height: 1.5; }
+.ir-head-kind { font-size: 13px; font-weight: 800; letter-spacing: 1px; color: var(--ir-ink); }
+
+.ir-titleblock { margin: 10px 0 6px; padding-bottom: 6px; border-bottom: 1px solid var(--ir-rule); }
+.ir-doc h1.ir-title { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; margin: 0; line-height: 1.15; }
+.ir-subtitle { font-size: 12.5px; color: #334155; margin-top: 1px; }
+.ir-doc .rp-sub { margin-top: 3px; font-size: 10px; }
+
+/* sections */
+.ir-section { margin-top: 10px; break-inside: avoid; page-break-inside: avoid; }
+.ir-doc h2.ir-h {
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase;
+  margin: 0 0 5px; padding-bottom: 3px; border-bottom: 1px solid var(--ir-ink);
+}
+.ir-cols { display: grid; gap: 10px 14px; align-items: start; }
+.ir-cols-overview { grid-template-columns: 1.6fr 1fr; }
+.ir-cols-figure { grid-template-columns: 1.15fr 1fr; }
+.ir-cols-pair { grid-template-columns: 1fr 1fr; }
+.ir-cols-pair > .ir-section { margin-top: 10px; min-width: 0; }
+.ir-cols-tail { grid-template-columns: 1.3fr 1fr; }
+
+/* key/value tables */
+.ir-kv { width: 100%; border-collapse: collapse; font-size: 10px; }
+.ir-kv th, .ir-kv td {
+  padding: 2.5px 6px; border-bottom: 1px solid var(--ir-rule-soft); vertical-align: top;
+  text-align: left;
+}
+.ir-kv th { width: 42%; font-weight: 500; color: var(--ir-muted); background: var(--ir-band); }
+.ir-kv-caption {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+  color: var(--ir-muted); margin: 6px 0 3px;
+}
+
+/* generic data table */
+.ir-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+.ir-table th {
+  text-align: left; padding: 3px 6px; font-size: 9px; letter-spacing: 0.5px;
+  text-transform: uppercase; color: var(--ir-muted); background: var(--ir-band);
+  border-bottom: 1px solid var(--ir-rule);
+}
+.ir-table td { padding: 3px 6px; border-bottom: 1px solid var(--ir-rule-soft); vertical-align: top; }
+.ir-table th.ir-num, .ir-table td.ir-num { text-align: right; }
+.ir-caption {
+  caption-side: top; text-align: left; font-size: 10px; font-weight: 700;
+  padding: 0 0 3px; color: var(--ir-ink);
+}
+
+/* badges (tones match sourceBadge / stage status) */
+.ir-badge {
+  display: inline-block; padding: 0 6px; border-radius: 3px; font-size: 8.5px;
+  font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase;
+  border: 1px solid currentColor; line-height: 1.6; vertical-align: middle;
+}
+.ir-tone-ok { color: #047857; }
+.ir-tone-warn { color: #b45309; }
+.ir-tone-bad { color: #be123c; }
+.ir-tone-info { color: #1e40af; }
+.ir-tone-neutral { color: #94a3b8; }
+.ir-tone-mock { color: #fff; background: #7e22ce; border-color: #7e22ce; }
+
+/* status box */
+.ir-statusbox { border: 1px solid var(--ir-rule); background: #f7f9fc; padding: 6px 8px; }
+.ir-statusbox-head { font-size: 9px; font-weight: 700; letter-spacing: 0.6px; color: var(--ir-muted); }
+.ir-statusbox-value { font-size: 11px; font-weight: 700; margin: 2px 0 6px; text-transform: capitalize; }
+.ir-statusbox .ir-kv th { width: 44%; background: transparent; }
+.ir-statusbox-note { margin: 6px 0 0; font-size: 9px; color: var(--ir-muted); }
+.ir-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+.ir-dot-on { background: var(--ir-accent); }
+.ir-dot-off { background: #cbd5e1; }
+
+/* figure */
+.ir-figure { margin: 0; }
+.ir-figure-frame {
+  position: relative; width: 100%; aspect-ratio: 16 / 10; overflow: hidden;
+  background: #0b0f14; border: 1px solid var(--ir-rule);
+}
+.ir-figure-frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.ir-figure-scene { filter: grayscale(1); }
+.ir-figure-mask { opacity: 0.55; mix-blend-mode: screen; pointer-events: none; }
+.ir-figure-none {
+  display: flex; align-items: center; justify-content: center;
+  color: #94a3b8; font-size: 10px; background: var(--ir-band);
+}
+.ir-figure figcaption { font-size: 9px; color: var(--ir-muted); margin-top: 3px; }
+
+/* lists and notes */
+.ir-list { margin: 0 0 4px; padding-left: 14px; font-size: 10px; }
+.ir-list li { margin: 1px 0; }
+.ir-list-tight { padding-left: 0; list-style: none; }
+.ir-note { font-size: 10px; color: var(--ir-muted); margin: 3px 0 4px; }
+.ir-warn { color: #b45309; }
+.ir-disclaimer {
+  margin: 0 0 6px; padding: 6px 8px; font-size: 10px; font-style: italic;
+  background: var(--ir-band); border-left: 3px solid #94a3b8; color: #44536a;
+}
+
+/* candidate ranking */
+.ir-suspects tbody.ir-top > tr:first-child td { background: #fff7ed; }
+.ir-top-label { font-size: 8px; font-weight: 800; letter-spacing: 0.4px; color: #b45309; white-space: nowrap; }
+.ir-suspect-reason td { border-bottom: 1px solid var(--ir-rule); font-size: 9.5px; color: #334155; }
+.ir-factors { display: inline-flex; flex-wrap: wrap; gap: 3px; margin-right: 6px; }
+.ir-factor { padding: 0 5px; border-radius: 8px; background: var(--ir-band); color: #334155; font-size: 8.5px; }
+.ir-doc .rp-reason { display: inline; margin: 0; font-size: 9.5px; }
+.ir-weights-wrap { margin-top: 6px; }
+.ir-doc .rp-weights th, .ir-doc .rp-weights td { text-align: center; }
+.ir-ranking-note { margin-top: 6px; font-weight: 500; color: #334155; }
+
+/* footer */
+.ir-foot {
+  display: flex; justify-content: space-between; margin-top: 14px; padding-top: 6px;
+  border-top: 1px solid var(--ir-rule); font-size: 8.5px; letter-spacing: 0.6px;
+  color: var(--ir-muted); font-weight: 700;
+}
+
+/* compact: the side-panel preview, single column */
+.ir-compact { font-size: 10.5px; }
+.ir-compact .ir-cols { grid-template-columns: 1fr; gap: 6px; }
+.ir-compact .ir-kv, .ir-compact .ir-table { font-size: 9px; }
+.ir-compact h1.ir-title { font-size: 15px; }
+.ir-compact .ir-subtitle { font-size: 10.5px; }
+.ir-compact .ir-head-kind { font-size: 11px; }
+.ir-compact .ir-brand-name { font-size: 12px; }
+.ir-compact .ir-section { margin-top: 8px; }
+.ir-compact .ir-kv th { width: 40%; }
+@media (max-width: 640px) { .ir-cols { grid-template-columns: 1fr; } }
+
+@media print {
+  .ir-doc { font-size: 10.5px; }
+  .ir-cols-pair { grid-template-columns: 1fr 1fr; }
+  .ir-figure-frame { aspect-ratio: 16 / 9; }
+  .ir-tone-mock { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ir-suspects tbody.ir-top > tr:first-child td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

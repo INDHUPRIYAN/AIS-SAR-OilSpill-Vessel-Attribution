@@ -26,7 +26,10 @@ PASSWORD = "matrix-test-password"
 # anonymously is a hole.
 PUBLIC = {"/", "/health", "/healthz", "/readyz", "/docs", "/redoc",
           "/openapi.json", "/docs/oauth2-redirect", "/api/auth/login",
-          "/api/auth/logout"}
+          "/api/auth/logout",
+          # Says only whether the public evaluator view is on; the sign-in
+          # screen needs it before anyone is signed in.
+          "/api/auth/mode"}
 
 # Routes that need more than "signed in", from the role matrix in master plan
 # section 8. Everything not listed is readable by any authenticated role.
@@ -44,6 +47,8 @@ _DRAW = {"zone_officer", "admin", "super_admin"}
 
 ELEVATED = {
     ("POST", "/api/investigations"): _OPS,
+    ("POST", "/api/sar/upload"): _OPS,
+    ("POST", "/api/sar/upload/{upload_id}/metadata"): _OPS,
     ("POST", "/api/investigations/{investigation_id}/run"): _OPS,
     ("POST", "/api/investigations/{investigation_id}/replay"): _OPS,
     ("POST", "/api/runs/{run_id}/decisions"): _OPS,
@@ -52,6 +57,12 @@ ELEVATED = {
     ("POST", "/api/apis/{provider}/test"): {"analyst", "admin", "super_admin"},
     ("POST", "/api/apis/test-all"): {"analyst", "admin", "super_admin"},
     ("POST", "/api/incidents"): _OPS,
+    # --- BAYES-TRACK hindcast ------------------------------------------
+    # Starting a hindcast is the same kind of act as starting a run: it
+    # spends compute and writes an analytical record under your name.
+    ("POST", "/api/hindcast/jobs"): _OPS,
+    ("POST", "/api/hindcast/demo"): _OPS,
+    ("POST", "/api/hindcast/from_run/{run_id}"): _OPS,
     ("POST", "/api/incidents/from_run/{run_id}"): _OPS,
     ("GET", "/api/keys"): _ADMIN,
     ("PUT", "/api/keys"): _ADMIN,

@@ -6,16 +6,22 @@
  */
 
 export const WS = {
-  slick: [220, 38, 38],        // red/crimson — detected slick
-  geometry: [248, 113, 113],   // red outline — ellipse/centroid/orientation
+  slick: [249, 115, 22],       // orange — detected slick mask (frames 10-15)
+  slickEdge: [255, 170, 80],   // bright orange outline of the mask
+  geometry: [251, 191, 36],    // amber outline — ellipse/centroid/orientation
   forecast: [245, 158, 11],    // amber — opacity by horizon
   hindcast: [192, 38, 211],    // magenta/purple — particle cloud + ellipses
-  origin: [251, 191, 36],      // gold — probable origin ring
-  vessel: [34, 211, 238],      // cyan — normal AIS track
-  candidate: [251, 146, 60],   // orange — scored candidate
-  suspect: [239, 68, 68],      // red + highlight — top suspect
+  origin: [226, 232, 240],     // white dashed — origin uncertainty ring (frames 12-15)
+  vessel: [200, 214, 232],     // pale — background AIS track (frame 12: white/grey)
+  candidate: [255, 255, 255],  // white, brighter — scored candidate
+  suspect: [34, 211, 238],     // cyan, bold — the highest-ranked candidate (frame 14)
+  selected: [34, 211, 238],    // cyan — the analyst's selection
   filtered: [120, 133, 151],   // dimmed gray — excluded vessels
   lookalike: [45, 212, 191],   // teal, hatched — look-alike: reported, NOT oil
+  wind: [125, 211, 252],       // sky — 10 m wind vectors (frame 12 uses cyan barbs)
+  current: [45, 212, 191],     // teal — surface current vectors (context)
+  aoi: [34, 211, 238],         // cyan — AOI / selected footprint rectangle
+  tile: [34, 211, 238],        // cyan — tile grid + selected tile
 };
 
 export const css = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;

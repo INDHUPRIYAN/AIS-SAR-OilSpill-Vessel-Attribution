@@ -59,10 +59,24 @@ except Exception as _exc:                           # noqa: BLE001
     PARQUET_REASON = f"no usable parquet engine: {type(_exc).__name__}: {_exc}"
 
 
+def _recent(minutes_ago: float = 5.0) -> str:
+    """A report time `minutes_ago` before now, in AISStream's own format
+    (nanosecond fraction, `+0000 UTC` suffix).
+
+    The default used to be a fixed `2026-09-12 04:33` -- fresh on the day the
+    tests were written, and older than every live-picture age window six days
+    later, when four tests began failing on the calendar alone. Tests that pin
+    an absolute time for their own reason (format parsing, out-of-order
+    delivery, archive partitions) still pass one explicitly.
+    """
+    t = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
+    return t.strftime("%Y-%m-%d %H:%M:%S.") + f"{t.microsecond:06d}000 +0000 UTC"
+
+
 def _position_frame(mmsi=419000001, lat=13.5, lon=89.5, sog=12.4, cog=187.2,
-                    heading=188, when="2026-09-12 04:33:21.123456789 +0000 UTC",
-                    name="TEST TRADER", nav=0):
+                    heading=188, when=None, name="TEST TRADER", nav=0):
     """An AISStream `PositionReport` shaped the way the provider sends one."""
+    when = when or _recent()
     return {
         "MessageType": "PositionReport",
         "MetaData": {"MMSI": mmsi, "ShipName": name, "latitude": lat,
@@ -795,3 +809,30 @@ def test_archived_rows_are_contract_shaped(env, worker):
     import pandas as pd
     assert pd.isna(df[df["mmsi"] == 419003001]["heading_deg"]).all()
     assert set(df["source"].unique()) == {"real"}
+
+
+def test_two_reports_from_a_new_vessel_in_one_batch_do_not_lose_the_batch(env, worker):
+    """The session does not autoflush, so a row only `add`-ed was invisible to
+    `db.get`: the second report from a vessel first seen in this batch was
+    inserted again and the UNIQUE violation at commit discarded every position
+    in the batch. Two reports per vessel per two-second drain is ordinary
+    AISStream traffic."""
+    from backend.models.db import AisLiveState, SessionLocal
+
+    worker._queue.extend([
+        _position_frame(mmsi=419004000, lat=13.0, lon=89.0, when=_recent(10)),
+        _position_frame(mmsi=419004000, lat=13.1, lon=89.1, when=_recent(5)),
+        _position_frame(mmsi=419004001, lat=14.0, lon=90.0, when=_recent(5)),
+        _static_frame(mmsi=419004000, name="SAME BATCH"),
+    ])
+    worker.drain_once()
+
+    with SessionLocal() as db:
+        row = db.get(AisLiveState, 419004000)
+        other = db.get(AisLiveState, 419004001)
+    assert other is not None, "the rest of the batch was lost"
+    assert (row.lat, row.lon) == (13.1, 89.1), "the later report is current"
+    assert row.message_count == 2
+    # Identity from a static frame in the same batch as the first position is
+    # merged, not dropped as "never seen moving".
+    assert row.callsign == "TST1"

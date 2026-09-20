@@ -99,10 +99,10 @@
   --fs-2xl: 24px;
 
   /* --- shell ---------------------------------------------------------- */
-  --header-h: 48px;
+  --header-h: 60px;      /* frame 03: 60 px header at 1862 wide */
   --statusbar-h: 26px;
-  --nav-w: 208px;
-  --nav-w-collapsed: 54px;
+  --nav-w: 94px;         /* icon rail: frame 03 rail is 92 px of 1862 */
+  --nav-w-collapsed: 56px;
   --context-w: 340px;
 
   /* --- z-index -------------------------------------------------------- */

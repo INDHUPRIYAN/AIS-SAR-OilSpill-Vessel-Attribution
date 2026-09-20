@@ -210,56 +210,6 @@ a.ops-tile:hover { border-color: var(--accent-line); }
 .gc-scale-bar i { flex: 1; border-left: 1px solid var(--line-bright); }
 .gc-scale-bar i:first-child { border-left: none; }
 
-/* ----------------------------------------------------------- transport --- */
-
-.gc-transport {
-  display: flex; align-items: center; gap: 14px; padding: 8px 14px;
-  min-height: 54px;
-}
-.gc-transport-controls { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-.gc-tbtn {
-  display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--r-sm);
-  border: 1px solid var(--line-bright); background: var(--bg-3); color: var(--ink-1);
-}
-.gc-tbtn:hover:not(:disabled) { border-color: var(--accent-line); color: var(--ink-0); }
-.gc-tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
-.gc-tbtn-play {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: var(--accent-dim); border-color: transparent; color: #04121f;
-  box-shadow: var(--glow-accent);
-}
-:root[data-theme="light"] .gc-tbtn-play { color: #fff; }
-.gc-tbtn-play:hover { background: var(--accent); }
-
-.gc-transport-clock { flex-shrink: 0; min-width: 104px; line-height: 1.2; }
-.gc-clock-date { font-size: var(--fs-xs); letter-spacing: 0.1em; color: var(--ink-3); }
-.gc-clock-time { font-size: 15px; font-weight: 600; color: var(--ink-0); }
-
-.gc-rail-wrap { flex: 1; min-width: 0; padding: 0 4px; }
-.gc-rail { position: relative; height: 30px; cursor: pointer; user-select: none; touch-action: none; }
-.gc-rail:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; border-radius: var(--r-xs); }
-.gc-rail-line { position: absolute; left: 0; right: 0; top: 13px; height: 2px; background: var(--line-bright); border-radius: 1px; }
-.gc-rail-past { position: absolute; left: 0; top: 13px; height: 2px; background: var(--accent); border-radius: 1px; opacity: 0.55; }
-.gc-rail-now { position: absolute; top: 6px; width: 2px; height: 16px; background: var(--oil); transform: translateX(-1px); }
-.gc-rail-head {
-  position: absolute; top: 8px; width: 12px; height: 12px; border-radius: 50%;
-  background: var(--accent); border: 2px solid var(--bg-1); box-shadow: 0 0 8px var(--accent);
-  transform: translateX(-6px); pointer-events: none;
-}
-.gc-rail-tick { position: absolute; top: 15px; transform: translateX(-50%); text-align: center; pointer-events: none; }
-.gc-rail-tick i { display: block; width: 1px; height: 4px; background: var(--line-bright); margin: 0 auto; }
-.gc-rail-tick em { font-style: normal; font-size: 9px; color: var(--ink-3); }
-.gc-rail-tick.now em { color: var(--oil); font-weight: 700; }
-.gc-rail-event {
-  position: absolute; top: 3px; width: 7px; height: 7px; border-radius: 50%; padding: 0;
-  transform: translateX(-3.5px); border: 1px solid var(--bg-1); background: var(--ink-2);
-}
-.gc-rail-event:hover { transform: translateX(-3.5px) scale(1.35); }
-.gc-rail-event.danger { background: var(--danger); }
-.gc-rail-event.warn { background: var(--warn); }
-.gc-rail-event.ok { background: var(--ok); }
-.gc-rail-event.accent { background: var(--accent); }
-
 .gc-speed { display: flex; gap: 1px; flex-shrink: 0; }
 .gc-speed-b { padding: 3px 6px; font-size: var(--fs-xs); border-radius: var(--r-xs); background: none; border: none; color: var(--ink-3); }
 .gc-speed-b:hover { color: var(--ink-0); }
@@ -291,33 +241,14 @@ a.ops-tile:hover { border-color: var(--accent-line); }
 .gv-compass.rail-hidden { right: 20px; }
 .gv-scale { position: absolute; bottom: 14px; left: 12px; z-index: var(--z-map-overlay); }
 .globe-root.with-left .gv-scale { left: 324px; }
-.gv-transport { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: var(--z-map-overlay); width: min(720px, calc(100% - 760px)); min-width: 460px; }
 .gv-toolrail { position: absolute; top: 50%; right: 360px; transform: translateY(-50%); z-index: calc(var(--z-map-overlay) + 1); }
 .gv-toolrail.rail-hidden { right: 12px; }
 
-@media (max-width: 1500px) {
-  .gv-transport { width: min(600px, calc(100% - 700px)); min-width: 380px; }
-}
 @media (max-width: 1300px) {
   .gc-camera { right: 324px; } .gv-compass { right: 332px; } .gv-toolrail { right: 320px; }
-  .gv-transport { min-width: 340px; }
 }
 @media (max-width: 1000px) {
   .globe-root.with-left .gv-scale { left: 12px; }
-  .gv-transport { width: calc(100% - 24px); min-width: 0; left: 12px; transform: none; }
   .gv-toolrail { display: none; }
   .gc-camera { top: 56px; }
 }
-
-/* The honesty banner shown when the transport is scrubbed off the present. */
-.gv-timewarn {
-  position: absolute; bottom: 74px; left: 50%; transform: translateX(-50%);
-  z-index: var(--z-map-overlay); display: flex; align-items: flex-start; gap: 7px;
-  max-width: min(680px, calc(100% - 760px)); padding: 7px 11px;
-  border-left: 2px solid var(--warn); color: var(--warn);
-  font-size: var(--fs-sm); line-height: 1.5;
-}
-.gv-timewarn svg { flex-shrink: 0; margin-top: 2px; }
-.gv-timewarn a { color: inherit; text-decoration: underline; }
-@media (max-width: 1300px) { .gv-timewarn { max-width: calc(100% - 700px); } }
-@media (max-width: 1000px) { .gv-timewarn { max-width: calc(100% - 24px); left: 12px; transform: none; bottom: 78px; } }

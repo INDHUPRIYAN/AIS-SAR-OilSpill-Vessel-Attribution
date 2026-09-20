@@ -20,7 +20,7 @@
  * global for everyone: an officer who cannot see a spill drifting toward
  * their boundary from the next zone is worse at the job, not more secure. */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity, AlertTriangle, Bell, ClipboardList, Crosshair, Film, FolderSearch, Globe2,
@@ -31,7 +31,7 @@ import {
 import Globe, { GLOBE_INITIAL_VIEW, fmtLat, fmtLon } from "../components/Globe";
 import { useGlobeCamera } from "../components/globe/GlobeScene";
 import {
-  CameraReadout, Compass, ScaleBar, TimeTransport, ToolRail,
+  CameraReadout, Compass, ScaleBar, ToolRail,
 } from "../components/globe/GlobeChrome";
 import { Badge, KV, LiveValue, Notice, Panel, Segmented, Switch } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
@@ -58,7 +58,6 @@ const SEVERITY_TONE = {
   info: "neutral", low: "neutral",
 };
 
-const H = 3.6e6;
 
 export default function Operations() {
   const { user } = useSession();
@@ -78,20 +77,6 @@ export default function Operations() {
     incidents: true, zones: true, zoneLabels: true, graticule: true, scene: true,
   });
 
-  /* --- the clock ------------------------------------------------------- */
-  const [nowMs, setNowMs] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNowMs(Date.now()), 30000);
-    return () => clearInterval(id);
-  }, []);
-  const domain = useMemo(() => [nowMs - 24 * H, nowMs + 24 * H], [nowMs]);
-  const [timeMs, setTimeMs] = useState(null);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
-  const t = timeMs ?? nowMs;
-  // "At NOW" within a minute: the live layer is only honest at the present.
-  const atNow = Math.abs(t - nowMs) < 60000;
-
   const { data: alerts } = useApi(() => api.listAlerts({ limit: 30 }), [], { interval: 20000 });
   const { data: summary } = useApi(() => api.alertsSummary(), [], { interval: 20000 });
   const { data: invs } = useApi(() => api.listInvestigations(), [], { interval: 60000 });
@@ -102,13 +87,6 @@ export default function Operations() {
     () => (isAdmin ? api.workers() : Promise.resolve(null)), [isAdmin], { interval: 30000 });
   const { data: mine } = useApi(
     () => (user?.role === "zone_officer" ? api.myZones() : Promise.resolve(null)), [user?.role]);
-
-  /* Incidents as at the scrubbed time: one that has not been detected yet at
-   * `t` is not on the map at `t`. This is a real filter over a real field. */
-  const incidentsAt = useMemo(() => incidents.filter((i) => {
-    const d = Date.parse(i.detected_utc || i.created_utc || "");
-    return Number.isNaN(d) ? true : d <= t;
-  }), [incidents, t]);
 
   const active = incidents.filter((i) => i.status === "open" || i.status === "investigating");
   const running = (runs?.items || []).filter((r) => r.status === "running");
@@ -138,12 +116,6 @@ export default function Operations() {
     return items.filter((x) => Number.isFinite(x.t)).sort((a, b) => b.t - a.t);
   }, [alerts, incidents, runs]);
 
-  /* Markers on the transport rail: the same records, at their own times. */
-  const railEvents = useMemo(
-    () => feed.filter((e) => e.t >= domain[0] && e.t <= domain[1])
-      .map((e) => ({ t: e.t, tone: e.tone, label: e.title })).slice(0, 60),
-    [feed, domain]);
-
   const latestScene = runLayers?.sceneMeta;
   const latestSlick = runLayers?.slick?.features?.[0]?.properties;
 
@@ -164,9 +136,9 @@ export default function Operations() {
         viewState={cam.viewState} onViewStateChange={cam.onViewStateChange}
         onPointerMove={cam.onPointerMove} onPointerLeave={cam.onPointerLeave}
         basemap={basemap} theme={theme}
-        layersOn={{ ...layersOn, vessels: layersOn.vessels && atNow }}
+        layersOn={layersOn}
         zones={layersOn.zones ? zones : null}
-        incidents={incidentsAt} vessels={atNow ? vessels : []}
+        incidents={incidents} vessels={vessels}
         runLayers={runLayers} selected={selected}
         onMapClick={(_, info) => { if (!info?.object) setSelected(null); }}
         onCursorMove={setCursor} onSelect={onSelect}
@@ -195,7 +167,7 @@ export default function Operations() {
               <LiveValue className={`v ${active.length ? "danger" : ""}`} value={active.length} as="div" />
               <div className="s">{incidents.length} total · {incidents.filter((i) => i.origin === "auto").length} auto-opened</div>
             </Link>
-            <Link className="ops-tile" to="/dashboard" data-testid="tile-investigations">
+            <Link className="ops-tile" to="/investigations" data-testid="tile-investigations">
               <div className="k">Investigations</div>
               <LiveValue className="v" value={invs ? invs.length : "—"} as="div" />
               <div className="s">{running.length
@@ -334,29 +306,6 @@ export default function Operations() {
             badge: active.length || null },
         ]} />
 
-      {/* --------------------------------------------------- transport --- */}
-      <TimeTransport className="gv-transport" domain={domain} value={t} onChange={setTimeMs}
-        playing={playing} onPlaying={setPlaying} speed={speed} onSpeed={setSpeed}
-        now={nowMs} events={railEvents} onReset={() => { setPlaying(false); setTimeMs(null); }}
-        onStep={(d) => { setPlaying(false); setTimeMs((v) => (v ?? nowMs) + d * H); }}>
-        <span className={`live live-${atNow ? "ok" : "warn"}`} style={{ flexShrink: 0 }}
-          title={atNow ? "Showing the present" : "Scrubbed off the present"}>
-          <span className="live-dot" />{atNow ? "NOW" : "PAST"}
-        </span>
-      </TimeTransport>
-
-      {!atNow && (
-        <div className="gv-timewarn map-panel" data-testid="time-warning">
-          <Radio size={11} />
-          <span>
-            Live AIS is a present-tense layer — the API returns current vessel state, not history,
-            so it is hidden at this clock position. Incidents are filtered to what had been detected
-            by then. For real historical playback use <Link to="/incident">Incident Replay</Link>.
-          </span>
-        </div>
-      )}
-
-      {/* --------------------------------------------------------- right --- */}
       <button className="btn btn-sm btn-icon gv-rail-toggle" onClick={() => setRightOpen((o) => !o)}
         title={rightOpen ? "Hide panels" : "Show panels"} style={{ background: "var(--glass)" }}
         data-testid="toggle-right">
@@ -372,8 +321,7 @@ export default function Operations() {
                   disabled={r.run && !runLayers}
                   title={r.run && !runLayers ? "no completed run to draw" : undefined}
                   onChange={(v) => setLayersOn((s) => ({ ...s, [r.key]: v }))} label={r.label} />
-                {r.key === "vessels" && aisBadge && <Badge tone={atNow ? aisBadge.tone : "warn"}>
-                  {atNow ? aisBadge.text : "NOW ONLY"}</Badge>}
+                {r.key === "vessels" && aisBadge && <Badge tone={aisBadge.tone}>{aisBadge.text}</Badge>}
                 {r.run && runLayers && <Badge tone={runLayers.run?.stages_mock ? "mock" : "ok"}>
                   {runLayers.run?.stages_mock ? "PARTLY MOCK" : "RUN"}</Badge>}
                 {r.run && !runLayers && <Badge tone="ghost">NO RUN</Badge>}
@@ -395,7 +343,7 @@ export default function Operations() {
           <Panel title="Live AIS" icon={<Radio size={12} />}
             right={aisBadge && <Badge tone={aisBadge.tone}>{aisBadge.text}</Badge>}>
             <div className="kv-dense">
-              <KV k="Vessels drawn" v={atNow ? vessels.length : "hidden (past)"} />
+              <KV k="Vessels drawn" v={vessels.length} />
               <KV k="In view (server)" v={live?.total_in_view ?? "--"} />
               <KV k="Window" v={live ? `${live.max_age_minutes} min` : "--"} />
               <KV k="Provider" v={stream?.provider || "--"} />
@@ -414,14 +362,14 @@ export default function Operations() {
         {tool === "incidents" && (
           <Panel title="Incidents" icon={<AlertTriangle size={12} />} flush
             right={<Link className="btn btn-xs" to="/incidents">Register</Link>}>
-            {incidentsAt.length === 0 ? (
+            {incidents.length === 0 ? (
               <div className="state state-compact">
                 <div className="state-title">No active incidents</div>
                 <div className="state-hint">Nothing had been detected at this clock position.</div>
               </div>
             ) : (
               <div className="feed">
-                {incidentsAt.slice(0, 12).map((i) => (
+                {incidents.slice(0, 12).map((i) => (
                   <button key={i.id} className="feed-item" style={{ width: "100%", textAlign: "left", background: "none", border: "none", borderBottom: "1px solid var(--line)" }}
                     onClick={() => { setSelected({ kind: "incident", id: i.id, object: i }); setTool("selected");
                       if (i.lon != null) cam.flyTo({ longitude: i.lon, latitude: i.lat, zoom: 7 }, 1000); }}>

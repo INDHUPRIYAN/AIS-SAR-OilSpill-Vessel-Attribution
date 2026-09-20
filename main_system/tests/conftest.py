@@ -15,7 +15,16 @@ http:// silently discards it, so the request that follows looks anonymous.
 """
 from __future__ import annotations
 
+import os
+
 import pytest
+
+# The public evaluator view (OT_PUBLIC_EVALUATOR) turns "no session" into a
+# signed-in evaluator. A developer's .env may switch it on for a demo, and
+# config only fills variables that are not already set -- so pin it OFF here,
+# before any backend import, or every "requires a session" test would pass or
+# fail depending on the machine. test_public_evaluator.py turns it on locally.
+os.environ["OT_PUBLIC_EVALUATOR"] = "false"
 
 TEST_ADMIN_EMAIL = "test-admin@example.invalid"
 TEST_ADMIN_PASSWORD = "suite-fixture-password"

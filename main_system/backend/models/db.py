@@ -1000,6 +1000,8 @@ def _fill_column_defaults() -> None:
 
 def init_db() -> None:
     """Create tables and seed the provider registry."""
+    from backend.models import hindcast  # noqa: F401  (registers the hindcast_* tables on Base)
+
     Base.metadata.create_all(engine)
     _add_missing_columns()
     _fill_column_defaults()

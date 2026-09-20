@@ -34,42 +34,74 @@ import {
 export const ROUTES = [
   // -- operations ---------------------------------------------------------
   { to: "/", label: "Overview", section: "Operations", icon: "LayoutDashboard", nav: true,
-    hint: "global maritime picture" },
+    hint: "global maritime picture", rail: "Dashboard" },
   { to: "/alerts", label: "Alerts", section: "Operations", icon: "Siren", nav: true },
-  { to: "/incidents", label: "Incidents", section: "Operations", icon: "ClipboardList", nav: true },
+  { to: "/incidents", label: "Incidents", section: "Operations", icon: "ClipboardList", nav: true,
+    rail: "Incidents" },
   { to: "/incident", label: "Incident Replay", section: "Operations", icon: "Film", nav: true },
   { to: "/my-desk", label: "My Desk", section: "Operations", icon: "Inbox", nav: true },
   // -- intelligence -------------------------------------------------------
   { to: "/globe", label: "Global View", section: "Intelligence", icon: "Globe2", nav: true,
     hint: "3D globe · zone splitting" },
-  { to: "/vessels", label: "Vessels", section: "Intelligence", icon: "Ship", nav: true },
+  { to: "/vessels", label: "Vessels", section: "Intelligence", icon: "Ship", nav: true,
+    rail: "Vessels" },
   { to: "/satellite", label: "Satellite", section: "Intelligence", icon: "Satellite", nav: true },
+  { to: "/sar-database", label: "SAR Image Database", section: "Intelligence", icon: "Images", nav: true,
+    hint: "real SAR scenes, metadata, upload and AI analysis" },
   { to: "/environment", label: "Environment", section: "Intelligence", icon: "Wind", nav: true },
-  { to: "/zones", label: "Zones", section: "Intelligence", icon: "Map", nav: true },
+  { to: "/zones", label: "Zones", section: "Intelligence", icon: "Map", nav: true, rail: "Zones" },
   // -- analysis -----------------------------------------------------------
-  { to: "/investigation", label: "Workspace", section: "Analysis", icon: "Radar", nav: true },
-  { to: "/dashboard", label: "Investigations", section: "Analysis", icon: "FolderOpen", nav: true,
-    hint: "runs and cases" },
-  { to: "/reports", label: "Reports", section: "Analysis", icon: "FileText", nav: true },
+  { to: "/investigation", label: "Workspace", section: "Analysis", icon: "Radar", nav: true,
+    rail: "Analysis", hint: "the investigation workspace" },
+  { to: "/investigations", label: "Investigations", section: "Analysis", icon: "FolderOpen", nav: true,
+    rail: "Investigations", hint: "investigation records" },
+  { to: "/dashboard", label: "Run registry", section: "Analysis", icon: "Layers", nav: true,
+    hint: "every pipeline run, offline replay" },
+  { to: "/reports", label: "Reports", section: "Analysis", icon: "FileText", nav: true,
+    rail: "Reports" },
   { to: "/analytics", label: "Analytics", section: "Analysis", icon: "BarChart3", nav: true },
+  // -- hindcast -----------------------------------------------------------
+  // BAYES-TRACK: from a slick back to where and when it entered the water.
+  { to: "/hindcast", label: "Monitoring Engines", section: "Hindcast", icon: "Cpu", nav: true,
+    rail: "Hindcast", hint: "BAYES-TRACK · seven hindcast engines, live" },
   // -- system -------------------------------------------------------------
   { to: "/monitoring", label: "API Monitor", section: "System", icon: "Activity", nav: true },
-  { to: "/catalog", label: "Data Sources", section: "System", icon: "Database", nav: true },
+  { to: "/catalog", label: "Data Sources", section: "System", icon: "Database", nav: true,
+    rail: "Data" },
   { to: "/models", label: "ML Models", section: "System", icon: "BrainCircuit", nav: true },
   { to: "/system", label: "System Ops", section: "System", icon: "Server", nav: true,
-    hint: "jobs · workers · logs" },
+    hint: "jobs · workers · logs", rail: "Settings" },
   { to: "/audit", label: "Audit Trail", section: "System", icon: "ScrollText", nav: true,
     roles: ["reviewer", "auditor", "admin", "super_admin"] },
   { to: "/officers", label: "Users & Roles", section: "System", icon: "Users", nav: true,
     roles: ["admin", "super_admin"] },
   { to: "/keys", label: "Credentials", section: "System", icon: "KeyRound", nav: true,
     roles: ["admin", "super_admin"] },
-  { to: "/about", label: "About", section: "System", icon: "BookOpen", nav: true },
+  { to: "/about", label: "About", section: "System", icon: "BookOpen", nav: true, rail: "Help" },
   // -- deep-link only -----------------------------------------------------
   { to: "/report", label: "Report", nav: false },
 ];
 
-export const NAV_SECTIONS = ["Operations", "Intelligence", "Analysis", "System"];
+/* The narrow icon rail shows these eleven, in this order, by their `rail`
+ * label; every other route stays reachable from the rail's "More" flyout,
+ * the header nav, deep links and the palette. */
+export const RAIL_ORDER = [
+  "Dashboard", "Analysis", "Hindcast", "Incidents", "Investigations", "Vessels", "Zones",
+  "Data", "Reports", "Settings", "Help",
+];
+
+/* The header's primary navigation: the product's top-level surfaces. */
+export const PRIMARY_NAV = [
+  // Same names as ROUTES: one screen, one name, wherever it is listed.
+  { to: "/", label: "Overview" },
+  { to: "/globe", label: "Global View" },
+  { to: "/incidents", label: "Incidents" },
+  { to: "/investigations", label: "Investigations" },
+  { to: "/analytics", label: "Analytics" },
+  { to: "/reports", label: "Reports" },
+];
+
+export const NAV_SECTIONS = ["Operations", "Intelligence", "Analysis", "Hindcast", "System"];
 
 /** The route entry for a pathname, longest prefix first, so `/incidents`
  *  does not resolve to `/incident` and `/` only matches itself. */

@@ -449,6 +449,35 @@ def classify_regions(regions: List[dict], screen: Optional[dict],
             r["class"] = "lookalike"
 
 
+def screen_mask(mask: np.ndarray, regions: List[dict]) -> int:
+    """Zero, in place, every connected component the screen called a look-alike.
+
+    Returns how many components were removed. Works one region window at a
+    time: labelling a full IW scene again would allocate gigabytes, and each
+    region's bbox fully contains its own component. Inside a window, the
+    component is identified by the same bbox and pixel area the region was
+    reported with -- a neighbouring component that pokes into the window has
+    a clipped bbox and cannot match. A region with no match is left alone, so
+    a mismatch can only keep oil in, never throw it out.
+    """
+    from skimage.measure import label, regionprops
+
+    removed = 0
+    for r in regions:
+        if r.get("class") != "lookalike":
+            continue
+        r0, c0, r1, c1 = r["bbox_rc"]
+        win = mask[r0:r1, c0:c1]
+        labels = label(win > 0)
+        whole = (0, 0, r1 - r0, c1 - c0)     # the region's bbox, window-local
+        for p in regionprops(labels):
+            if tuple(p.bbox) == whole and int(p.area) == int(r["area_px"]):
+                win[labels == p.label] = 0
+                removed += 1
+                break
+    return removed
+
+
 def run_detection(db, valid, cfg, weights: Path, scene_db_range=None,
                   force_engine: Optional[str] = None,
                   screen_weights: Optional[Path] = None) -> DetectionOutcome:
@@ -529,8 +558,16 @@ def run_detection(db, valid, cfg, weights: Path, scene_db_range=None,
 def detect(scene_path: Path, scene_id: str, out_dir: Path,
            weights: Path = DEFAULT_WEIGHTS, scene_meta: Optional[dict] = None,
            force_engine: Optional[str] = None,
-           screen_weights: Optional[Path] = None) -> DetectResponse:
-    """Full `/detect` call: scene in, contract-valid DetectResponse out."""
+           screen_weights: Optional[Path] = None,
+           screened_out: Optional[Path] = None) -> DetectResponse:
+    """Full `/detect` call: scene in, contract-valid DetectResponse out.
+
+    `screened_out`, when given, receives an oil-only copy of the mask if the
+    screen split the regions into oil and look-alikes. raw_mask.tif is always
+    the segmenter's full output; the screened copy is what downstream
+    characterisation should measure, so that drift and attribution trace a
+    region the two-stage detector actually called oil.
+    """
     t0 = time.time()
     cfg = load_config()
     db, profile, valid = read_scene(Path(scene_path))
@@ -540,6 +577,25 @@ def detect(scene_path: Path, scene_id: str, out_dir: Path,
                             screen_weights)
 
     mask_path = write_mask(outcome.mask, profile, Path(out_dir) / "raw_mask.tif")
+
+    if screened_out is not None:
+        n_oil = sum(r.get("class", "oil") == "oil" for r in outcome.regions)
+        n_look = sum(r.get("class") == "lookalike" for r in outcome.regions)
+        # Only the mixed case is screened. With no oil region at all there is
+        # nothing to keep, and the pipeline's existing all-rejected warning
+        # governs; with no look-alike there is nothing to remove.
+        if n_oil and n_look:
+            try:
+                removed = screen_mask(outcome.mask, outcome.regions)
+                write_mask(outcome.mask, profile, Path(screened_out))
+                outcome.warnings.append(
+                    f"look-alike screening applied downstream: {removed} of {n_look} "
+                    f"rejected region(s) removed from the mask characterisation "
+                    f"measures; {n_oil} oil region(s) kept")
+            except Exception as exc:   # noqa: BLE001 -- fall back to the full mask, loudly
+                outcome.warnings.append(
+                    f"could not build the screened mask ({type(exc).__name__}: {exc}); "
+                    f"characterisation will measure the full mask, look-alikes included")
 
     candidates: List[Candidate] = []
     for r in outcome.regions:

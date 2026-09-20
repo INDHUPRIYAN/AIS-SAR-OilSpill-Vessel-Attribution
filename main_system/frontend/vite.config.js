@@ -9,6 +9,8 @@ const apiTarget = process.env.API_TARGET || 'http://127.0.0.1:8000'
 const proxy = {
   '/api': { target: apiTarget, changeOrigin: true },
   '/health': { target: apiTarget, changeOrigin: true },
+  // The hindcast engines stream over a WebSocket; same origin, so the session cookie rides along.
+  '/ws': { target: apiTarget, ws: true, changeOrigin: true },
 }
 
 export default defineConfig({

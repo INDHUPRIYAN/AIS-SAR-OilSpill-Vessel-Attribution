@@ -6,18 +6,29 @@
  * an account-enumeration oracle, and these accounts belong to named
  * investigators. */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { LogIn, Moon, ShieldCheck, Sun, Waves } from "lucide-react";
+import { ArrowLeft, LogIn, Moon, ShieldCheck, Sun, Waves } from "lucide-react";
 
 import { Spinner } from "../components/ui";
+import { api } from "../lib/api";
 import { useSession } from "../lib/session";
 import { useTheme } from "../lib/theme";
 
 const VERBS = ["Track", "Detect", "Trace", "Investigate", "Attribute", "Protect"];
 
 export default function SignIn() {
-  const { signIn } = useSession();
+  const { signIn, user, closeLogin, refresh } = useSession();
+  // In the public evaluator view the form is optional: say so and offer the
+  // way back. Unknown until the server answers, and absent if it cannot.
+  const [publicMode, setPublicMode] = useState(false);
+  useEffect(() => {
+    api.authMode().then((m) => setPublicMode(Boolean(m?.public_evaluator))).catch(() => {});
+  }, []);
+  async function backToEvaluator() {
+    if (user) closeLogin();
+    else await refresh();
+  }
   const { theme, toggle } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -78,7 +89,7 @@ export default function SignIn() {
           onSubmit={submit} className="panel signin-form" data-testid="sign-in-form">
           <header className="panel-head">
             <span className="panel-title"><ShieldCheck size={13} /> Sign in</span>
-            <span className="panel-tools tiny mono muted">restricted</span>
+            <span className="panel-tools tiny mono muted">{publicMode ? "production · RBAC" : "restricted"}</span>
           </header>
           <div className="panel-body stack" style={{ gap: 12 }}>
             <div className="tiny muted" style={{ lineHeight: 1.6 }}>
@@ -106,6 +117,13 @@ export default function SignIn() {
               disabled={busy || !email || !password} data-testid="sign-in-submit">
               {busy ? <Spinner /> : <LogIn size={13} />} Sign in
             </button>
+
+            {publicMode && (
+              <button type="button" className="btn btn-block" onClick={backToEvaluator}
+                data-testid="back-to-evaluator">
+                <ArrowLeft size={13} /> Continue without login (public evaluator view)
+              </button>
+            )}
           </div>
         </motion.form>
       </div>

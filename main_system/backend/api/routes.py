@@ -943,6 +943,10 @@ def get_layer(run_id: str, layer: str, lite: bool = False):
             payload = json.loads(target.read_text(encoding="utf-8"))
             if lite and layer == "origin_cloud":
                 payload = _lite_origin(payload)
+            if layer == "scene_meta" and isinstance(payload, dict):
+                # Additive, on the response only: the sealed file is untouched.
+                from backend.api.sar_database import basis_for_meta
+                payload["basis"] = basis_for_meta(payload)
             return JSONResponse(payload)
         except Exception as exc:
             raise HTTPException(

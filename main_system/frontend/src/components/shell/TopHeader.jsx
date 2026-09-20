@@ -7,13 +7,13 @@
  * in context and nothing else. */
 
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  Bell, ChevronDown, Inbox, LogOut, Moon, Search, ShieldCheck, Sun, Waves,
+  Bell, ChevronDown, Eye, Inbox, LogIn, LogOut, Menu, Moon, Search, ShieldCheck, Sun, Waves,
 } from "lucide-react";
 
 import { useSession } from "../../lib/session";
-import { routeFor, useShell } from "../../lib/shell";
+import { PRIMARY_NAV, routeFor, useShell } from "../../lib/shell";
 import { useTheme } from "../../lib/theme";
 import { ProvenanceChips, ZuluClock } from "../TopBarStatus";
 import { Kbd, LiveIndicator } from "../ui";
@@ -51,8 +51,8 @@ export function systemPulse(status, ais) {
   return { tone: "warn", label: "DEGRADED", title };
 }
 
-export default function TopHeader({ status, ais, alertsSummary }) {
-  const { user, signOut } = useSession();
+export default function TopHeader({ status, ais, alertsSummary, onToggleNav }) {
+  const { user, signOut, isEvaluator, openLogin } = useSession();
   const { openPalette } = useShell();
   const { theme, toggle } = useTheme();
   const location = useLocation();
@@ -74,15 +74,30 @@ export default function TopHeader({ status, ais, alertsSummary }) {
 
   return (
     <header className="hdr" data-testid="top-header">
+      <button className="hdr-btn hdr-burger" onClick={onToggleNav} title="Collapse or expand the navigation rail"
+        data-testid="nav-toggle" aria-label="Toggle navigation">
+        <Menu size={18} />
+      </button>
+
       <Link className="brand" to="/" title="OceanTrace — overview">
-        <div className="brand-mark"><Waves size={16} /></div>
+        <div className="brand-mark"><Waves size={17} /></div>
         <div>
           <div className="brand-name">OCEAN<b>TRACE</b></div>
-          <div className="brand-sub">Track · Detect · Trace · Investigate · Attribute · Protect</div>
+          <div className="brand-sub">Maritime Intelligence</div>
         </div>
       </Link>
 
-      <span className="hdr-sep" />
+      {/* The product's top-level surfaces. Active state is resolved from the
+          URL, so a deep link lights the right tab. */}
+      <nav className="hdr-nav" aria-label="Primary sections" data-testid="primary-nav">
+        {PRIMARY_NAV.map((n) => (
+          <NavLink key={n.to} to={n.to} end={n.to === "/"}
+            className={({ isActive }) => `hdr-nav-item ${isActive ? "active" : ""}`}
+            data-testid={`hnav-${n.label.toLowerCase()}`}>
+            {n.label}
+          </NavLink>
+        ))}
+      </nav>
 
       <div className="hdr-ctx" data-testid="header-context">
         <span className="hdr-ctx-section">{route?.section || "OceanTrace"}</span>
@@ -97,7 +112,7 @@ export default function TopHeader({ status, ais, alertsSummary }) {
         <button className="hdr-search" onClick={openPalette} data-testid="palette-trigger"
           title="Search runs, incidents, vessels and scenes — ⌘K">
           <Search size={13} />
-          <span className="hint">Search vessel, incident, run, scene…</span>
+          <span className="hint">Search scenes, vessels, incidents…</span>
           <Kbd>⌘K</Kbd>
         </button>
 
@@ -116,6 +131,18 @@ export default function TopHeader({ status, ais, alertsSummary }) {
 
         <ZuluClock />
 
+        {isEvaluator ? (
+          <>
+            <span className="hdr-eval" data-testid="evaluator-badge"
+              title="Public evaluator view: no login, every screen open. Credential, account and zone-staffing changes need a production login.">
+              <Eye size={13} /> Public evaluator view
+            </span>
+            <button className="btn btn-primary hdr-login" onClick={openLogin} data-testid="login-button"
+              title="Sign in with a production account to see its role-based view">
+              <LogIn size={14} /> Login
+            </button>
+          </>
+        ) : (
         <div className="hdr-menu-wrap" ref={menuRef}>
           <button className="hdr-user" onClick={() => setMenuOpen((o) => !o)}
             aria-haspopup="menu" aria-expanded={menuOpen} data-testid="user-menu">
@@ -149,6 +176,7 @@ export default function TopHeader({ status, ais, alertsSummary }) {
             </div>
           )}
         </div>
+        )}
       </div>
     </header>
   );

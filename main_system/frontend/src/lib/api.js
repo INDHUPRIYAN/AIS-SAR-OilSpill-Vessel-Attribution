@@ -70,14 +70,37 @@ async function request(path, { method = "GET", body } = {}) {
   return res.status === 204 ? null : res.json();
 }
 
+/* multipart/form-data: the browser sets the boundary, so no Content-Type here.
+ * Same error contract as request(). */
+async function upload(path, form) {
+  const res = await fetch(path, { method: "POST", credentials: "include", body: form });
+  if (res.status === 401) throw new Unauthenticated(await detailOf(res) || "authentication required");
+  if (!res.ok) {
+    const err = new Error(await detailOf(res) || `HTTP ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
 export const api = {
   health: () => request("/health"),
+
+  // SAR Image Database: scenes held on this host, and uploads.
+  sarScenes: (params = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== "" && v != null));
+    return request(`/api/sar/scenes${q.toString() ? `?${q}` : ""}`);
+  },
+  sarUpload: (form) => upload("/api/sar/upload", form),
+  sarCompleteUpload: (id, body) => request(`/api/sar/upload/${id}/metadata`, { method: "POST", body }),
 
   // The session is the cookie; these just drive it.
   login: (email, password) =>
     request("/api/auth/login", { method: "POST", body: { email, password } }),
   logout: () => request("/api/auth/logout", { method: "POST" }),
   me: () => request("/api/auth/me"),
+  // Public: whether this deployment serves the password-less evaluator view.
+  authMode: () => request("/api/auth/mode"),
 
   localScenes: () => request("/api/scenes/local"),
 
@@ -324,6 +347,17 @@ export const api = {
   decisions: (limit = 100) => request(`/api/decisions?limit=${limit}`),
   localScene: (id) => request(`/api/scenes/local/${encodeURIComponent(id)}`),
   tilesInfo: (runId) => request(`/api/tiles/${runId}/info`),
+
+  /* --- BAYES-TRACK hindcast ----------------------------------------------
+   * Live engine state comes over the WebSocket (lib/useEngineFeed); these are
+   * the registry, the job records, and the three ways to start a job. */
+  hindcastEngines: () => request("/api/engines"),
+  engineStatus: (jobId) => request(`/api/engines/status${jobId ? `?job_id=${jobId}` : ""}`),
+  engineRuns: (engineId) => request(`/api/engines/${engineId}/runs?limit=15`),
+  hindcastJobs: () => request("/api/hindcast/jobs?limit=25"),
+  hindcastJob: (id) => request(`/api/hindcast/jobs/${id}`),
+  hindcastDemo: (body = {}) => request("/api/hindcast/demo", { method: "POST", body }),
+  hindcastFromRun: (runId, body = {}) => request(`/api/hindcast/from_run/${runId}`, { method: "POST", body }),
   authRoles: () => request("/api/auth/roles"),
 };
 

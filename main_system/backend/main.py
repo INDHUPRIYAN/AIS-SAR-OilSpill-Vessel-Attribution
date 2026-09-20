@@ -33,12 +33,14 @@ from backend.api.auth import bootstrap_admin, router as auth_router  # noqa: E40
 from backend.api.incidents import router as incidents_router  # noqa: E402
 from backend.api.routes import router  # noqa: E402
 from backend.api.scenes import router as scenes_router  # noqa: E402
+from backend.api.sar_database import router as sar_router  # noqa: E402
 from backend.api.alerts import router as alerts_router
 from backend.api.search import router as search_router
 from backend.api.zones import router as zones_router
 from backend.api.ais_live import router as ais_live_router
 from backend.api.users import router as users_router
 from backend.api.ops import router as ops_router
+from backend.api.hindcast import router as hindcast_router, ws_router as hindcast_ws_router
 from backend.api.tiles import router as tiles_router
 from backend.api.catalog import router as catalog_router
 from backend.api.events import router as events_router
@@ -85,6 +87,9 @@ async def lifespan(app: FastAPI):
 
     logbuffer.install()
     init_db()
+    # Hindcast jobs run in a thread of this process: none survives a restart.
+    from backend.models.hindcast import sweep_interrupted
+    sweep_interrupted()
     # Nothing is running at boot. Any row that says otherwise belongs to a
     # process that died; mark it failed with the reason rather than let the UI
     # show work in progress that does not exist.
@@ -210,6 +215,7 @@ app.include_router(replay_router, prefix="/api", dependencies=_authenticated)
 app.include_router(invpage_router, prefix="/api", dependencies=_authenticated)
 app.include_router(scheduler_router, prefix="/api", dependencies=_authenticated)
 app.include_router(scenes_router, prefix="/api", dependencies=_authenticated)
+app.include_router(sar_router, prefix="/api", dependencies=_authenticated)
 app.include_router(audit_router, prefix="/api", dependencies=_authenticated)
 app.include_router(incidents_router, prefix="/api", dependencies=_authenticated)
 app.include_router(vessels_router, prefix="/api", dependencies=_authenticated)
@@ -223,6 +229,9 @@ app.include_router(zones_router, prefix="/api", dependencies=_authenticated)
 app.include_router(ais_live_router, prefix="/api", dependencies=_authenticated)
 app.include_router(users_router, prefix="/api", dependencies=_authenticated)
 app.include_router(ops_router, prefix="/api", dependencies=_authenticated)
+app.include_router(hindcast_router, prefix="/api", dependencies=_authenticated)
+# The WebSocket authenticates itself: the router-level guard needs an HTTP Request.
+app.include_router(hindcast_ws_router)
 # Public by necessity: /auth/login is how a session is obtained. The routes in
 # here that need a session (/auth/me, /auth/roles) declare it themselves.
 app.include_router(auth_router, prefix="/api")

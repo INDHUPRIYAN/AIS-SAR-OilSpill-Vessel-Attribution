@@ -1,14 +1,16 @@
 """Pipeline orchestrator -- scene in, full contract set out.
 
-Runs every stage, validates each output against its frozen contract, and where
-a stage is unavailable falls back to the mock and *records that it did*. The
-pipeline never halts and never lies about provenance: each stage lands in the
+Runs every stage and validates each output against its frozen contract. The
+pipeline never halts and never manufactures a result: each stage lands in the
 manifest with a status of
 
     ok       -- a real component produced and validated this
-    mock     -- the owner's component is not wired in yet; mock served instead
-    fallback -- the real component failed; a degraded path produced this
+    fallback -- the real component failed; a degraded REAL path produced this
     failed   -- nothing usable (the run continues, the layer is absent)
+
+`mock` is a legacy status found only in runs sealed before 2026-09-20, when an
+unavailable stage was served a static file from contracts/mocks/. No new run
+writes it.
 
 The UI reads the manifest and badges every layer accordingly, which is what
 keeps a demo honest when half the team's components are still in flight.
@@ -16,8 +18,8 @@ keeps a demo honest when half the team's components are still in flight.
 Stage ownership (see docs/PS26143_Team_Split_Handbook.md):
     detect        Indhu     -- real
     characterise  Nandha    -- stand-in until Engine A lands
-    drift         Nandha    -- mock until Engine B lands (also needs Keerthana)
-    attribution   Nandha    -- mock until Engine C lands (also needs Krishnan)
+    drift         Nandha    -- Engine B
+    attribution   Nandha    -- Engine C
 
 Usage:
     python -m backend.services.pipeline.run --scene contracts/mocks/scene_sigma0_db.tif \\
@@ -103,16 +105,20 @@ def validate(contract: Optional[str], path: Path) -> Optional[str]:
         return f"{type(exc).__name__}: {str(exc)[:300]}"
 
 
-def serve_mock(stage: Stage, out_dir: Path, reason: str) -> bool:
-    """Copy the mock for a stage that could not run for real."""
-    _, filename = CONTRACTS.get(stage.contract, (None, None))
-    src = MOCKS / (filename or stage.output)
-    if not src.exists():
-        stage.status, stage.detail = "failed", f"{reason}; no mock at {src.name}"
-        return False
-    shutil.copy(src, out_dir / stage.output)
-    stage.status, stage.source, stage.detail = "mock", "synthetic", reason
-    return True
+def stage_unavailable(stage: Stage, out_dir: Path, reason: str) -> bool:
+    """Record that a stage produced nothing, and write nothing.
+
+    This used to copy a static file from contracts/mocks/ into the run, so a
+    clean scene with no oil in it received a fabricated slick off Chennai, an
+    origin cloud and a ranked suspect list, all badged MOCK. A label does not
+    make manufactured geometry acceptable inside a real run: a stage that did
+    not run has no output, and the UI renders the absence.
+    """
+    stale = out_dir / stage.output
+    if stale.exists() and not stage.output.endswith(".tif"):
+        stale.unlink()
+    stage.status, stage.source, stage.detail = "failed", "none", reason
+    return False
 
 
 # --------------------------------------------------------------------------
@@ -124,7 +130,10 @@ def stage_detect(stage: Stage, scene: Path, scene_id: str, meta: Optional[dict],
                  out_dir: Path, weights: Path, force_engine: Optional[str]) -> Optional[dict]:
     from backend.services.detection.service import detect
 
-    resp = detect(scene, scene_id, out_dir, weights, meta, force_engine)
+    screened = engine_dir(out_dir) / SCREENED_MASK
+    screened.unlink(missing_ok=True)
+    resp = detect(scene, scene_id, out_dir, weights, meta, force_engine,
+                  screened_out=screened)
     stage.source = "real"
     stage.engine_used = resp.engine.value
     stage.status = "ok" if resp.engine.value == "ml" else "fallback"
@@ -135,15 +144,32 @@ def stage_detect(stage: Stage, scene: Path, scene_id: str, meta: Optional[dict],
     warn_file = out_dir / "detect_warnings.json"
     if warn_file.exists():
         stage.warnings = json.loads(warn_file.read_text())
-    # Characterisation and drift consume raw_mask.tif, which still contains the
-    # rejected regions. Say so rather than letting a fully-rejected scene flow
-    # through to an origin cloud that looks like a real spill.
+    # With oil AND look-alikes, characterisation measures the screened mask
+    # (see characterise_mask_for). With look-alikes only there is no oil to
+    # keep, so the full mask still flows downstream -- say so rather than
+    # letting a fully-rejected scene become an origin cloud that looks real.
     if look and not oil:
         stage.warnings.append(
             "every candidate was rejected as a look-alike by the screening "
             "model; downstream drift still runs on the full mask, so treat "
             "this origin and its suspects as unconfirmed")
     return resp.model_dump(by_alias=True)
+
+
+SCREENED_MASK = "screened_mask.tif"
+
+
+def characterise_mask_for(out_dir: Path, detect_result: dict) -> Path:
+    """The mask characterisation should measure.
+
+    The oil-only mask when detection wrote one (the screen split the regions),
+    otherwise raw_mask.tif. Before this, every region the screen rejected was
+    characterised too, and because drift seeds from the largest slick, the
+    hindcast and the attribution could trace a look-alike -- which is what the
+    flagship run did.
+    """
+    screened = engine_dir(out_dir) / SCREENED_MASK
+    return screened if screened.exists() else Path(detect_result["mask_path"])
 
 
 def stage_characterise(stage: Stage, scene: Path, out_dir: Path,
@@ -157,9 +183,14 @@ def stage_characterise(stage: Stage, scene: Path, out_dir: Path,
         native = engine_dir(out_dir) / stage.output
         # Full scenes are cropped to the detection footprint (+ sea margin)
         # before Engine A, which otherwise loads the whole raster.
+        mask_src = characterise_mask_for(out_dir, detect_result)
+        if mask_src.name == SCREENED_MASK:
+            stage.warnings.append(
+                "measured the screened mask: regions the screening model rejected "
+                "as look-alikes are not characterised, drifted or attributed "
+                "(they remain in raw_mask.tif and detect_response.json)")
         mask_in, scene_in, crop_note = footprint_crop.crop_for_engine_a(
-            Path(detect_result["mask_path"]).resolve(), Path(scene).resolve(),
-            engine_dir(out_dir))
+            mask_src.resolve(), Path(scene).resolve(), engine_dir(out_dir))
         if crop_note:
             stage.warnings.append(crop_note)
         res = engines.characterise(
@@ -198,7 +229,7 @@ def _characterise_standin(stage: Stage, scene: Path, out_dir: Path,
 
     import rasterio
     db, profile, valid = read_scene(scene)
-    with rasterio.open(detect_result["mask_path"]) as src:
+    with rasterio.open(characterise_mask_for(out_dir, detect_result)) as src:
         mask = src.read(1)
 
     acquired = datetime.now(timezone.utc)
@@ -229,7 +260,8 @@ def _characterise_standin(stage: Stage, scene: Path, out_dir: Path,
 
 
 def stage_mocked(stage: Stage, out_dir: Path, reason: str) -> bool:
-    return serve_mock(stage, out_dir, reason)
+    """Kept under its old name for its call sites; it no longer serves a mock."""
+    return stage_unavailable(stage, out_dir, reason)
 
 
 def engine_dir(out_dir: Path) -> Path:
@@ -246,6 +278,49 @@ def engine_dir(out_dir: Path) -> Path:
     return d
 
 
+_GRID_FACTS: Dict[tuple, Optional[dict]] = {}
+
+
+def grid_facts(path: Path) -> Optional[dict]:
+    """The footprint and time span of a forcing grid, read once per file.
+
+    Resolving forcing opens every grid in the cache to ask where and when it
+    is -- 51 NetCDF opens at ~0.4 s each, on every call, which made the
+    workspace's forcing_field endpoint a 25 s request. A grid's extent cannot
+    change without the file changing, so the answer is keyed on the file's
+    path, size and mtime and read once. None means the file could not be
+    read; a missing time axis is ``times: None``.
+    """
+    try:
+        st = Path(path).stat()
+        key = (str(Path(path).resolve()), st.st_size, st.st_mtime_ns)
+    except OSError:
+        return None
+    if key in _GRID_FACTS:
+        return _GRID_FACTS[key]
+    facts = None
+    try:
+        import numpy as _np
+        import xarray as xr
+
+        with xr.open_dataset(path) as ds:
+            lon_name = next((n for n in ("lon", "longitude", "x") if n in ds.coords), None)
+            lat_name = next((n for n in ("lat", "latitude", "y") if n in ds.coords), None)
+            facts = {"lon": None, "lat": None, "times": None}
+            if lon_name and lat_name:
+                lon = ds[lon_name].values
+                lat = ds[lat_name].values
+                facts["lon"] = (float(_np.nanmin(lon)), float(_np.nanmax(lon)))
+                facts["lat"] = (float(_np.nanmin(lat)), float(_np.nanmax(lat)))
+            if "time" in ds.coords or "time" in ds.dims:
+                times = ds["time"].values
+                facts["times"] = (str(times[0])[:19], str(times[-1])[:19])
+    except Exception:
+        facts = None
+    _GRID_FACTS[key] = facts
+    return facts
+
+
 def grid_covers_bbox(path: Path, bbox: Optional[list]) -> Optional[bool]:
     """Does this forcing grid span the scene's footprint?
 
@@ -260,24 +335,13 @@ def grid_covers_bbox(path: Path, bbox: Optional[list]) -> Optional[bool]:
     """
     if not bbox or len(bbox) != 4:
         return None
-    try:
-        import xarray as xr
-
-        with xr.open_dataset(path) as ds:
-            lon_name = next((n for n in ("lon", "longitude", "x") if n in ds.coords), None)
-            lat_name = next((n for n in ("lat", "latitude", "y") if n in ds.coords), None)
-            if not lon_name or not lat_name:
-                return None
-            lon = ds[lon_name].values
-            lat = ds[lat_name].values
-    except Exception:
+    facts = grid_facts(path)
+    if not facts or not facts["lon"] or not facts["lat"]:
         return None
 
-    import numpy as _np
-
     lo0, la0, lo1, la1 = [float(v) for v in bbox]
-    lon_min, lon_max = float(_np.nanmin(lon)), float(_np.nanmax(lon))
-    lat_min, lat_max = float(_np.nanmin(lat)), float(_np.nanmax(lat))
+    lon_min, lon_max = facts["lon"]
+    lat_min, lat_max = facts["lat"]
     # Grids are commonly stored on 0..360; compare in the scene's convention.
     if lon_min >= 0.0 and lon_max > 180.0 and lo0 < 0.0:
         lon_min, lon_max = lon_min - 360.0, lon_max - 360.0
@@ -599,20 +663,19 @@ def forcing_coverage_hours(paths, acquired_utc: Optional[str]):
     if not acquired_utc:
         return None, None
     try:
-        import xarray as xr
-
         acquired = datetime.fromisoformat(acquired_utc.replace("Z", "+00:00"))
         first, last = None, None
         for p in [x for x in paths if x]:
-            with xr.open_dataset(str(p)) as ds:
-                if "time" not in ds.coords and "time" not in ds.dims:
-                    continue
-                times = ds["time"].values
-                t0 = datetime.fromisoformat(str(times[0])[:19]).replace(tzinfo=timezone.utc)
-                t1 = datetime.fromisoformat(str(times[-1])[:19]).replace(tzinfo=timezone.utc)
-                # Intersection across grids: drift needs BOTH to cover the span.
-                first = t0 if first is None else max(first, t0)
-                last = t1 if last is None else min(last, t1)
+            facts = grid_facts(Path(p))
+            if facts is None:
+                raise OSError(f"unreadable forcing grid: {p}")
+            if not facts["times"]:
+                continue
+            t0 = datetime.fromisoformat(facts["times"][0]).replace(tzinfo=timezone.utc)
+            t1 = datetime.fromisoformat(facts["times"][1]).replace(tzinfo=timezone.utc)
+            # Intersection across grids: drift needs BOTH to cover the span.
+            first = t0 if first is None else max(first, t0)
+            last = t1 if last is None else min(last, t1)
         if first is None:
             return None, None
         return ((acquired - first).total_seconds() / 3600.0,
@@ -1130,14 +1193,17 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
     # --- characterise -----------------------------------------------------
     s = by_name["characterise"]
     s.key(inputs={"mask": "raw_mask.tif", "scene": scene},
-          params={"scene_id": scene_id})
+          params={"scene_id": scene_id,
+                  # characterise measures the oil-only mask when the screen
+                  # split the regions; older runs measured the full mask.
+                  "lookalike_screening": "oil-only-when-split"})
     t0 = time.time()
     if detect_result is None:
         stage_mocked(s, out_dir, "detection failed upstream")
     else:
         try:
             if not stage_characterise(s, Path(scene), out_dir, detect_result, meta):
-                stage_mocked(s, out_dir, s.detail or "characterisation produced nothing")
+                stage_mocked(s, out_dir, s.detail or "no oil region to characterise in this scene")
         except Exception as exc:
             stage_mocked(s, out_dir, f"stand-in failed ({type(exc).__name__}: {exc})")
     s.seconds = time.time() - t0
@@ -1306,14 +1372,14 @@ def run_pipeline(scene: Path, scene_meta: Optional[Path], run_id: str,
     # Orthogonal to `source`/status: what the bytes were, per layer.
     scene_ds = data_source_for_scene(Path(scene), meta)
     for name in ("detect", "characterise"):
-        by_name[name].data_source = scene_ds if by_name[name].status != "mock" else "synthetic"
+        by_name[name].data_source = scene_ds if by_name[name].status in ("ok", "fallback") else "none"
     forcing_ds = data_source_for_forcing([currents, wind])
     for name in ("drift_hindcast", "drift_forecast"):
         by_name[name].data_source = (forcing_ds if by_name[name].status in ("ok", "fallback")
-                                     else "synthetic")
+                                     else "none")
     by_name["attribution"].data_source = (
         data_source_for_vessels(vessels_path)
-        if by_name["attribution"].status in ("ok", "fallback") else "synthetic")
+        if by_name["attribution"].status in ("ok", "fallback") else "none")
 
     # --- validate everything ---------------------------------------------
     for s in stages:

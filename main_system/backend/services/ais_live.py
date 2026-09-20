@@ -444,10 +444,17 @@ class AisLiveWorker:
 
         with SessionLocal() as db:
             zone_cache: dict[tuple, Optional[str]] = {}
+            # Rows created in THIS batch, by MMSI. The session is not
+            # autoflushed, so `db.get` cannot see a row that was only
+            # `db.add`-ed: a second position from a newly seen vessel in the
+            # same batch was inserted again, and the UNIQUE violation at commit
+            # threw away the whole batch. A static frame after a new vessel's
+            # first position was likewise dropped as "never seen".
+            batch_rows: dict[int, AisLiveState] = {}
             for obs in batch.positions:
-                self._upsert_live(db, obs, zone_cache)
+                self._upsert_live(db, obs, zone_cache, batch_rows)
             for static in batch.statics:
-                self._merge_static(db, static)
+                self._merge_static(db, static, batch_rows)
             db.commit()
 
         with self._lock:
@@ -482,13 +489,15 @@ class AisLiveWorker:
         cache[key] = zone.id if zone else None
         return cache[key]
 
-    def _upsert_live(self, db, obs: dict, zone_cache: dict) -> None:
-        row = db.get(AisLiveState, obs["mmsi"])
+    def _upsert_live(self, db, obs: dict, zone_cache: dict,
+                     batch_rows: Optional[dict] = None) -> None:
+        batch_rows = {} if batch_rows is None else batch_rows
+        row = batch_rows.get(obs["mmsi"]) or db.get(AisLiveState, obs["mmsi"])
         now = utcnow()
         report = obs["timestamp_utc"]
 
         if row is None:
-            db.add(AisLiveState(
+            row = AisLiveState(
                 mmsi=obs["mmsi"], lat=obs["lat"], lon=obs["lon"],
                 sog_kn=obs["sog_kn"], cog_deg=obs["cog_deg"],
                 heading_deg=obs["heading_deg"], nav_status=obs["nav_status"],
@@ -497,7 +506,9 @@ class AisLiveWorker:
                 message_count=1,
                 zone_id=self._zone_for(db, obs["lon"], obs["lat"], zone_cache),
                 source=obs.get("source", "real"),
-                provider=obs.get("provider", "AISStream")))
+                provider=obs.get("provider", "AISStream"))
+            db.add(row)
+            batch_rows[obs["mmsi"]] = row
             return
 
         # Out-of-order guard. A late relay must not drag the marker backwards.
@@ -524,7 +535,8 @@ class AisLiveWorker:
         row.message_count = (row.message_count or 0) + 1
         row.zone_id = self._zone_for(db, obs["lon"], obs["lat"], zone_cache)
 
-    def _merge_static(self, db, static: dict) -> None:
+    def _merge_static(self, db, static: dict,
+                      batch_rows: Optional[dict] = None) -> None:
         """Merge identity into an existing vessel row.
 
         Deliberately does NOT create a row. A static frame carries no position,
@@ -532,7 +544,7 @@ class AisLiveWorker:
         vessel we have never seen move is dropped until it transmits a
         position. The next static frame (six minutes) re-merges it.
         """
-        row = db.get(AisLiveState, static["mmsi"])
+        row = (batch_rows or {}).get(static["mmsi"]) or db.get(AisLiveState, static["mmsi"])
         if row is None:
             return
         for field in ("vessel_name", "callsign", "imo", "vessel_type",

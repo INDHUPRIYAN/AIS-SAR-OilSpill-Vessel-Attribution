@@ -38,17 +38,21 @@ export function aisBadgeFor(stream) {
   return { tone: "danger", text: String(stream.state || "unknown").toUpperCase() };
 }
 
-export function useGlobeData({ liveInterval = 15000, withRun = true } = {}) {
+/** `paused`: a globe that is mounted but not on screen (the workspace keeps
+ *  its 3D surface warm so a presentation can start from orbit without a
+ *  shader-compile hitch) loads each layer once and polls nothing. */
+export function useGlobeData({ liveInterval = 15000, withRun = true, paused = false } = {}) {
   const { runId: contextRun } = useShell();
+  const every = (ms) => (paused ? 0 : ms);
 
   const zonesQ = useApi(() => api.zonesGeojson({ status: "active" }), []);
-  const zoneListQ = useApi(() => api.listZones({ counts: true }), [], { interval: 60000 });
-  const incidentsQ = useApi(() => api.listIncidents({ limit: 200 }), [], { interval: 45000 });
+  const zoneListQ = useApi(() => api.listZones({ counts: true }), [], { interval: every(60000) });
+  const incidentsQ = useApi(() => api.listIncidents({ limit: 200 }), [], { interval: every(45000) });
   /* Polled, because it is a LIVE layer. 15 s is well inside the AIS report
    * interval and far outside anything that would hammer the API. */
   const liveQ = useApi(() => api.liveVessels({ max_age_minutes: 60, limit: 2000 }),
-                       [], { interval: liveInterval });
-  const aisStatusQ = useApi(() => api.aisStatus(), [], { interval: 30000 });
+                       [], { interval: every(liveInterval) });
+  const aisStatusQ = useApi(() => api.aisStatus(), [], { interval: every(30000) });
 
   /* The run whose overlays are shown: the run in context, else the most
    * recently completed run. Stated on screen by the caller, never implied. */

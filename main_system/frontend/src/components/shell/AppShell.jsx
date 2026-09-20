@@ -22,10 +22,10 @@ export default function AppShell({ children }) {
 
   return (
     <div className="app">
-      <TopHeader status={status} ais={ais} alertsSummary={alerts} />
+      <TopHeader status={status} ais={ais} alertsSummary={alerts}
+        onToggleNav={() => setCollapsed((c) => !c)} />
       <div className={`body ${collapsed ? "nav-collapsed" : ""}`}>
-        <LeftNav collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)}
-          alertsSummary={alerts} />
+        <LeftNav collapsed={collapsed} alertsSummary={alerts} />
         <main className="main" id="main">{children}</main>
       </div>
       <StatusBar status={status} ais={ais} health={health} workers={workers} />

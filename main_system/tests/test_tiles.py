@@ -281,3 +281,29 @@ def test_a_bad_bbox_is_refused(client):
         pytest.skip("no flagship pointer")
     r = client.get(f"/api/runs/{rid}/vessels_geojson", params={"bbox": "1,2,3"})
     assert r.status_code == 422
+
+
+def test_the_vessel_cap_never_drops_a_ranked_candidate(client):
+    """`max_vessels` used to slice in MMSI order: on a scene with more vessels
+    than the cap, three of the flagship's four ranked candidates -- including
+    #1 -- had no track on the map. The expectation comes from suspects.json,
+    NOT from the endpoint's own `rank` flags, which is how the sibling test
+    above passed while the map was wrong."""
+    rid = _flagship_run_id()
+    if rid is None:
+        pytest.skip("no flagship pointer")
+    sus = client.get(f"/api/layers/{rid}/suspects")
+    body = client.get(f"/api/runs/{rid}/vessels_geojson")
+    if sus.status_code != 200 or body.status_code != 200:
+        pytest.skip("this run has no suspects or no vessels")
+    ranked = {int(s["mmsi"]) for s in sus.json().get("suspects", [])}
+    if not ranked:
+        pytest.skip("this run ranked nobody")
+
+    drawn = {int(f["properties"]["mmsi"]): f["properties"].get("rank") for f in body.json()["features"]}
+    assert ranked <= set(drawn), f"ranked candidates with no track: {sorted(ranked - set(drawn))}"
+    assert all(drawn[m] for m in ranked), "a ranked candidate's track lost its rank"
+
+    # and a tighter cap still spends its budget on them first
+    few = client.get(f"/api/runs/{rid}/vessels_geojson", params={"max_vessels": len(ranked)}).json()
+    assert {int(f["properties"]["mmsi"]) for f in few["features"]} == ranked

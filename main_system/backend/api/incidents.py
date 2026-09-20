@@ -22,10 +22,16 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.core.authz import current_user, require_role
-from backend.models.db import (INCIDENT_REVIEWER_STATUSES, INCIDENT_STATUSES,
-                               Incident, Investigation, Run, User, get_db,
-                               utcnow)
+from backend.models.db import (IMPLICIT_ROLES, INCIDENT_REVIEWER_STATUSES,
+                               INCIDENT_STATUSES, ZONE_SCOPED_ROLES, Incident,
+                               Investigation, Run, User, get_db, utcnow)
 from backend.services import audit as audit_service
+from backend.services import zones as zone_service
+
+# Who may edit a case at all. `auditor` reads and never writes; a zone officer
+# is admitted only for incidents inside their own assignment (checked against
+# the incident, which a route-level guard cannot see).
+INCIDENT_EDIT_ROLES = frozenset({"investigator", "analyst", "reviewer"})
 
 router = APIRouter()
 
@@ -243,11 +249,18 @@ def update_incident(request: Request, incident_id: str, body: IncidentPatch,
     if inc is None:
         raise HTTPException(404, f"no incident {incident_id}")
 
+    if user.role in ZONE_SCOPED_ROLES:
+        if inc.zone_id is None or inc.zone_id not in zone_service.assigned_zone_ids(db, user):
+            raise HTTPException(
+                403, f"incident {incident_id} is outside the zones assigned to you")
+    elif user.role not in INCIDENT_EDIT_ROLES and user.role not in IMPLICIT_ROLES:
+        raise HTTPException(403, f"role '{user.role}' may not edit incidents")
+
     changes: Dict[str, Any] = {}
 
     if body.status is not None and body.status != inc.status:
         if (body.status in INCIDENT_REVIEWER_STATUSES
-                and user.role not in ("reviewer", "admin")):
+                and user.role != "reviewer" and user.role not in IMPLICIT_ROLES):
             raise HTTPException(
                 403, f"role '{user.role}' may not set status '{body.status}'; "
                      f"concluding a case is a reviewer decision")

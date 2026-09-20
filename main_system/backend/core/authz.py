@@ -108,8 +108,71 @@ def clear_session_cookie(response: Response) -> None:
     )
 
 
-def optional_user(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
-    """The signed-in user, or None. For routes that adapt rather than reject."""
+# --------------------------------------------------------------------------
+# public evaluator view
+# --------------------------------------------------------------------------
+
+# Writes the anonymous evaluator may NOT make, even though it holds an
+# administrative role. Everything else -- running and replaying investigations,
+# recording decisions, opening incidents, composing reports -- is open, because
+# the evaluation is of the workflow. These are the actions whose effect would
+# outlive the demo or reach past it: replacing provider credentials, creating
+# or changing accounts, deleting or re-staffing zones, driving the live AIS
+# worker, and wiping logs.
+EVALUATOR_BLOCKED_WRITES = (
+    "/api/keys",
+    "/api/users",
+    "/api/ais/stream",
+    "/api/ais/live/prune",
+    "/api/logs/clear",
+    "/api/incidents/backfill-zones",
+)
+
+
+def _evaluator_blocked(request: Request) -> bool:
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        return False
+    path = request.url.path
+    if any(path.startswith(p) for p in EVALUATOR_BLOCKED_WRITES):
+        return True
+    # Zone deletion and officer assignment are jurisdictional facts; the
+    # evaluator may draw a new operational zone but not delete or re-staff one.
+    if path.startswith("/api/zones/") and (
+            request.method == "DELETE" or "/assignments" in path):
+        return True
+    return False
+
+
+def evaluator_user(db: Session) -> User:
+    """The shared evaluator account, created on first use.
+
+    A real row rather than a synthetic object, so everything that records an
+    actor (audit, decisions, incidents, reports) names the evaluator instead of
+    "anonymous". It has no password hash, so it can never be signed into, and
+    its role is re-applied here so a change to OT_EVALUATOR_ROLE takes effect.
+    """
+    email = settings.evaluator_email
+    user = db.query(User).filter(User.email == email).one_or_none()
+    role = settings.evaluator_role if settings.evaluator_role in ROLES else "admin"
+    if user is None:
+        user = User(email=email, password_hash=None, display_name="SIH Evaluator",
+                    role=role, active=True)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    elif user.role != role or not user.active:
+        user.role = role
+        user.active = True
+        db.commit()
+    return user
+
+
+def is_evaluator(user: Optional[User]) -> bool:
+    return bool(user is not None and settings.public_evaluator
+                and user.email == settings.evaluator_email)
+
+
+def _session_user(request: Request, db: Session) -> Optional[User]:
     token = request.cookies.get(settings.session_cookie)
     if not token:
         return None
@@ -124,6 +187,27 @@ def optional_user(request: Request, db: Session = Depends(get_db)) -> Optional[U
     if user is None or not user.active:
         return None
     return user
+
+
+def optional_user(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
+    """The signed-in user, or None. For routes that adapt rather than reject.
+
+    With OT_PUBLIC_EVALUATOR on, a request without a valid session is the
+    evaluator. A real session always wins, so signing in shows that user's own
+    role-scoped view.
+    """
+    user = _session_user(request, db)
+    if user is not None:
+        return user
+    if not settings.public_evaluator:
+        return None
+    if _evaluator_blocked(request):
+        raise HTTPException(
+            status_code=403,
+            detail="not available in the public evaluator view: this action "
+                   "changes credentials, accounts, zone staffing or live "
+                   "workers. Sign in with a production account to perform it.")
+    return evaluator_user(db)
 
 
 def current_user(user: Optional[User] = Depends(optional_user)) -> User:

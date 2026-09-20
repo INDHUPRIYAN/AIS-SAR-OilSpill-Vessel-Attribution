@@ -11,17 +11,20 @@ import { Waves } from "lucide-react";
 
 import Operations from "./pages/Operations";
 import Satellite from "./pages/Satellite";
+import SarDatabase from "./pages/SarDatabase";
 import Environment from "./pages/Environment";
 import Reports from "./pages/Reports";
 import Models from "./pages/Models";
 import SystemOps from "./pages/SystemOps";
 import Audit from "./pages/Audit";
+import HindcastEngines from "./pages/HindcastEngines";
 import GlobeViewPage from "./pages/GlobeView";
 import OfficerDashboard from "./pages/OfficerDashboard";
 import OfficersPage from "./pages/Officers";
 import ZonesPage from "./pages/Zones";
 import Incident from "./pages/Incident";
 import Investigation from "./pages/Investigation";
+import Investigations from "./pages/Investigations";
 import Monitoring from "./pages/Monitoring";
 import Catalog from "./pages/Catalog";
 import Alerts from "./pages/Alerts";
@@ -40,6 +43,7 @@ import { ShellProvider } from "./lib/shell";
 import { ThemeProvider } from "./lib/theme";
 import "./incident.css";
 import "./workspace.css";
+import "./workspace-panels.css";
 
 function App() {
   return (
@@ -57,17 +61,20 @@ function App() {
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/about" element={<About />} />
         <Route path="/investigation" element={<Investigation />} />
+        <Route path="/investigations" element={<Investigations />} />
         <Route path="/report" element={<Report />} />
         <Route path="/monitoring" element={<Monitoring />} />
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/keys" element={<Keys />} />
         <Route path="/satellite" element={<Satellite />} />
+        <Route path="/sar-database" element={<SarDatabase />} />
         <Route path="/environment" element={<Environment />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/models" element={<Models />} />
         <Route path="/system" element={<SystemOps />} />
         <Route path="/audit" element={<Audit />} />
+        <Route path="/hindcast" element={<HindcastEngines />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <CommandPalette />
@@ -94,9 +101,11 @@ function Booting() {
  * user would show a frame full of failed panels, since every /api route
  * requires authentication -- the sign-in form is the honest state. */
 function Gate({ children }) {
-  const { user, checking } = useSession();
+  const { user, checking, loginOpen } = useSession();
   if (checking) return <Booting />;
-  if (!user) return <SignIn />;
+  // The public evaluator view opens the form on request (the Login button);
+  // a production deployment opens it whenever there is no session.
+  if (!user || loginOpen) return <SignIn />;
   return children;
 }
 

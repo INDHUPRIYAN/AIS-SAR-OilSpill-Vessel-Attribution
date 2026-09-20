@@ -83,6 +83,20 @@ class Settings:
         self.session_cookie_secure = (
             secure_env.lower() == "true" if secure_env is not None else not self.debug)
 
+        # --- public evaluator view (SIH) ------------------------------------
+        # When on, a visitor with NO session is served as a fixed, password-less
+        # evaluator account instead of being sent to the sign-in form, so a
+        # judge can open the URL and see every screen. A real sign-in still
+        # takes precedence, so production RBAC stays demonstrable from the
+        # Login button. Off by default: a deployment must opt in explicitly.
+        self.public_evaluator = (
+            os.getenv("OT_PUBLIC_EVALUATOR", "false").lower() == "true")
+        self.evaluator_email = os.getenv(
+            "OT_EVALUATOR_EMAIL", "evaluator@oceantrace.public").strip().lower()
+        # admin sees every screen and can run every workflow; super_admin would
+        # also let an anonymous visitor redraw protected jurisdiction boundaries.
+        self.evaluator_role = os.getenv("OT_EVALUATOR_ROLE", "admin")
+
         # First-run administrator. Absent by default: a checkout with no
         # credentials set gets NO account rather than a well-known one.
         self.admin_email = os.getenv("OT_ADMIN_EMAIL", "")

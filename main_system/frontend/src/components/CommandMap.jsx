@@ -93,7 +93,7 @@ const dashExt = [new PathStyleExtension({ dash: true })];
 
 export default function CommandMap({
   bundle, frame, effects, mode, toggles, view, onViewChange,
-  windParts, currentParts, driftFwd,
+  windParts, currentParts,
   selectedMmsi, onSelect, onHoverInfo, runId, appTheme,
 }) {
   const b = bundle;
@@ -367,15 +367,6 @@ export default function CommandMap({
         getDashArray: [3, 5], extensions: dashExt,
       }));
     });
-    if (driftFwd?.length) {
-      layers.push(new ScatterplotLayer({
-        id: "forecast-particles", data: driftFwd,
-        getPosition: (d) => [d.lon, d.lat],
-        getRadius: 70, radiusMinPixels: 0.8, radiusMaxPixels: 2,
-        getFillColor: [...SEMANTIC.forecast, 130 * effects.fcAlpha],
-        updateTriggers: { getPosition: tick },
-      }));
-    }
   }
 
   /* ------------------------------------------------------------ vessels -- */

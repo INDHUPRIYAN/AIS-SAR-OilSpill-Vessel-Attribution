@@ -2,7 +2,12 @@
  * evidence dossier for the selected vessel, and the incident summary.
  *
  * Language discipline: detected / estimated / probable / reconstructed /
- * predicted / highest attribution likelihood. Never "confirmed culprit".
+ * predicted / ranked. Never "confirmed culprit".
+ *
+ * The attribution total is a weighted sum of factor scores in [0, 1]. It is
+ * shown as "score 0.67", never as "67%": a percentage reads as a probability
+ * that the vessel is responsible, which the ranking does not estimate
+ * (standing rule 6).
  */
 
 import { AnimatePresence, motion } from "framer-motion";
@@ -82,10 +87,15 @@ export default function IntelPanel({ bundle: b, frame, effects, selectedMmsi,
         <Row k="Detected" v={b.sceneMeta?.acquired_utc?.replace("T", " ").slice(0, 16) + "Z"} />
         <Row k="Spill area" v={`${b.slickProps.area_km2 ?? "—"} km² est.`} />
         <Row k="Detection conf." v={pct(b.slickProps.confidence)} />
-        <Row k="Origin conf." v={b.originEllipse?.properties?.confidence_level ?? "—"} />
-        <Row k="Vessels analysed" v={b.vesselCount} />
-        <Row k="Candidates" v={b.candidateCount} />
-        <Row k="Top likelihood" v={pct(b.top?.total_score)} tone="danger" />
+        {/* The ellipse's confidence_level is its contour (0.9 = the 90%
+          * ellipse), not a confidence in the origin; the published
+          * uncertainty radius is the number that means something here. */}
+        <Row k="Origin uncertainty" v={b.originUncertaintyKm != null
+          ? `± ${Number(b.originUncertaintyKm).toFixed(2)} km` : "not published"} />
+        <Row k="AIS vessels in scene" v={b.vesselCount} />
+        <Row k="Considered by attribution" v={b.consideredCount ?? "—"} />
+        <Row k="Ranked" v={b.candidateCount} />
+        <Row k="Rank #1 score" v={score(b.top?.total_score)} tone="danger" />
         {b.suspects?.source === "synthetic" && (
           <div className="ip-flag">
             <AlertTriangle size={11} />
@@ -256,7 +266,7 @@ function StepContent({ b, step, frame, effects, sel, selSuspect, onSelect }) {
                 <span className="rank-fill"
                   style={{ width: `${s.total_score * 100 * reveal}%` }} />
               </span>
-              <span className="rank-pct mono">{pct(s.total_score)}</span>
+              <span className="rank-pct mono">{score(s.total_score)}</span>
             </button>);
         })}
       </div>);
@@ -276,10 +286,10 @@ function Evidence({ b, sel, suspect }) {
     <div className="panel ip-card">
       <div className="ip-topline">
         <Anchor size={13} color="var(--danger)" />
-        <span>HIGHEST ATTRIBUTION LIKELIHOOD</span>
+        <span>RANK #{suspect.rank} · WEIGHTED EVIDENCE SCORE</span>
       </div>
       <div className="ip-hero">
-        <div className="ip-hero-big danger">{pct(suspect.total_score)}</div>
+        <div className="ip-hero-big danger">{score(suspect.total_score)}</div>
         <div className="ip-hero-name">{suspect.vessel_name ?? sel.mmsi}</div>
       </div>
       <Row k="MMSI" v={sel.mmsi} />
@@ -326,3 +336,4 @@ function buildChecks(s, ss) {
 }
 
 const pct = (v) => (v == null ? "—" : `${(v * 100).toFixed(v >= 0.995 ? 0 : 1)}%`);
+const score = (v) => (v == null ? "—" : Number(v).toFixed(2));

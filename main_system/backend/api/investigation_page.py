@@ -175,6 +175,9 @@ def investigation_layer(investigation_id: str, layer: str,
             raise HTTPException(
                 422, f"contract validation failed for {target.name}: "
                      f"{str(err)[:400]}")
+    if layer == "scene_meta" and isinstance(payload, dict):
+        from backend.api.sar_database import basis_for_meta
+        payload["basis"] = basis_for_meta(payload)
     return JSONResponse(payload)
 
 

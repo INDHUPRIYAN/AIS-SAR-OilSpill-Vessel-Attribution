@@ -1,0 +1,74 @@
+/* Investigation Records register. Tokens only; every rule is prefixed .inv-
+ * so it cannot leak into the shared table vocabulary. Compact rows (~36px),
+ * 12.5px body, 10px tracked uppercase heads, hairline borders, 4px radii. */
+
+.inv-page { font-size: var(--fs-md); }
+
+/* ------------------------------------------------------------ filters --- */
+
+.inv-filters { padding: var(--sp-2) var(--sp-3); background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--r-md); }
+.inv-filters .field { flex: 0 1 150px; }
+.inv-filters .field.inv-f-date { flex: 0 1 140px; }
+.inv-filters .field.inv-f-sat { flex: 1 1 220px; }
+.inv-filters .field.inv-f-officer { flex: 0 1 170px; }
+.inv-filters .inv-clear { height: 24px; }
+
+/* ------------------------------------------------------------- table ---- */
+
+.inv-records table { font-size: var(--fs-md); }
+.inv-records th {
+  padding: 6px 10px; font-size: var(--fs-xs); letter-spacing: 0.1em;
+  text-transform: uppercase; font-weight: 600; color: var(--ink-2);
+  border-bottom: 1px solid var(--line-bright); background: var(--bg-2);
+}
+.inv-records th.inv-sortable { cursor: pointer; user-select: none; }
+.inv-records th.inv-sortable:hover { color: var(--ink-0); }
+.inv-records th.inv-sortable.on { color: var(--accent); }
+.inv-records .inv-th { display: inline-flex; align-items: center; gap: 4px; }
+.inv-records th.inv-sortable:not(.on) .inv-th svg { opacity: 0.45; }
+.inv-records th.num .inv-th { justify-content: flex-end; width: 100%; }
+
+.inv-records td {
+  padding: 6px 10px; height: 36px; box-sizing: border-box;
+  border-bottom: 1px solid var(--line); vertical-align: middle;
+  color: var(--ink-1); line-height: 1.3; white-space: nowrap;
+}
+.inv-records tbody tr:last-child td { border-bottom: 1px solid var(--line); }
+.inv-records tr[data-clickable="true"]:focus-visible > td { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); outline: none; }
+.inv-records tr.inv-no-match > td { padding: 0; height: auto; white-space: normal; }
+.inv-records tr.inv-no-match:hover > td { background: transparent; }
+
+.inv-records td .sub { display: block; font-size: var(--fs-xs); color: var(--ink-3); margin-top: 1px; line-height: 1.3; }
+
+/* Investigation id: mono run id, the filing investigation underneath. */
+.inv-records .inv-id { max-width: 280px; }
+.inv-records .inv-id-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.inv-records .inv-run-id { color: var(--ink-0); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; }
+.inv-records .inv-inv-name { overflow: hidden; text-overflow: ellipsis; }
+.inv-records .inv-src { font-size: var(--fs-xs); color: var(--ink-3); letter-spacing: 0.04em; }
+
+/* Status: badge, then the REAL/TOTAL provenance chip, then MOCK if any. */
+.inv-records .inv-status-row { display: flex; align-items: center; gap: 5px; }
+.inv-records .inv-prov { height: 18px; padding: 0 6px; font-size: var(--fs-xs); letter-spacing: 0.06em; color: var(--ok); border-color: rgba(47, 191, 113, 0.3); background: var(--ok-soft); }
+.inv-records .inv-prov.inv-prov-partial { color: var(--warn); border-color: rgba(245, 165, 36, 0.3); background: var(--warn-soft); }
+
+.inv-records .inv-loc { max-width: 220px; color: var(--ink-0); }
+.inv-records .inv-scene { max-width: 200px; }
+.inv-records .inv-time { font-size: var(--fs-sm); }
+.inv-records .inv-area { font-size: var(--fs-sm); }
+.inv-records .inv-zone { color: var(--ink-0); }
+.inv-records .inv-cand { font-size: var(--fs-sm); color: var(--ink-0); }
+.inv-records .inv-when { font-size: var(--fs-sm); color: var(--ink-2); }
+
+/* ------------------------------------------------------------ footer ---- */
+
+.inv-foot { font-size: var(--fs-xs); color: var(--ink-2); flex-wrap: wrap; }
+.inv-foot .inv-foot-key { color: var(--ink-3); }
+.inv-foot .mono { color: var(--ink-2); }
+
+/* the basis of a record's time and place, beside its location */
+.inv-basis { display: inline-block; margin-top: 2px; padding: 0 6px; border-radius: 3px; border: 1px solid var(--line-bright); font-size: 9.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-1); }
+.inv-basis-measured, .inv-basis-raster { color: var(--ok); border-color: rgba(47, 191, 113, .45); }
+.inv-basis-assigned, .inv-basis-user_supplied { color: var(--warn); border-color: rgba(245, 165, 36, .5); }
+.inv-basis-synthetic { color: var(--mock); border-color: var(--mock); }
+.inv-loc .inv-basis, .inv-loc .sub { display: block; width: fit-content; }

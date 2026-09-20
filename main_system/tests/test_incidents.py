@@ -131,6 +131,31 @@ def test_investigator_may_progress_but_not_conclude(env):
         assert "reviewer" in denied.json()["detail"]
 
 
+def test_read_only_and_unassigned_roles_cannot_edit(env):
+    """An auditor never writes, and an officer with no assignment covering the
+    incident has no authority over it. Authentication alone is not enough."""
+    client, _ = env
+    _as(client, "investigator")
+    inc = _create(client, title="Hands off")
+    for role in ("auditor", "zone_officer"):
+        _as(client, role)
+        for body in ({"title": "defaced"}, {"status": "investigating"}):
+            r = client.patch(f"/api/incidents/{inc['id']}", json=body)
+            assert r.status_code == 403, f"{role} edited an incident with {body}"
+    _as(client, "investigator")
+    assert client.get(f"/api/incidents/{inc['id']}").json()["title"] == "Hands off"
+
+
+def test_super_admin_may_conclude(env):
+    """super_admin is implicit everywhere else; it must not rank below admin here."""
+    client, _ = env
+    _as(client, "investigator")
+    inc = _create(client, title="Supervised")
+    _as(client, "super_admin")
+    r = client.patch(f"/api/incidents/{inc['id']}", json={"status": "closed"})
+    assert r.status_code == 200, r.text
+
+
 def test_reviewer_may_conclude(env):
     client, _ = env
     _as(client, "investigator")

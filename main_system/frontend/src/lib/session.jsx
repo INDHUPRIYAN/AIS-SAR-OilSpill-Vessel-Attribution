@@ -20,6 +20,9 @@ export function SessionProvider({ children }) {
   // flash the login page.
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState(null);
+  // The evaluator view has a Login button: it opens the sign-in screen over a
+  // session that already works, so production RBAC can be demonstrated.
+  const [loginOpen, setLoginOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -38,15 +41,27 @@ export function SessionProvider({ children }) {
   const signIn = useCallback(async (email, password) => {
     const { user: signedIn } = await api.login(email, password);
     setUser(signedIn);
+    setLoginOpen(false);
     return signedIn;
   }, []);
 
+  /* Sign out, then ask the server who we are now: in the public evaluator
+   * view that is the evaluator again, otherwise nobody (the sign-in form). */
   const signOut = useCallback(async () => {
-    try { await api.logout(); } finally { setUser(null); }
-  }, []);
+    try { await api.logout(); } catch { /* the cookie is cleared either way */ }
+    setUser(null);
+    await refresh();
+  }, [refresh]);
+
+  const openLogin = useCallback(() => setLoginOpen(true), []);
+  const closeLogin = useCallback(() => setLoginOpen(false), []);
 
   return (
-    <SessionContext.Provider value={{ user, checking, error, signIn, signOut, refresh }}>
+    <SessionContext.Provider value={{
+      user, checking, error, signIn, signOut, refresh,
+      loginOpen, openLogin, closeLogin,
+      isEvaluator: Boolean(user?.evaluator),
+    }}>
       {children}
     </SessionContext.Provider>
   );

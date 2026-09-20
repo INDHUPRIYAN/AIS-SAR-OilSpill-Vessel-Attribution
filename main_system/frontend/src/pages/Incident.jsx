@@ -224,7 +224,6 @@ export default function Incident() {
   /* particle pools */
   const windParts = useRef(null);
   const currentParts = useRef(null);
-  const driftFwd = useRef(null);
   useEffect(() => {
     if (!bundle?.sceneMeta?.bbox) return;
     const bb = bundle.sceneMeta.bbox;
@@ -232,9 +231,10 @@ export default function Incident() {
     const big = [bb[0] - pad, bb[1] - pad, bb[2] + pad, bb[3] + pad];
     windParts.current = makeParticles(big, 380, 11);
     currentParts.current = makeParticles(big, 380, 23);
-    const c = bundle.slickProps?.centroid ?? bundle.sceneCenter;
-    const r = 0.05;
-    driftFwd.current = makeParticles([c[0] - r, c[1] - r, c[0] + r, c[1] + r], 160, 5);
+    /* There used to be a third pool here: 160 points scattered round the
+     * slick centroid and pushed by wind alone, drawn in the forecast colour on
+     * top of the forecast. They were not Engine B output and read as if they
+     * were. The forecast is the engine's own envelopes, nothing else. */
   }, [bundle]);
 
   /* the loop */
@@ -270,9 +270,6 @@ export default function Incident() {
       if (windParts.current) {
         advectParticles(windParts.current, bundle.wind, simT, dt, 900);
         advectParticles(currentParts.current, bundle.currents, simT, dt, 2600);
-        if (driftFwd.current) {
-          advectParticles(driftFwd.current, bundle.wind, simT, dt, 2000);
-        }
       }
 
       setFrame({ stepIdx: idx, stepT: p, simT, tick: eng.tick });
@@ -506,7 +503,6 @@ export default function Incident() {
               onViewChange={({ viewState }) => setView(viewState)}
               windParts={toggles.wind ? windParts.current : null}
               currentParts={toggles.currents ? currentParts.current : null}
-              driftFwd={effects.fcAlpha > 0 ? driftFwd.current : null}
               selectedMmsi={selectedMmsi}
               onSelect={(m) => setSelectedMmsi((s) => (s === m ? null : m))}
               onHoverInfo={setHoverInfo}
