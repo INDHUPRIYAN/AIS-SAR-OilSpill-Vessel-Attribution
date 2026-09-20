@@ -330,7 +330,7 @@
 }
 
 /* ------------------------------------------------------- stage timeline -- */
-.tl { flex-shrink: 0; padding: 8px 14px 10px; background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--r-md); }
+.tl { flex-shrink: 0; min-width: 0; padding: 8px 14px 10px; background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--r-md); }
 .tl-chip.on.live { box-shadow: 0 0 0 1px var(--accent), 0 0 14px rgba(34,211,238,.45); }
 .tl-clock.live { color: var(--accent); }
 
@@ -361,15 +361,18 @@
 .tl-cine-hold { color: var(--warn); }
 .tl-top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 .tl-title { font-size: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-0); flex-shrink: 0; }
-.tl-chips { display: flex; gap: 6px; flex: 1; }
-.tl-chip { height: 32px; padding: 0 16px; border-radius: var(--r-sm); border: 1px solid var(--line-bright); background: var(--bg-3); color: var(--ink-1); font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: inherit; position: relative; }
+/* The chip row is the flexible part: it shrinks and scrolls so the prev/next
+   buttons never slide under the right panel at narrower centre widths. */
+.tl-chips { display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.tl-chips::-webkit-scrollbar { display: none; }
+.tl-chip { flex-shrink: 0; height: 32px; padding: 0 16px; border-radius: var(--r-sm); border: 1px solid var(--line-bright); background: var(--bg-3); color: var(--ink-1); font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: inherit; position: relative; }
 .tl-chip:hover { border-color: var(--accent-line); color: var(--ink-0); }
 .tl-chip.on { background: var(--accent); border-color: var(--accent); color: #04121f; }
 .tl-chip-pending { opacity: .55; }
 .tl-chip-running::after { content: ""; position: absolute; right: 6px; top: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: ot-pulse 1.2s infinite; }
 .tl-chip.on.tl-chip-running::after { background: #04121f; }
 .tl-chip-failed { border-color: rgba(239,68,68,.5); }
-.tl-nav { display: flex; gap: 4px; }
+.tl-nav { display: flex; gap: 4px; flex-shrink: 0; }
 .tl-btn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: var(--r-sm); border: 1px solid var(--line-bright); background: var(--bg-3); color: var(--ink-0); cursor: pointer; }
 .tl-btn:disabled { opacity: .35; cursor: not-allowed; }
 .tl-row { display: flex; align-items: center; gap: 14px; }

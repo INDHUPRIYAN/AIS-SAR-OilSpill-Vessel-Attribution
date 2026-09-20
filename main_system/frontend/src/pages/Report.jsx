@@ -10,7 +10,7 @@
  */
 
 import { useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Printer } from "lucide-react";
 
 import IncidentReport from "../components/report/IncidentReport";
@@ -19,8 +19,8 @@ import { api, useApi } from "../lib/api";
 import "../report.css";
 
 export default function Report() {
-  const [params] = useSearchParams();
-  const runId = params.get("run");
+  // The run is the address: /reports/print/:run.
+  const { run: runId } = useParams();
 
   // One useApi per artefact; a missing layer resolves to null instead of
   // erroring, so a partial run still yields a partial (honest) report.

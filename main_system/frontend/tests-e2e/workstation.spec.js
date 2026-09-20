@@ -33,7 +33,7 @@ async function aRealRun(page) {
 test("W1: each sidebar collapses on its own and the map takes the space", async ({ page }) => {
   await signIn(page);
   const { run } = await aRealRun(page);
-  await page.goto(`/investigation?run=${run}`);
+  await page.goto(`/investigations/run/${run}`);
   const map = page.getByTestId("ws-map");
   await expect(page.locator("canvas").first()).toBeVisible();
   await page.evaluate(() => { localStorage.removeItem("ot.ws.leftOff"); localStorage.removeItem("ot.ws.rightOff"); });
@@ -68,7 +68,7 @@ test("W2: the right panel is the current analytical context, with the run's own 
   const { run, suspects, funnel } = await aRealRun(page);
   const origin = await (await page.request.get(`/api/layers/${run}/origin_cloud?lite=true`)).json();
   const forecast = await (await page.request.get(`/api/layers/${run}/forecast`)).json();
-  await page.goto(`/investigation?run=${run}`);
+  await page.goto(`/investigations/run/${run}`);
   const panel = page.getByTestId("right-panel");
 
   await page.getByTestId("chip-drift").click();
@@ -122,7 +122,7 @@ test("W3: more than twenty records, each with the basis of its position", async 
 test("W4: the SAR database lists real scenes with their metadata and filters them", async ({ page }) => {
   await signIn(page);
   const db = await (await page.request.get("/api/sar/scenes")).json();
-  await page.goto("/sar-database");
+  await page.goto("/detections");
   await expect(page.getByTestId("sar-card")).toHaveCount(db.count, { timeout: 20_000 });
   const real = db.scenes.find((s) => s.geo_basis === "measured") || db.scenes[0];
   await page.locator(`[data-testid="sar-card"][data-scene="${real.scene_id}"]`).click();
@@ -144,7 +144,7 @@ test("W4: the SAR database lists real scenes with their metadata and filters the
 
 test("W5: an upload without metadata is asked for it, never given it", async ({ page }) => {
   await signIn(page);
-  await page.goto("/sar-database");
+  await page.goto("/detections");
   await page.getByTestId("sar-upload-file").setInputFiles(FIXTURE);
   await page.getByTestId("sar-upload-send").click();
   const need = page.getByTestId("sar-metadata-required");
@@ -175,7 +175,7 @@ test("W6: analyse a scene with the deployed models, then FIND VESSELS plays it i
   const db = await (await page.request.get("/api/sar/scenes?available=true")).json();
   // the smallest real-SAR scene on the host keeps the run short
   const scene = db.scenes.filter((s) => s.label !== "SYNTHETIC").sort((a, b) => a.raster_bytes - b.raster_bytes)[0];
-  await page.goto(`/sar-database?scene=${scene.key}`);
+  await page.goto(`/detections?scene=${scene.key}`);
   await page.getByTestId("sar-analyse").click();
   await expect(page.getByTestId("sar-analysis")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId("sar-step-detect")).toHaveAttribute("data-state", /done|failed/, { timeout: 300_000 });
@@ -189,9 +189,10 @@ test("W6: analyse a scene with the deployed models, then FIND VESSELS plays it i
   await expect(page.getByTestId("sar-mask")).toBeAttached();
 
   await page.getByTestId("find-vessels").click();
-  await expect(page).toHaveURL(/\/investigation\?/);
+  // the hand-off still speaks the legacy address; it must land on the canonical one
+  await expect(page).toHaveURL(/\/investigations\/[^/?]+\?/);
   expect(new URL(page.url()).searchParams.get("run")).toBe(run);          // the same run, not a new one
-  expect(new URL(page.url()).searchParams.get("inv")).toBe(inv);
+  expect(new URL(page.url()).pathname).toBe(`/investigations/${inv}`);
   const ws = page.getByTestId("workspace");
   await expect(ws).toHaveAttribute("data-beat", /globe|footprint|sar/, { timeout: 30_000 });
   await expect(page.getByTestId("cine-hud")).toBeVisible();

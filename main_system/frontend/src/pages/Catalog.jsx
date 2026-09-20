@@ -17,7 +17,6 @@
  * fetch failed on authentication is worse than a board showing nothing.
  */
 
-import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   AlertTriangle, Cpu, Database, HardDrive, Layers, Server, ShieldQuestion,
@@ -25,6 +24,7 @@ import {
 
 import { Badge, Card, Spinner } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
+import { useUrlTab } from "../lib/urls";
 
 const STATUS_TONE = {
   WORKING: "ok",
@@ -57,7 +57,7 @@ function Coverage({ coverage }) {
 }
 
 export default function Catalog() {
-  const [tab, setTab] = useState("providers");
+  const [tab, setTab] = useUrlTab(["providers", "models", "health"]);
   const { data: catalog, loading: l1 } = useApi(() => api.catalog(), []);
   const { data: models, loading: l2 } = useApi(() => api.models(), []);
   const { data: sys, loading: l3 } = useApi(() => api.systemHealth(), [],

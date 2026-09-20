@@ -892,7 +892,7 @@ export function EvidencePanel({ ctx }) {
             <Row k="Status" v={incident.status} mono={false} />
             <Row k="Severity" v={incident.severity} mono={false} />
             <Row k="Origin" v={incident.origin === "auto" ? "automatic gate" : incident.origin || "—"} mono={false} />
-            <Link className="ip-secondary" to={`/incidents?incident=${incident.id}`}>Open incident <ExternalLink size={12} /></Link>
+            <Link className="ip-secondary" to={`/operations/incidents?focus=${incident.id}`}>Open incident <ExternalLink size={12} /></Link>
           </div>
         ) : gate ? (
           <>

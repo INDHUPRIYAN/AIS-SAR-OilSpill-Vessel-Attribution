@@ -24,7 +24,7 @@ import {
 function Where() {
   return (
     <Routes>
-      {ROUTES.map((r) => (
+      {ROUTES.filter((r) => r.palette !== false).map((r) => (
         <Route key={r.to} path={r.to} element={<div>at {r.to}</div>} />
       ))}
       <Route path="*" element={<div>at /</div>} />
@@ -111,7 +111,7 @@ describe("it reaches every screen", () => {
   it("lists one command per declared route", () => {
     render(<Harness />);
     openPalette();
-    for (const r of ROUTES) {
+    for (const r of ROUTES.filter((x) => x.palette !== false)) {
       expect(screen.getByTestId(`palette-command-route:${r.to}`)).toBeInTheDocument();
     }
   });
@@ -339,8 +339,8 @@ describe("run in context", () => {
     expect(screen.getByTestId("ctx")).toHaveTextContent("inv-gulf-flagship-20230108-2day");
 
     openPalette();
-    fireEvent.click(screen.getByTestId("palette-command-route:/catalog"));
-    await waitFor(() => expect(screen.getByText("at /catalog")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("palette-command-route:/system/data-sources"));
+    await waitFor(() => expect(screen.getByText("at /system/data-sources")).toBeInTheDocument());
     // still there: the honesty strip does not empty because you navigated
     expect(screen.getByTestId("ctx")).toHaveTextContent("inv-gulf-flagship-20230108-2day");
 

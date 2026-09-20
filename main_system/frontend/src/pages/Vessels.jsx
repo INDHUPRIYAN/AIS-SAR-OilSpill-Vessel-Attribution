@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Activity, AlertTriangle, Anchor, Crosshair, Film, Gauge, Navigation, Radar, Radio,
   RefreshCw, Scale, Search, Ship,
@@ -27,11 +27,12 @@ import {
 } from "../components/ui";
 import { fmtLat, fmtLon } from "../components/Globe";
 import { api, fmt, useApi } from "../lib/api";
+import { useVesselParams } from "../lib/urls";
 
 const num = (v, d = 1) => (v == null || Number.isNaN(Number(v)) ? "—" : Number(v).toFixed(d));
 
 export default function Vessels() {
-  const [params, setParams] = useSearchParams();
+  const [params, setParams] = useVesselParams();
   const [q, setQ] = useState("");
   const [source, setSource] = useState("");
 

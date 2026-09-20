@@ -15,13 +15,13 @@ import { KeyRound, Lock, LockOpen, Save, ShieldCheck, History, AlertTriangle } f
 
 import { Badge, Card, PageHeader, Spinner } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
-import { useSession } from "../lib/session";
+import { hasRole, useSession } from "../lib/session";
 
 export default function Keys() {
   // Authority now comes from the session, not a shared token this page had to
   // hold in localStorage. A non-admin sees why rather than a failed request.
   const { user, signOut } = useSession();
-  if (user?.role !== "admin") {
+  if (!hasRole(user)) {
     return (
       <div className="page">
         <Card title="Credential management">

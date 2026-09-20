@@ -44,7 +44,7 @@ export default function CommandPalette() {
   /* Route commands are derived from ROUTES rather than listed again here, so
    * a screen cannot exist that the palette cannot reach. */
   const localCommands = useMemo(() => [
-    ...ROUTES.map((r) => ({
+    ...ROUTES.filter((r) => r.palette !== false).map((r) => ({
       id: `route:${r.to}`, group: "Go to", label: r.label,
       hint: r.to, run: () => navigate(r.to),
     })),

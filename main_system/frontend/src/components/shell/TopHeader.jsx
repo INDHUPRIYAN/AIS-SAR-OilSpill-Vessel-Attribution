@@ -1,4 +1,4 @@
-/* The global header: identity, where you are, what run you are looking at,
+/* The global header: identity, where you are (breadcrumbs), what run you are looking at,
  * the search box, the live pulse, alerts, theme and who you are.
  *
  * Nothing in this bar is decorative. The pulse is the measured provider
@@ -7,16 +7,18 @@
  * in context and nothing else. */
 
 import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Bell, ChevronDown, Eye, Inbox, LogIn, LogOut, Menu, Moon, Search, ShieldCheck, Sun, Waves,
 } from "lucide-react";
 
 import { useSession } from "../../lib/session";
-import { PRIMARY_NAV, routeFor, useShell } from "../../lib/shell";
+import { useShell } from "../../lib/shell";
+import { url } from "../../lib/urls";
 import { useTheme } from "../../lib/theme";
 import { ProvenanceChips, ZuluClock } from "../TopBarStatus";
 import { Kbd, LiveIndicator } from "../ui";
+import Breadcrumbs from "./Breadcrumbs";
 
 const ROLE_LABEL = {
   super_admin: "Super Admin", admin: "Admin", investigator: "Investigator",
@@ -55,9 +57,7 @@ export default function TopHeader({ status, ais, alertsSummary, onToggleNav }) {
   const { user, signOut, isEvaluator, openLogin } = useSession();
   const { openPalette } = useShell();
   const { theme, toggle } = useTheme();
-  const location = useLocation();
   const navigate = useNavigate();
-  const route = routeFor(location.pathname);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -74,12 +74,12 @@ export default function TopHeader({ status, ais, alertsSummary, onToggleNav }) {
 
   return (
     <header className="hdr" data-testid="top-header">
-      <button className="hdr-btn hdr-burger" onClick={onToggleNav} title="Collapse or expand the navigation rail"
+      <button className="hdr-btn hdr-burger" onClick={onToggleNav} title="Collapse or expand the navigation"
         data-testid="nav-toggle" aria-label="Toggle navigation">
         <Menu size={18} />
       </button>
 
-      <Link className="brand" to="/" title="OceanTrace — overview">
+      <Link className="brand" to="/" title="OceanTrace — dashboard">
         <div className="brand-mark"><Waves size={17} /></div>
         <div>
           <div className="brand-name">OCEAN<b>TRACE</b></div>
@@ -87,22 +87,7 @@ export default function TopHeader({ status, ais, alertsSummary, onToggleNav }) {
         </div>
       </Link>
 
-      {/* The product's top-level surfaces. Active state is resolved from the
-          URL, so a deep link lights the right tab. */}
-      <nav className="hdr-nav" aria-label="Primary sections" data-testid="primary-nav">
-        {PRIMARY_NAV.map((n) => (
-          <NavLink key={n.to} to={n.to} end={n.to === "/"}
-            className={({ isActive }) => `hdr-nav-item ${isActive ? "active" : ""}`}
-            data-testid={`hnav-${n.label.toLowerCase()}`}>
-            {n.label}
-          </NavLink>
-        ))}
-      </nav>
-
-      <div className="hdr-ctx" data-testid="header-context">
-        <span className="hdr-ctx-section">{route?.section || "OceanTrace"}</span>
-        <span className="hdr-ctx-title">{route?.label || "—"}</span>
-      </div>
+      <Breadcrumbs />
 
       <div className="hdr-mid">
         <ProvenanceChips />
@@ -118,7 +103,7 @@ export default function TopHeader({ status, ais, alertsSummary, onToggleNav }) {
 
         <LiveIndicator tone={pulse.tone} label={pulse.label} title={pulse.title} />
 
-        <button className={`hdr-btn ${open ? "on" : ""}`} onClick={() => navigate("/alerts")}
+        <button className={`hdr-btn ${open ? "on" : ""}`} onClick={() => navigate(url.alerts())}
           title={open ? `${open} open alert(s)` : "no open alerts"} data-testid="alert-bell">
           <Bell size={15} />
           {open > 0 && <span className={`hdr-count ${critical ? "crit" : ""}`}>{open}</span>}
@@ -163,7 +148,7 @@ export default function TopHeader({ status, ais, alertsSummary, onToggleNav }) {
                   <span className="label">{roleLabel(user?.role)}</span>
                 </div>
               </div>
-              <Link className="hdr-menu-row" to="/my-desk" onClick={() => setMenuOpen(false)}>
+              <Link className="hdr-menu-row" to={url.desk()} onClick={() => setMenuOpen(false)}>
                 <Inbox size={13} /> My desk
               </Link>
               <button className="hdr-menu-row" onClick={toggle}>

@@ -22,96 +22,151 @@
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from "react";
+import { matchPath } from "react-router-dom";
 
 /* Every screen in the shell.
  *
- * `section` groups the left navigation; `icon` names a lucide glyph the nav
- * resolves; `roles`, when present, is the set of roles the nav SHOWS the entry
- * to. That is presentation only -- the server is what enforces, and every
- * route stays reachable by deep link and from the palette so a user told
- * "not available to your role" sees the server's own 403 rather than a
- * missing screen. `nav: false` entries are reachable but earn no nav slot. */
+ * `to` is the address the nav and the palette open; `paths`, when present, is
+ * every router pattern the same page answers to (App.jsx mounts its routes
+ * from this list, so a screen cannot exist that the shell does not know).
+ *
+ * `group` decides where the one sidebar shows the entry:
+ *   main        the core product, always visible, in MAIN_ORDER
+ *   operations  incident routing -- a main-sidebar group for a zone officer,
+ *               whose daily work it is; under System for everyone else
+ *   system      platform operations, behind the System group
+ *   help        below the rule
+ *   (none)      reachable by link, breadcrumb and palette; no sidebar slot
+ *
+ * `roles`, when present, is the set of roles the nav SHOWS the entry to. That
+ * is presentation only -- the server is what enforces, and every route stays
+ * reachable by deep link and from the palette so a user told "not available
+ * to your role" sees the server's own 403 rather than a missing screen. */
 export const ROUTES = [
-  // -- operations ---------------------------------------------------------
-  { to: "/", label: "Overview", section: "Operations", icon: "LayoutDashboard", nav: true,
-    hint: "global maritime picture", rail: "Dashboard" },
-  { to: "/alerts", label: "Alerts", section: "Operations", icon: "Siren", nav: true },
-  { to: "/incidents", label: "Incidents", section: "Operations", icon: "ClipboardList", nav: true,
-    rail: "Incidents" },
-  { to: "/incident", label: "Incident Replay", section: "Operations", icon: "Film", nav: true },
-  { to: "/my-desk", label: "My Desk", section: "Operations", icon: "Inbox", nav: true },
-  // -- intelligence -------------------------------------------------------
-  { to: "/globe", label: "Global View", section: "Intelligence", icon: "Globe2", nav: true,
-    hint: "3D globe · zone splitting" },
-  { to: "/vessels", label: "Vessels", section: "Intelligence", icon: "Ship", nav: true,
-    rail: "Vessels" },
-  { to: "/satellite", label: "Satellite", section: "Intelligence", icon: "Satellite", nav: true },
-  { to: "/sar-database", label: "SAR Image Database", section: "Intelligence", icon: "Images", nav: true,
-    hint: "real SAR scenes, metadata, upload and AI analysis" },
-  { to: "/environment", label: "Environment", section: "Intelligence", icon: "Wind", nav: true },
-  { to: "/zones", label: "Zones", section: "Intelligence", icon: "Map", nav: true, rail: "Zones" },
-  // -- analysis -----------------------------------------------------------
-  { to: "/investigation", label: "Workspace", section: "Analysis", icon: "Radar", nav: true,
-    rail: "Analysis", hint: "the investigation workspace" },
-  { to: "/investigations", label: "Investigations", section: "Analysis", icon: "FolderOpen", nav: true,
-    rail: "Investigations", hint: "investigation records" },
-  { to: "/dashboard", label: "Run registry", section: "Analysis", icon: "Layers", nav: true,
-    hint: "every pipeline run, offline replay" },
-  { to: "/reports", label: "Reports", section: "Analysis", icon: "FileText", nav: true,
-    rail: "Reports" },
-  { to: "/analytics", label: "Analytics", section: "Analysis", icon: "BarChart3", nav: true },
-  // -- hindcast -----------------------------------------------------------
-  // BAYES-TRACK: from a slick back to where and when it entered the water.
-  { to: "/hindcast", label: "Monitoring Engines", section: "Hindcast", icon: "Cpu", nav: true,
-    rail: "Hindcast", hint: "BAYES-TRACK · seven hindcast engines, live" },
-  // -- system -------------------------------------------------------------
-  { to: "/monitoring", label: "API Monitor", section: "System", icon: "Activity", nav: true },
-  { to: "/catalog", label: "Data Sources", section: "System", icon: "Database", nav: true,
-    rail: "Data" },
-  { to: "/models", label: "ML Models", section: "System", icon: "BrainCircuit", nav: true },
-  { to: "/system", label: "System Ops", section: "System", icon: "Server", nav: true,
-    hint: "jobs · workers · logs", rail: "Settings" },
-  { to: "/audit", label: "Audit Trail", section: "System", icon: "ScrollText", nav: true,
+  // -- core -----------------------------------------------------------------
+  { id: "dashboard", to: "/", label: "Dashboard", group: "main", icon: "LayoutDashboard",
+    hint: "what needs attention now" },
+  { id: "investigations", to: "/investigations", label: "Investigations", group: "main",
+    icon: "FolderOpen", hint: "investigation records" },
+  { id: "workspace", to: "/investigations/latest", label: "Workspace", icon: "Radar",
+    parent: "investigations", hint: "the investigation workspace",
+    paths: ["/investigations/new", "/investigations/latest/:stage?",
+      "/investigations/run/:run/:stage?", "/investigations/:inv/:stage?"] },
+  { id: "registry", to: "/investigations/registry", label: "Run registry", icon: "Layers",
+    parent: "investigations", hint: "every pipeline run, offline replay" },
+  // -- situational awareness ------------------------------------------------
+  { id: "map", to: "/map", label: "Live Map", group: "main", icon: "Globe2",
+    hint: "detections, investigations, zones, live AIS" },
+  { id: "detections", to: "/detections", label: "Detections", group: "main", icon: "ScanSearch",
+    hint: "SAR scenes, metadata, upload and AI analysis" },
+  { id: "scene-viewer", to: "/detections/viewer", label: "Scene viewer", icon: "Satellite",
+    parent: "detections" },
+  { id: "vessels", to: "/vessels", label: "Vessels", group: "main", icon: "Ship",
+    paths: ["/vessels/:mmsi?"] },
+  { id: "reports", to: "/reports", label: "Reports", group: "main", icon: "FileText" },
+  { id: "report-print", to: "/reports", label: "Printable report", parent: "reports",
+    paths: ["/reports/print/:run"], palette: false },
+  // -- incident routing -----------------------------------------------------
+  { id: "desk", to: "/operations/desk", label: "My Desk", group: "operations", icon: "Inbox" },
+  { id: "incidents", to: "/operations/incidents", label: "Incidents", group: "operations",
+    icon: "ClipboardList" },
+  { id: "alerts", to: "/operations/alerts", label: "Alerts", group: "operations", icon: "Siren" },
+  { id: "replay", to: "/operations/replay", label: "Incident Replay", group: "operations",
+    icon: "Film" },
+  // -- system ---------------------------------------------------------------
+  { id: "engines", to: "/system/engines", label: "Engine Monitoring", group: "system", icon: "Cpu",
+    hint: "BAYES-TRACK · seven hindcast engines, live" },
+  { id: "data-sources", to: "/system/data-sources", label: "Data Sources", group: "system",
+    icon: "Database" },
+  { id: "api-monitor", to: "/system/api-monitor", label: "API Monitor", group: "system",
+    icon: "Activity" },
+  { id: "zones", to: "/system/zones", label: "Zones", group: "system", icon: "Map" },
+  { id: "health", to: "/system/health", label: "System Health", group: "system", icon: "Server",
+    hint: "jobs · workers · logs" },
+  { id: "models", to: "/system/models", label: "ML Models", group: "system", icon: "BrainCircuit" },
+  { id: "analytics", to: "/system/analytics", label: "Analytics", group: "system", icon: "BarChart3" },
+  { id: "environment", to: "/system/environment", label: "Forcing Data", group: "system", icon: "Wind" },
+  { id: "audit", to: "/system/audit", label: "Audit Trail", group: "system", icon: "ScrollText",
     roles: ["reviewer", "auditor", "admin", "super_admin"] },
-  { to: "/officers", label: "Users & Roles", section: "System", icon: "Users", nav: true,
+  { id: "users", to: "/system/users", label: "Users & Roles", group: "system", icon: "Users",
     roles: ["admin", "super_admin"] },
-  { to: "/keys", label: "Credentials", section: "System", icon: "KeyRound", nav: true,
-    roles: ["admin", "super_admin"] },
-  { to: "/about", label: "About", section: "System", icon: "BookOpen", nav: true, rail: "Help" },
-  // -- deep-link only -----------------------------------------------------
-  { to: "/report", label: "Report", nav: false },
+  { id: "credentials", to: "/system/credentials", label: "Credentials", group: "system",
+    icon: "KeyRound", roles: ["admin", "super_admin"] },
+  // -- help -----------------------------------------------------------------
+  { id: "help", to: "/help", label: "Help", group: "help", icon: "BookOpen" },
 ];
 
-/* The narrow icon rail shows these eleven, in this order, by their `rail`
- * label; every other route stays reachable from the rail's "More" flyout,
- * the header nav, deep links and the palette. */
-export const RAIL_ORDER = [
-  "Dashboard", "Analysis", "Hindcast", "Incidents", "Investigations", "Vessels", "Zones",
-  "Data", "Reports", "Settings", "Help",
-];
+/* The sidebar's main section, in order. */
+export const MAIN_ORDER = ["dashboard", "investigations", "map", "detections", "vessels", "reports"];
 
-/* The header's primary navigation: the product's top-level surfaces. */
-export const PRIMARY_NAV = [
-  // Same names as ROUTES: one screen, one name, wherever it is listed.
-  { to: "/", label: "Overview" },
-  { to: "/globe", label: "Global View" },
-  { to: "/incidents", label: "Incidents" },
-  { to: "/investigations", label: "Investigations" },
-  { to: "/analytics", label: "Analytics" },
-  { to: "/reports", label: "Reports" },
-];
+export const GROUP_LABEL = { operations: "Operations", system: "System" };
 
-export const NAV_SECTIONS = ["Operations", "Intelligence", "Analysis", "Hindcast", "System"];
+/* A zone officer's working day is incidents and alerts, so that group sits in
+ * the main sidebar for them; for every other role it is part of System. */
+export function operationsInMain(role) {
+  return role === "zone_officer";
+}
 
-/** The route entry for a pathname, longest prefix first, so `/incidents`
- *  does not resolve to `/incident` and `/` only matches itself. */
+/** Router patterns for a route entry. */
+export function pathsOf(route) {
+  return route.paths || [route.to];
+}
+
+function trimSlash(pathname) {
+  return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+}
+
+/** The route entry for a pathname. Static patterns win over parameterised
+ *  ones, so `/investigations/registry` is not read as an investigation id. */
 export function routeFor(pathname) {
   if (!pathname) return null;
-  const exact = ROUTES.find((r) => r.to === pathname);
-  if (exact) return exact;
-  return ROUTES
-    .filter((r) => r.to !== "/" && pathname.startsWith(`${r.to}/`))
-    .sort((a, b) => b.to.length - a.to.length)[0] || null;
+  const path = trimSlash(pathname);
+  let best = null;
+  for (const r of ROUTES) {
+    for (const pattern of pathsOf(r)) {
+      if (!matchPath({ path: pattern, end: true }, path)) continue;
+      const parts = pattern.split("/").filter(Boolean);
+      const score = parts.filter((s) => !s.startsWith(":")).length * 10
+        - parts.filter((s) => s.startsWith(":")).length;
+      if (!best || score > best.score) best = { route: r, score };
+    }
+  }
+  return best ? best.route : null;
+}
+
+/** Breadcrumbs for a location: [{label, to?, mono?}], the last being the page.
+ *  `stageLabel` lets the workspace name its stage rather than show the id. */
+export function crumbsFor(pathname, stageLabel) {
+  const route = routeFor(pathname);
+  if (!route) return [{ label: "Not found" }];
+  const path = trimSlash(pathname);
+  const out = [];
+  if (GROUP_LABEL[route.group]) out.push({ label: GROUP_LABEL[route.group] });
+  const parent = route.parent && ROUTES.find((r) => r.id === route.parent);
+  if (parent) out.push({ label: parent.label, to: parent.to });
+
+  if (route.id === "workspace") {
+    if (path === "/investigations/new") return [...out, { label: "New investigation" }];
+    const byRun = matchPath("/investigations/run/:run/:stage?", path);
+    const m = byRun || matchPath("/investigations/:inv/:stage?", path);
+    const id = m?.params.run || m?.params.inv;
+    const stage = m?.params.stage;
+    const base = byRun ? `/investigations/run/${id}` : `/investigations/${id}`;
+    out.push({ label: id === "latest" ? "Latest" : id, to: stage ? base : undefined,
+      mono: id !== "latest" });
+    if (stage) out.push({ label: stageLabel || stage });
+    return out;
+  }
+  if (route.id === "vessels") {
+    const m = matchPath("/vessels/:mmsi", path);
+    if (m) return [...out, { label: route.label, to: route.to }, { label: `MMSI ${m.params.mmsi}`, mono: true }];
+  }
+  if (route.id === "report-print") {
+    const m = matchPath("/reports/print/:run", path);
+    return [...out, { label: m?.params.run || route.label, mono: true }];
+  }
+  out.push({ label: route.label });
+  return out;
 }
 
 /* Shortcuts. `scope: "global"` entries carry a `test` and are dispatched by

@@ -28,6 +28,7 @@ import {
   Badge, DataState, KV, Notice, PageHeader, Panel, Segmented, Spinner, Tabs, Tile,
 } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
+import { useUrlTab } from "../lib/urls";
 import { hasRole, useSession } from "../lib/session";
 
 const LEVEL_TONE = {
@@ -41,7 +42,7 @@ const JOB_TONE = {
 export default function SystemOps() {
   const { user } = useSession();
   const isAdmin = hasRole(user);
-  const [tab, setTab] = useState("runtime");
+  const [tab, setTab] = useUrlTab(["runtime", "jobs", "logs"]);
 
   const workersQ = useApi(() => api.workers(), [], { interval: 10000 });
   const healthQ = useApi(() => api.systemHealth(), [], { interval: 20000 });

@@ -66,7 +66,7 @@ async function replayAndAwaitRender(page) {
 test("1+10: replay renders all stages and layers in under 5 s", async ({ page }) => {
   await signIn(page);
   const inv = await makeInvestigation(page);
-  await page.goto(`/investigation?inv=${inv}`);
+  await page.goto(`/investigations/${inv}`);
   await expect(page.getByTestId("run-btn")).toBeEnabled();
   const ms = await replayAndAwaitRender(page);
   expect(ms).toBeLessThan(5000);
@@ -87,7 +87,7 @@ test("1+10: replay renders all stages and layers in under 5 s", async ({ page })
 test("2: characterisation panel numbers match the run's slick.geojson", async ({ page }) => {
   await signIn(page);
   const inv = await makeInvestigation(page);
-  await page.goto(`/investigation?inv=${inv}`);
+  await page.goto(`/investigations/${inv}`);
   await replayAndAwaitRender(page);
   await page.getByTestId("chip-geometry").click();
   await expect(page.getByTestId("workspace")).toHaveAttribute("data-stage", "geometry");
@@ -105,7 +105,7 @@ test("2: characterisation panel numbers match the run's slick.geojson", async ({
 test("3: candidate ranking matches suspects.json; click rank 1 opens breakdown", async ({ page }) => {
   await signIn(page);
   const inv = await makeInvestigation(page);
-  await page.goto(`/investigation?inv=${inv}`);
+  await page.goto(`/investigations/${inv}`);
   await replayAndAwaitRender(page);
   await page.getByTestId("chip-vessels").click();
   await expect(page.getByTestId("workspace")).toHaveAttribute("data-stage", "ais");
@@ -156,7 +156,7 @@ test("3: candidate ranking matches suspects.json; click rank 1 opens breakdown",
 test("3b: export bundle downloads a zip of the run's contract artefacts", async ({ page }) => {
   await signIn(page);
   const inv = await makeInvestigation(page);
-  await page.goto(`/investigation?inv=${inv}`);
+  await page.goto(`/investigations/${inv}`);
   await replayAndAwaitRender(page);
   const rid = await replayRunId(page, inv);
   const r = await page.request.get(`${API}/api/runs/${rid}/export`);
@@ -173,7 +173,7 @@ test("3c: printable report renders run metadata, weights and suspects", async ({
   const rid = await replayRunId(page, inv);
   const sus = await (await page.request.get(`${API}/api/layers/${rid}/suspects`)).json();
 
-  await page.goto(`/report?run=${rid}`);
+  await page.goto(`/reports/print/${rid}`);
   await expect(page.locator("h1")).toContainText("Investigation report");
   await expect(page.locator(".rp-sub")).toContainText(rid);
   for (const w of Object.values(sus.weights)) {
@@ -188,7 +188,7 @@ test("3c: printable report renders run metadata, weights and suspects", async ({
 test("4: time rail scrub changes the clock and keeps the page alive", async ({ page }) => {
   await signIn(page);
   const inv = await makeInvestigation(page);
-  await page.goto(`/investigation?inv=${inv}`);
+  await page.goto(`/investigations/${inv}`);
   await replayAndAwaitRender(page);
 
   const clock = page.getByTestId("time-value");
@@ -207,7 +207,7 @@ test("4: time rail scrub changes the clock and keeps the page alive", async ({ p
 test("5: stage navigation walks the workspace and survives a reload", async ({ page }) => {
   await signIn(page);
   const inv = await makeInvestigation(page);
-  await page.goto(`/investigation?inv=${inv}`);
+  await page.goto(`/investigations/${inv}`);
   await replayAndAwaitRender(page);
   await page.getByTestId("stage-prev").click();
   await expect(page.getByTestId("workspace")).toHaveAttribute("data-stage", "ais");
@@ -222,7 +222,7 @@ test("5: stage navigation walks the workspace and survives a reload", async ({ p
   // detect response may legitimately carry no confidence)
   await expect(page.getByTestId("det-confidence")).toBeVisible();
   // the stage rides in the URL, so a reload restores it
-  expect(page.url()).toMatch(/stage=detection/);
+  expect(new URL(page.url()).pathname).toBe(`/investigations/${inv}/detection`);
   await page.reload();
   await expect(page.getByTestId("workspace")).toHaveAttribute("data-stage", "detection", { timeout: 10000 });
 });
@@ -241,7 +241,7 @@ test("6: the analysis plays beat by beat from the run's real artefacts", async (
   const vessels = await (await page.request.get(`${API}/api/runs/${rid}/vessels_geojson`)).json();
   const sus = await (await page.request.get(`${API}/api/layers/${rid}/suspects`)).json();
 
-  await page.goto(`/investigation?inv=${inv}`);
+  await page.goto(`/investigations/${inv}`);
   await replayAndAwaitRender(page);
   await page.getByTestId("cine-play").click();
   const ws = page.getByTestId("workspace");
@@ -327,7 +327,7 @@ test("9: airplane mode — every non-localhost request blocked, page still works
   // Intercept ONLY non-localhost URLs: routing **/* would drag every API
   // call through Playwright's IPC and measure the harness, not the page.
   await page.route(/^https?:\/\/(?!localhost|127\.0\.0\.1)/, (route) => route.abort());
-  await page.goto(`/investigation?inv=${inv}`);
+  await page.goto(`/investigations/${inv}`);
   const ms = await replayAndAwaitRender(page);
   expect(ms).toBeLessThan(5000);
   await page.getByTestId("chip-vessels").click();

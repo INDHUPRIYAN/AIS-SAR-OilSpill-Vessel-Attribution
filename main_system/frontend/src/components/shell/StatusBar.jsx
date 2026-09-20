@@ -75,7 +75,7 @@ export default function StatusBar({ status, ais, health, workers }) {
           </Link>
         )}
         {workers && (
-          <Link className="sbar-item" to="/system?tab=workers" data-testid="sbar-workers"
+          <Link className="sbar-item" to="/system/health?tab=runtime" data-testid="sbar-workers"
             title={workers.model_note}>
             <span className="sbar-k">Workers</span>
             <span className="sbar-v neutral">{alive}/{enabled} ALIVE</span>

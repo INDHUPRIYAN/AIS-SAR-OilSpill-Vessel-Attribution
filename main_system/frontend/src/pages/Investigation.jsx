@@ -24,7 +24,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useWorkspaceParams } from "../lib/urls";
 import { AnimatePresence, motion } from "framer-motion";
 import { FlyToInterpolator, WebMercatorViewport } from "@deck.gl/core";
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2 } from "lucide-react";
@@ -142,7 +142,7 @@ function candidateBbox(vessels, suspects, est) {
 }
 
 export default function Investigation() {
-  const [params, setParams] = useSearchParams();
+  const [params, setParams] = useWorkspaceParams();
   const { user } = useSession();
   const canRun = hasRole(user, "investigator", "analyst");
   const canPublish = hasRole(user, "reviewer", "investigator");

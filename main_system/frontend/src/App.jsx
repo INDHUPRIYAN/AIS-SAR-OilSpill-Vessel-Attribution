@@ -1,11 +1,11 @@
 /* App: theme, session, shell state, and the routed pages.
  *
- * The nav and the command palette are both built from `ROUTES` in lib/shell,
+ * The router, the nav and the command palette are all built from `ROUTES` in lib/shell,
  * so "⌘K reaches every screen" holds by construction rather than by anyone
  * remembering to add a screen twice. The shell chrome itself lives in
  * components/shell. */
 
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
 import { Waves } from "lucide-react";
 
@@ -36,46 +36,76 @@ import Report from "./pages/Report";
 import Incidents from "./pages/Incidents";
 import Vessels from "./pages/Vessels";
 import SignIn from "./pages/SignIn";
+import NotFound from "./pages/NotFound";
 import CommandPalette, { ShortcutOverlay } from "./components/CommandPalette";
 import AppShell from "./components/shell/AppShell";
 import { SessionProvider, useSession } from "./lib/session";
-import { ShellProvider } from "./lib/shell";
+import { ROUTES, ShellProvider, pathsOf } from "./lib/shell";
+import { LEGACY_PATHS, canonical } from "./lib/urls";
 import { ThemeProvider } from "./lib/theme";
 import "./incident.css";
 import "./workspace.css";
 import "./workspace-panels.css";
 
+/* One page per ROUTES id. The router below is generated from ROUTES, so a
+ * screen the shell lists always has a route and a route always has a name;
+ * tests-unit/routes.test.jsx holds the two lists to each other. */
+export const PAGES = {
+  dashboard: Operations,
+  investigations: Investigations,
+  workspace: Investigation,
+  registry: Dashboard,
+  map: GlobeViewPage,
+  detections: SarDatabase,
+  "scene-viewer": Satellite,
+  vessels: Vessels,
+  reports: Reports,
+  "report-print": Report,
+  desk: OfficerDashboard,
+  incidents: Incidents,
+  alerts: Alerts,
+  replay: Incident,
+  engines: HindcastEngines,
+  "data-sources": Catalog,
+  "api-monitor": Monitoring,
+  zones: ZonesPage,
+  health: SystemOps,
+  models: Models,
+  analytics: Analytics,
+  environment: Environment,
+  audit: Audit,
+  users: OfficersPage,
+  credentials: Keys,
+  help: About,
+};
+
+/* An address that worked once keeps working: every legacy path resolves
+ * through lib/urls `canonical()` and replaces itself in history, so Back
+ * does not bounce off the redirect. */
+function LegacyRedirect() {
+  const location = useLocation();
+  const to = canonical(location.pathname, location.search);
+  return to ? <Navigate to={`${to}${location.hash}`} replace /> : <NotFound />;
+}
+
+/* `/vessels?mmsi=` predates `/vessels/:mmsi`. The path is live, so this one
+ * legacy shape is folded in front of the page rather than routed. */
+function VesselsRoute() {
+  const location = useLocation();
+  const to = canonical(location.pathname, location.search);
+  return to ? <Navigate to={to} replace /> : <Vessels />;
+}
+
 function App() {
   return (
     <AppShell>
       <Routes>
-        <Route path="/" element={<Operations />} />
-        <Route path="/globe" element={<GlobeViewPage />} />
-        <Route path="/my-desk" element={<OfficerDashboard />} />
-        <Route path="/zones" element={<ZonesPage />} />
-        <Route path="/officers" element={<OfficersPage />} />
-        <Route path="/incident" element={<Incident />} />
-        <Route path="/incidents" element={<Incidents />} />
-        <Route path="/vessels" element={<Vessels />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/investigation" element={<Investigation />} />
-        <Route path="/investigations" element={<Investigations />} />
-        <Route path="/report" element={<Report />} />
-        <Route path="/monitoring" element={<Monitoring />} />
-        <Route path="/catalog" element={<Catalog />} />
-        <Route path="/alerts" element={<Alerts />} />
-        <Route path="/keys" element={<Keys />} />
-        <Route path="/satellite" element={<Satellite />} />
-        <Route path="/sar-database" element={<SarDatabase />} />
-        <Route path="/environment" element={<Environment />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/models" element={<Models />} />
-        <Route path="/system" element={<SystemOps />} />
-        <Route path="/audit" element={<Audit />} />
-        <Route path="/hindcast" element={<HindcastEngines />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {ROUTES.flatMap((r) => {
+          const Page = r.id === "vessels" ? VesselsRoute : PAGES[r.id];
+          return pathsOf(r).map((path) => <Route key={`${r.id}:${path}`} path={path} element={<Page />} />);
+        })}
+        {LEGACY_PATHS.map((path) => <Route key={path} path={path} element={<LegacyRedirect />} />)}
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <CommandPalette />
       <ShortcutOverlay />

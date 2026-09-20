@@ -12,7 +12,6 @@
  * the API attaches is rendered as prominently as the number it qualifies.
  */
 
-import { useState } from "react";
 import {
   AlertTriangle, BrainCircuit, Crosshair, FlaskConical, Info, RefreshCw, Scale,
   ShieldQuestion, Waves,
@@ -26,6 +25,7 @@ import {
   Badge, DataState, KV, Notice, PageHeader, Panel, Tabs, Tile, chartTheme, useThemeColors,
 } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
+import { useUrlTab } from "../lib/urls";
 
 const STATUS_TONE = {
   DEPLOYED: "ok", EXPERIMENTAL: "mock", MISSING: "danger",
@@ -46,7 +46,7 @@ const BASIS_COPY = {
 };
 
 export default function Models() {
-  const [tab, setTab] = useState("models");
+  const [tab, setTab] = useUrlTab(["models", "metrics", "hindcast"]);
   const modelsQ = useApi(() => api.models(), []);
   const metricsQ = useApi(() => api.metrics(), []);
   const hindQ = useApi(() => api.hindcastModels(), []);

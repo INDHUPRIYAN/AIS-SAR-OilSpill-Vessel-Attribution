@@ -379,8 +379,10 @@ function gridFrac(axis, val) {
 }
 
 function bilinear(grid, gx, gy) {
-  const g = (y, x) => grid[Math.min(y, grid.length - 1)]
-    [Math.min(x, grid[0].length - 1)];
+  const g = (y, x) => {
+    const row = grid[Math.min(y, grid.length - 1)];
+    return row[Math.min(x, grid[0].length - 1)];
+  };
   const a = lerp(g(gy.i, gx.i), g(gy.i, gx.i + 1), gx.f);
   const b = lerp(g(gy.i + 1, gx.i), g(gy.i + 1, gx.i + 1), gx.f);
   return lerp(a, b, gy.f);

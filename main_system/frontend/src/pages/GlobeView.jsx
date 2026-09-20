@@ -31,6 +31,7 @@ import Globe, { CoordinateReadout, GLOBE_INITIAL_VIEW, fmtLat, fmtLon, parseCoor
 import { useGlobeCamera } from "../components/globe/GlobeScene";
 import { Badge, DataState, KV, Notice, Panel, Segmented, Spinner, Switch } from "../components/ui";
 import { api, fmt } from "../lib/api";
+import { url } from "../lib/urls";
 import { sphericalAreaKm2 } from "../lib/geodesy";
 import { hasRole, useSession } from "../lib/session";
 import { useTheme } from "../lib/theme";
@@ -496,7 +497,7 @@ function SelectedPanel({ selected, zone, zoneList, zonesLoading, zonesError, inc
           </>)}
         </div>
         <div className="globe-actions">
-          <Link className="btn btn-sm" to={`/investigation?run=${runLayers?.runId}`}><Radar size={12} /> Open in workspace</Link>
+          {runLayers?.runId && <Link className="btn btn-sm" to={url.workspace({ run: runLayers.runId })}><Radar size={12} /> Open in workspace</Link>}
           {selected.kind === "track" && <Link className="btn btn-sm" to={`/vessels?mmsi=${p.mmsi}`}>Dossier</Link>}
         </div>
       </Panel>
