@@ -4,9 +4,24 @@ These flows work end-to-end at HEAD `3838f88`. They must still work after
 every phase. A flow may change its URL or layout; it may not lose capability
 or start showing values that differ from the API.
 
-Status of this list: derived from code and from the existing test suites. The
-suites were **not executed during the audit**; P1 begins by running them to
-record a green starting point.
+## Executed starting point — 2026-09-21, HEAD `e999d5d`, before any P1 change
+
+| Suite | Result |
+|---|---|
+| Unit (`npm test`) | **183 passed** / 13 files, 6.9 s |
+| Backend (`pytest`, repo root) | **1302 passed, 4 skipped**, 0 failed, 5 m 37 s |
+| E2E (`npx playwright test`) | **15 passed** / 15, 1.7 m |
+| Build (`npm run build`) | **OK** — `index` 2,984 kB (gzip 779 kB), `maplibre-gl` 802 kB, CSS 217 kB |
+
+Green start: any red after this point is a regression from this work.
+
+E2E was run on the isolated stack, never the live DB: backend on :8010 with a
+temp `DATABASE_URL` and a bootstrapped harness admin, `backfill_runs
+--allow-unverified` to index `data/runs` (110 runs), `vite preview` on :5176
+with `API_TARGET=http://127.0.0.1:8010`, then `E2E_BASE_URL`, `E2E_EMAIL`,
+`E2E_PASSWORD` set. E2E was run alone (test 1 has a 5 s render budget that
+concurrent pytest/vitest skews). The harness shares the real `data/` root;
+`inv-*` run folders it creates are removed afterwards.
 
 ## How to check
 
