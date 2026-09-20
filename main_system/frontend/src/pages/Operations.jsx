@@ -23,17 +23,18 @@
 import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Activity, AlertTriangle, Bell, ClipboardList, Crosshair, Film, FolderSearch, Globe2,
+  Activity, AlertTriangle, Bell, ClipboardList, Crosshair, Film, FolderSearch,
   Inbox, Layers, Map as MapIcon, Minus, PanelLeftClose, PanelLeftOpen, PanelRightClose,
   PanelRightOpen, Plus, Radar, Radio, Satellite, Server, Ship, Target, X,
 } from "lucide-react";
 
 import Globe, { GLOBE_INITIAL_VIEW, fmtLat, fmtLon } from "../components/Globe";
 import { useGlobeCamera } from "../components/globe/GlobeScene";
+import { BasemapSwitch } from "../components/maps/MapControls";
 import {
   CameraReadout, Compass, ScaleBar, ToolRail,
 } from "../components/globe/GlobeChrome";
-import { Badge, KV, LiveValue, Notice, Panel, Segmented, Switch } from "../components/ui";
+import { Badge, KV, LiveValue, Notice, Panel, Switch } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
 import { hasRole, useSession } from "../lib/session";
 import { useTheme } from "../lib/theme";
@@ -66,7 +67,7 @@ export default function Operations() {
   const data = useGlobeData({ liveInterval: 15000 });
   const { zones, incidents, vessels, live, stream, aisBadge, runLayers, runId } = data;
 
-  const [basemap, setBasemap] = useState("canvas");
+  const [basemap, setBasemap] = useState("geopolitical");
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [cursor, setCursor] = useState(null);
@@ -270,11 +271,7 @@ export default function Operations() {
       {/* ------------------------------------------------------ toolbar --- */}
       <div className="gv-toolbar" style={{ left: leftOpen ? 324 : 52 }}>
         <div className="map-toolbar">
-          <Segmented value={basemap} onChange={setBasemap} testidPrefix="basemap" items={[
-            { id: "canvas", label: "Canvas", icon: <Globe2 size={11} /> },
-            { id: "relief", label: "Contrast", icon: <MapIcon size={11} /> },
-            { id: "none", label: "None", icon: <X size={11} /> },
-          ]} />
+          <BasemapSwitch value={basemap} onChange={setBasemap} className="mc-basemap-inline" />
           <span className="sep" />
           <Link className="btn btn-sm" to="/globe"><Target size={12} /> Zones &amp; splitting</Link>
         </div>

@@ -55,17 +55,18 @@
   --oil-dim: #b45309;
 
   /* map / data colours the layer legends reference */
-  --c-slick: #dc2626;
-  --c-forecast: #f59e0b;
-  --c-hindcast: #c026d3;
-  --c-origin: #fbbf24;
-  --c-vessel: #22d3ee;
-  --c-candidate: #fb923c;
+  /* Map semantics -- kept equal to components/maps/palette.js (tests hold them together). */
+  --c-slick: #f59e0b;
+  --c-forecast: #388bfd;
+  --c-hindcast: #f97316;
+  --c-origin: #ef4444;
+  --c-vessel: #e2e8f0;
+  --c-candidate: #ffffff;
   --c-suspect: #ef4444;
-  --c-zone: #22c3ee;
+  --c-zone: #22d3ee;
   --c-zone-mine: #2dd4bf;
   --c-protected: #94a3b8;
-  --c-incident: #ef4444;
+  --c-incident: #f43f5e;
 
   /* --- effects -------------------------------------------------------- */
   --glow-accent: 0 0 18px rgba(34, 195, 238, 0.28);

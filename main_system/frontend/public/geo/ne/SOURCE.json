@@ -1,0 +1,16 @@
+{
+  "source": "Natural Earth (public domain), naturalearthdata.com",
+  "dataset": "ne_10m_admin_0_countries_ind",
+  "point_of_view": "India (ne *_ind variant)",
+  "tolerance_deg": 0.05,
+  "precision_decimals": 3,
+  "generated_by": "scripts/build_basemap_natural_earth.py",
+  "generated_utc": "2026-09-20T20:33:03Z",
+  "files": {
+    "countries.json": 1456261,
+    "borders.json": 213336,
+    "coast.json": 1375498,
+    "country_labels.json": 36681,
+    "marine_labels.json": 16701
+  }
+}

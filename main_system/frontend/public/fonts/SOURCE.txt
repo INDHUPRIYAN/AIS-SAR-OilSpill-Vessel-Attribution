@@ -1,0 +1,2 @@
+Open Sans Semibold glyph ranges (SDF PBF) for offline map labels.
+Font: Open Sans, Apache License 2.0. Glyphs from the MapLibre demotiles project (https://github.com/maplibre/demotiles).

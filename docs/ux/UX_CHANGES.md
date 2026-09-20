@@ -84,3 +84,60 @@ resolve to live routes, nav placement per role, breadcrumbs). E2E 15 → 21
 - Stage ids in the path are the existing twelve; P3 maps them onto the six-step stepper.
 - Notifications panel (bell still links to Alerts) — P8.
 - Map camera and timeline position in the URL — P2.
+
+---
+
+## P2 — Unified MaritimeGlobe engine, modes 1–2, TimeContext, controls
+
+### Before → after
+
+| | Before | After |
+|---|---|---|
+| Globe | deck `_GlobeView`: flat-shaded sphere, 0.2° land mask, no countries, labels or imagery; could never host tiles | **MapLibre GL 5 globe + deck overlay**: real countries, land borders, coastline, country and sea names; satellite imagery on the sphere; SAR raster capable |
+| Basemap data | generated land raster | Natural Earth 1:10m, India point-of-view, bundled (works offline) |
+| Basemap choices | Canvas / Contrast / None — three tints of one mask | Geopolitical · Satellite · Dark Maritime, one radio; an unconfigured provider is disabled and says so |
+| Providers | hardcoded URLs, attribution suppressed, direct OSM tile use | `VITE_MAP_*`, attribution shown, OSM direct use removed — MAP_DATA_SOURCES.md |
+| World → scene | two engines and a cross-fade | one surface; the globe morphs to a flat map as you zoom |
+| Camera | per-page state, per-frame React updates, parallax | uncontrolled map, reports on move end; `?c=lon,lat,zoom` on the Live Map |
+| Colours | four tables that disagreed | one palette; legend tokens held equal by test |
+| Time | four clocks | `TimeContext` + `TimeController` built and tested (mounted in P3) |
+| Typecheck | none | `npm run typecheck` — `tsc --checkJs`, `components/maps/**` only |
+
+### Spike
+
+Criteria were committed before the spike code (`GLOBE_ARCHITECTURE.md` §1).
+Result: T1–T4 PASS, 0 FAIL → adopt. Registration 0.0 px on globe and mercator;
+60 fps animating, 55 fps re-uploading all 7,500 particles per frame.
+It also found two backend limits (tile server without overviews; full-resolution
+mask PNG) that shaped the SAR layer — BACKEND_GAPS G15, G16.
+
+### Components
+
+- **Created:** `components/maps/*` (see GLOBE_ARCHITECTURE §3),
+  `scripts/build_basemap_natural_earth.py`, `public/geo/ne/*`, `public/fonts/*`,
+  `.env.example`, `.env.production`, `.env.development`, `tsconfig.maps.json`.
+- **Refactored:** `components/globe/GlobeScene.jsx` is now an adapter over
+  MaritimeGlobe, so Dashboard, Live Map, Zones, the workspace 3D stage and the
+  replay globe changed engines without being rewritten. `globe/Globe.jsx`
+  colours come from the palette. `lib/geovalidate` tests slicks against the
+  1:10m coastline instead of the 0.2° mask.
+- **Removed:** `deck.gl` umbrella dependency (and with it `@arcgis/core`,
+  amcharts, d3 — `node_modules` 755 → 497 MB), `public/geo/land.json`,
+  `scripts/build_globe_land.py`, cursor parallax.
+- **Upgraded:** `maplibre-gl` 4.7 → 5.24, `react-map-gl` 7 → 8,
+  `+ @deck.gl/mapbox` 9.3.
+
+### Tests
+
+Unit 199 → 218 (`maps.test.jsx`). E2E 21 → 28 (`globe.spec.js` G1–G7: real
+Earth, basemap switch keeps camera and data layers, satellite provider +
+attribution, continuous globe → map, camera in URL, water click → zone lookup,
+works with every external host blocked). Lint ratchet 88 → 83.
+
+### Deferred
+
+- `WorkspaceMap` → MaritimeGlobe (P3); `CommandMap` retires with `/incident` (P7).
+- `LayerControl`, `TimeController`, `MapLegend`, `SourceChip` are built and
+  unit-tested but first mounted in P3.
+- Camera in the URL for the workspace (P3).
+- Route-level code splitting: bundle is one 4.07 MB chunk (P9).

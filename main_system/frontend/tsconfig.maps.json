@@ -1,0 +1,18 @@
+{
+  "//": "Typecheck gate, scoped to the map engine (new code). JSDoc-typed JavaScript; nothing else in the app is converted.",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["src/components/maps/**/*"]
+}

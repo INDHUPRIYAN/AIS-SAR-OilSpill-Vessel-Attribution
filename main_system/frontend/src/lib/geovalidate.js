@@ -11,7 +11,7 @@
  *                   that fails is NOT drawn and the workspace says
  *                   LOCATION DATA UNAVAILABLE with the reason.
  *   landShare       how much of the outline lies on land, from the product's
- *                   own coastline (public/geo/land.json, the globe's dataset).
+ *                   own coastline (public/geo/ne/countries.json, the globe's Natural Earth dataset).
  *                   A slick on land is still drawn where the run put it --
  *                   hiding it would hide the problem -- but it is flagged.
  *

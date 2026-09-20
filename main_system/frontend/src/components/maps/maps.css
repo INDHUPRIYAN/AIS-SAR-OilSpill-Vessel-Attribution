@@ -1,0 +1,89 @@
+/* The map engine's own chrome. Prefix `mg-` (the globe) and `mc-` (its
+   controls). Page layout around the map stays with the page. */
+
+.mg { position: absolute; inset: 0; overflow: hidden; }
+.mg .maplibregl-map { position: absolute; inset: 0; font-family: var(--sans); }
+.mg canvas { outline: none; }
+.mg .maplibregl-canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* Attribution is required by the data providers; it is kept, and kept quiet. */
+.mg .maplibregl-ctrl-attrib { background: color-mix(in srgb, var(--bg-1) 80%, transparent); color: var(--ink-2); font-size: 10px; }
+.mg .maplibregl-ctrl-attrib a { color: var(--ink-1); }
+.mg .maplibregl-ctrl-attrib-button { filter: invert(0.8); }
+
+.mg-note {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: var(--z-map-overlay);
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; max-width: 80%;
+  background: var(--bg-1); border: 1px solid var(--line-bright); border-radius: var(--r-sm);
+  color: var(--ink-1); font-size: var(--fs-sm); box-shadow: var(--shadow-2); pointer-events: none;
+}
+.mg-note + .mg-note { top: 48px; }
+.mg-note-err { border-color: rgba(239, 68, 68, 0.5); color: var(--danger); }
+.mg-note .spinner { width: 12px; height: 12px; }
+
+/* ---------------------------------------------------------------- console -- */
+
+.mc-legend { display: flex; align-items: center; gap: 6px; padding: 0; margin: 0 0 6px; font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+.mc-basemap { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mc-radio, .mc-check { display: flex; align-items: center; gap: 8px; min-height: 26px; padding: 2px 6px; border-radius: var(--r-xs);
+  font-size: var(--fs-md); color: var(--ink-1); cursor: pointer; }
+.mc-radio:hover, .mc-check:hover { background: var(--bg-3); color: var(--ink-0); }
+.mc-radio.on { color: var(--ink-0); }
+.mc-radio.off, .mc-check.off { color: var(--ink-3); cursor: not-allowed; }
+.mc-radio.off:hover, .mc-check.off:hover { background: none; color: var(--ink-3); }
+.mc-radio input, .mc-check input { accent-color: var(--accent); margin: 0; flex-shrink: 0; }
+.mc-radio input:focus-visible, .mc-check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mc-na { margin-left: auto; font-style: normal; font-size: 10px; color: var(--ink-3); }
+.mc-layers { display: flex; flex-direction: column; gap: 1px; }
+.mc-check { flex-wrap: wrap; row-gap: 0; }
+.mc-check-label { flex: 1; min-width: 0; }
+.mc-count { font-size: 10.5px; color: var(--ink-2); }
+.mc-note { flex-basis: 100%; padding-left: 40px; font-size: 10.5px; color: var(--ink-3); line-height: 1.3; }
+
+.mc-swatch { width: 14px; height: 10px; flex-shrink: 0; border-radius: 2px; background: color-mix(in srgb, var(--sw) 45%, transparent);
+  border: 1.5px solid var(--sw); }
+.mc-swatch-line { height: 0; border-width: 2px 0 0; border-radius: 0; background: none; }
+.mc-swatch-dash { height: 0; border-width: 2px 0 0; border-style: dashed; border-radius: 0; background: none; }
+.mc-swatch-dot { width: 9px; height: 9px; margin: 0 2.5px; border-radius: 50%; background: var(--sw); }
+
+.mc-legendbox { padding: 8px 10px; background: color-mix(in srgb, var(--bg-1) 92%, transparent); border: 1px solid var(--line);
+  border-radius: var(--r-sm); font-size: var(--fs-sm); color: var(--ink-1); }
+.mc-legend-row { display: flex; align-items: center; gap: 8px; min-height: 20px; }
+
+.mc-source { display: inline-flex; gap: 4px; padding: 2px 8px; font-size: 10.5px; color: var(--ink-2); white-space: nowrap;
+  background: color-mix(in srgb, var(--bg-1) 88%, transparent); border: 1px solid var(--line); border-radius: 10px; }
+.mc-source b { color: var(--ink-1); font-weight: 600; }
+
+/* ------------------------------------------------------------------- time -- */
+
+.mc-time { display: flex; align-items: center; gap: 14px; padding: 8px 14px; min-width: 0;
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--r-md); }
+.mc-time-btns { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.mc-btn { width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--r-sm);
+  border: 1px solid var(--line-bright); background: var(--bg-3); color: var(--ink-0); cursor: pointer; }
+.mc-btn:hover { border-color: var(--accent-line); }
+.mc-btn:focus-visible, .mc-speed-b:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mc-btn-play { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); border-color: var(--accent); color: #04121f; }
+.mc-speed { display: flex; margin-left: 6px; border: 1px solid var(--line-bright); border-radius: var(--r-sm); overflow: hidden; }
+.mc-speed-b { height: 24px; padding: 0 7px; border: 0; background: transparent; color: var(--ink-2); font: 600 10.5px var(--mono); cursor: pointer; }
+.mc-speed-b.on { background: var(--accent-soft); color: var(--accent); }
+.mc-rail { position: relative; flex: 1; min-width: 80px; height: 34px; display: flex; align-items: center; }
+.mc-slider { width: 100%; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.mc-slider:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+.mc-mark { position: absolute; top: 22px; transform: translateX(-50%); font: 600 9px var(--mono); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink-3); white-space: nowrap; pointer-events: none; }
+.mc-mark i { position: absolute; left: 50%; top: -16px; width: 1px; height: 12px; background: var(--ink-3); }
+.mc-mark-now { color: var(--oil); }
+.mc-mark-now i { background: var(--oil); }
+.mc-clock { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; line-height: 1.2; }
+.mc-clock-utc { font-size: 14px; font-weight: 600; color: var(--ink-0); font-variant-numeric: tabular-nums; }
+.mc-clock-rel { font-size: 10.5px; color: var(--accent); }
+
+@media (max-width: 1100px) { .mc-speed { display: none; } .mc-time { gap: 8px; padding: 6px 8px; } .mc-clock-utc { font-size: 12px; } }
+
+/* The basemap radio laid out in a toolbar row. */
+.mc-basemap-inline { flex-direction: row; align-items: center; gap: 2px; }
+.mc-basemap-inline .mc-legend { display: none; }
+.mc-basemap-inline .mc-radio { min-height: 28px; padding: 0 8px; font-size: var(--fs-sm); }
+.mc-basemap-inline .mc-radio.on { background: var(--accent-soft); color: var(--accent); }
+.mc-basemap-inline .mc-na { margin-left: 4px; }

@@ -66,7 +66,7 @@ export default function GlobeStage({ focus, footprint, onCursor, onFlown, onPick
         onViewStateChange={cam.onViewStateChange}
         onPointerMove={cam.onPointerMove}
         onPointerLeave={cam.onPointerLeave}
-        basemap="canvas"
+        basemap="geopolitical"
         theme={theme}
         animate={!hidden}
         layersOn={{ graticule: true, ...staged, tracks: false, slick: false, origin: false, forecast: false, ...layersOn }}

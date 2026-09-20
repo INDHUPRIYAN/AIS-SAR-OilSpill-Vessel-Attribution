@@ -18,10 +18,10 @@
  * receiver coverage" for a live layer the provider cannot see.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-  AlertTriangle, Check, ClipboardList, Crosshair, Eye, Globe2, Layers, Lock, Map as MapIcon,
+  AlertTriangle, Check, ClipboardList, Crosshair, Eye, Layers, Lock, Map as MapIcon,
   Minus, PanelRightClose, PanelRightOpen, Pencil, Plus, Radio, RotateCcw, Save, Search, Ship,
   Trash2, Undo2, Redo2, UserCheck, X, Film, Radar,
 } from "lucide-react";
@@ -29,7 +29,8 @@ import {
 import Globe, { CoordinateReadout, GLOBE_INITIAL_VIEW, fmtLat, fmtLon, parseCoordinate,
   useBoundaryEditor } from "../components/Globe";
 import { useGlobeCamera } from "../components/globe/GlobeScene";
-import { Badge, DataState, KV, Notice, Panel, Segmented, Spinner, Switch } from "../components/ui";
+import { BasemapSwitch } from "../components/maps/MapControls";
+import { Badge, DataState, KV, Notice, Panel, Spinner, Switch } from "../components/ui";
 import { api, fmt } from "../lib/api";
 import { url } from "../lib/urls";
 import { sphericalAreaKm2 } from "../lib/geodesy";
@@ -60,7 +61,7 @@ export default function GlobeViewPage() {
   const { theme } = useTheme();
   const [params] = useSearchParams();
   const [mode, setMode] = useState(MODES.NORMAL);
-  const [basemap, setBasemap] = useState("canvas");
+  const [basemap, setBasemap] = useState("geopolitical");
   const [railOpen, setRailOpen] = useState(true);
   const [layersOn, setLayersOn] = useState({
     zones: true, zoneLabels: true, incidents: true, vessels: true, graticule: true,
@@ -74,7 +75,7 @@ export default function GlobeViewPage() {
   const [saveState, setSaveState] = useState(null);
 
   const editorActive = mode === MODES.SPLITTING;
-  const cam = useGlobeCamera(GLOBE_INITIAL_VIEW, { parallax: !editorActive });
+  const cam = useGlobeCamera(GLOBE_INITIAL_VIEW, { url: true });
 
   /* --- data -------------------------------------------------------------- */
   const data = useGlobeData();
@@ -290,11 +291,7 @@ export default function GlobeViewPage() {
             <Pencil size={12} /> Zone splitting
           </button>
           <span className="sep" />
-          <Segmented value={basemap} onChange={setBasemap} testidPrefix="basemap" items={[
-            { id: "canvas", label: "Canvas", icon: <Globe2 size={11} /> },
-            { id: "relief", label: "Contrast", icon: <MapIcon size={11} /> },
-            { id: "none", label: "None", icon: <X size={11} /> },
-          ]} />
+          <BasemapSwitch value={basemap} onChange={setBasemap} className="mc-basemap-inline" />
         </div>
       </div>
 

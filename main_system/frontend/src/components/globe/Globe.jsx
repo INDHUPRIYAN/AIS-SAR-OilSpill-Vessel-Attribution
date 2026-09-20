@@ -21,33 +21,35 @@ import {
 } from "@deck.gl/layers";
 
 import GlobeScene, { GLOBE_DEFAULT_VIEW } from "./GlobeScene";
+import { MAP_COLORS } from "../maps/palette";
 import { MapTip } from "../ui";
 
 export const GLOBE_INITIAL_VIEW = GLOBE_DEFAULT_VIEW;
 
-/* Restrained, and deliberately not neon. These are status colours on an
- * instrument, and a saturated glow on everything means nothing stands out. */
+/* Colours come from the one map palette (components/maps/palette): a slick is
+ * amber and a forecast is blue on every surface, not per screen. What stays
+ * local is what only this globe draws -- vessel types and the zone editor. */
 export const GLOBE_COLORS = {
-  zone: [34, 195, 238],
-  zoneMine: [45, 212, 191],
+  zone: MAP_COLORS.zone,
+  zoneMine: MAP_COLORS.zoneMine,
   zoneProtected: [148, 163, 184],
-  incident: [239, 68, 68],
+  incident: MAP_COLORS.incident,
   vessel: [130, 148, 178],
   vesselCargo: [96, 165, 250],
   vesselTanker: [251, 146, 60],
   vesselPassenger: [167, 139, 250],
   vesselFishing: [74, 222, 128],
-  slick: [220, 38, 38],
-  origin: [251, 191, 36],
-  forecast: [245, 158, 11],
-  hindcast: [192, 38, 211],
-  track: [34, 211, 238],
-  candidate: [251, 146, 60],
-  suspect: [239, 68, 68],
+  slick: MAP_COLORS.slick,
+  origin: MAP_COLORS.origin,
+  forecast: MAP_COLORS.forecast,
+  hindcast: MAP_COLORS.hindcastOld,
+  track: MAP_COLORS.vessel,
+  candidate: MAP_COLORS.candidate,
+  suspect: MAP_COLORS.origin,
   editorEdge: [45, 212, 191],
   editorVertex: [255, 255, 255],
   editorInvalid: [239, 68, 68],
-  selection: [240, 244, 250],
+  selection: MAP_COLORS.selection,
 };
 
 const LIGHT_OVERRIDES = {
