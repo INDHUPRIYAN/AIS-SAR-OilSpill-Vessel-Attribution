@@ -48,6 +48,7 @@ export function TimeProvider({ children, initialRange = null, initialT = null })
   const [t, setTState] = useState(initialT ?? (initialRange ? initialRange[1] : null));
   const [now, setNow] = useState(/** @type {number|null} */ (null));
   const [playing, setPlaying] = useState(false);
+  const loopFrom = useRef(/** @type {number | null} */ (null));
   const [speed, setSpeed] = useState(SPEEDS[1]);
 
   const live = useRef(t);
@@ -55,6 +56,7 @@ export function TimeProvider({ children, initialRange = null, initialT = null })
   rangeRef.current = range;
 
   const setT = useCallback((/** @type {number} */ ms) => {
+    if (!Number.isFinite(ms)) return;                 // never let a bad value become the time
     const v = clampToRange(ms, rangeRef.current);
     live.current = v;
     setTState(v);
@@ -81,7 +83,12 @@ export function TimeProvider({ children, initialRange = null, initialT = null })
       const dt = (ts - last) / 1000;
       last = ts;
       const next = live.current + dt * speed * BASE_HOURS_PER_SECOND * HOUR;
-      if (next >= r[1]) { live.current = r[1]; setTState(r[1]); setPlaying(false); return; }
+      if (next >= r[1]) {
+        /* a loop replays [from, end] until someone pauses it */
+        const from = loopFrom.current;
+        if (from != null && from < r[1]) { live.current = Math.max(r[0], from); setTState(live.current); committed = ts; raf = requestAnimationFrame(tick); return; }
+        live.current = r[1]; setTState(r[1]); setPlaying(false); return;
+      }
       live.current = next;
       if (ts - committed >= COMMIT_MS) { committed = ts; setTState(next); }
       raf = requestAnimationFrame(tick);
@@ -98,8 +105,18 @@ export function TimeProvider({ children, initialRange = null, initialT = null })
       if (r && live.current != null && live.current >= r[1]) { live.current = r[0]; setTState(r[0]); }
       setPlaying(true);
     },
-    pause: () => setPlaying(false),
-    toggle: () => setPlaying((p) => !p),
+    /* Replay [fromMs, end of range] continuously: the attribution map uses it
+     * so the ships are seen moving without anyone pressing play. Any pause,
+     * and any manual play, ends the loop. */
+    playLoop: (fromMs) => {
+      const r = rangeRef.current;
+      if (!r) return;
+      loopFrom.current = Math.max(r[0], Math.min(fromMs, r[1]));
+      live.current = loopFrom.current; setTState(loopFrom.current);
+      setPlaying(true);
+    },
+    pause: () => { loopFrom.current = null; setPlaying(false); },
+    toggle: () => { loopFrom.current = null; setPlaying((p) => !p); },
     step: (hours) => setT((live.current ?? 0) + hours * HOUR),
     peek: () => live.current,
   }), [t, range, playing, speed, now, setT, setRange]);

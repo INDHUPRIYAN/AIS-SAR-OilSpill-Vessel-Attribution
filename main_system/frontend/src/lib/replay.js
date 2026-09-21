@@ -335,7 +335,10 @@ export function trackStateAt(track, ms) {
   if (i === -1) i = times.length - 1;
   if (i === 0) i = 1;
   const t1 = times[i - 1], t2 = times[i];
-  const f = t2 > t1 ? clamp01((ms - t1) / (t2 - t1)) : 1;
+  /* A fix with no usable timestamp cannot be interpolated across: snap to the
+   * later fix rather than emit a NaN position (which crashes the map). */
+  const raw = t2 > t1 ? clamp01((ms - t1) / (t2 - t1)) : 1;
+  const f = Number.isFinite(raw) ? raw : 1;
   const [x1, y1] = path[i - 1], [x2, y2] = path[i];
   const pos = [lerp(x1, x2, f), lerp(y1, y2, f)];
   const heading = headings?.[i - 1] ?? bearingDeg(y1, x1, y2, x2);

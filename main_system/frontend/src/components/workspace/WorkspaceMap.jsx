@@ -94,17 +94,38 @@ function smoothSlick(fc) {
   }) };
 }
 
-/* How much of a background vessel's past is drawn behind it once candidates
- * are on the map. The fixes are the run's own; only the length is a choice. */
-const WAKE_MS = 6 * 3600 * 1000;
-function wakeOf(track, ms) {
+/* Trail lengths once candidates are lit: nobody draws their whole history.
+ * The fixes are the run's own; only how much of the past stays on screen is
+ * a drawing choice, and the legend states it. */
+const TRAIL_KM = { selected: 60, ranked: 14, other: 6, loiter: 7 };
+
+/** The last `km` of a vessel's path up to `ms`, head last. */
+function trailOf(track, ms, km) {
   const full = trackPathUntil(track, ms);
-  const { times } = track;
-  if (!full || !times?.length || times.length !== track.path.length) return full;
-  const from = ms - WAKE_MS;
-  let i = 0;
-  while (i < full.length - 2 && times[i + 1] != null && times[i + 1] < from) i++;
+  if (!full || full.length < 2) return full;
+  let acc = 0, i = full.length - 1;
+  while (i > 0 && acc < km) { acc += haversineKm(full[i][1], full[i][0], full[i - 1][1], full[i - 1][0]); i--; }
   return full.slice(i);
+}
+/** Net displacement / distance sailed, 0..1. A transit is ~1; a vessel working
+ *  one patch of sea is near 0, and drawn as a line it is a scribble. */
+function straightness(path) {
+  if (!path || path.length < 3) return 1;
+  let d = 0;
+  for (let i = 1; i < path.length; i++) d += haversineKm(path[i][1], path[i][0], path[i - 1][1], path[i - 1][0]);
+  const a = path[0], b = path[path.length - 1];
+  return d > 0 ? haversineKm(a[1], a[0], b[1], b[0]) / d : 1;
+}
+/** Centre and radius (km) of everything a track did: the area it worked. */
+function workedArea(track) {
+  const pts = track.path || [];
+  if (pts.length < 3) return null;
+  let x = 0, y = 0;
+  for (const q of pts) { x += q[0]; y += q[1]; }
+  const c = [x / pts.length, y / pts.length];
+  let r = 0;
+  for (const q of pts) r = Math.max(r, haversineKm(c[1], c[0], q[1], q[0]));
+  return { c, r };
 }
 
 /* The workspace names a basemap after the ANALYSIS it belongs to -- the drift
@@ -729,7 +750,19 @@ export default function WorkspaceMap({
      * of its whole track, no dashes, no arrows, no gap marks. */
     const focus = (t) => isSel(t) || Boolean(litRank(t));
     const quiet = candidateLabels && timeMs != null && tracks.some((t) => litRank(t));
-    const lineOf = (t) => (quiet && !focus(t) ? wakeOf(t, timeMs) || [] : pathOf(t));
+    /* A vessel that doubles back on itself over its long trail is loitering:
+     * it gets a short trail and a ring round the area it worked. */
+    const loiters = new Map();
+    const isLoiter = (t) => {
+      if (!quiet || !focus(t)) return false;
+      if (!loiters.has(t.mmsi)) loiters.set(t.mmsi, straightness(t.path) < 0.35);
+      return loiters.get(t.mmsi);
+    };
+    const lineOf = (t) => {
+      if (!quiet) return pathOf(t);
+      const km = isLoiter(t) ? TRAIL_KM.loiter : isSel(t) ? TRAIL_KM.selected : litRank(t) ? TRAIL_KM.ranked : TRAIL_KM.other;
+      return trailOf(t, timeMs, km) || [];
+    };
 
     deck.push(new PathLayer({
       id: "ws-tracks", data: drawn,
@@ -769,7 +802,7 @@ export default function WorkspaceMap({
     const arrows = [];
     for (const t of drawn) {
       if (t.filtered && gateDone(t) && !isSel(t)) continue;
-      if (quiet && !focus(t)) continue;
+      if (quiet) continue;               // the ship glyph already points the way
       const path = pathOf(t);
       const stride = Math.max(6, Math.floor(path.length / 5));
       for (let i = stride; i < path.length - 1; i += stride) {
@@ -817,15 +850,32 @@ export default function WorkspaceMap({
     const glow = drawn.filter((t) => isSel(t) || litRank(t) === 1);
     if (glow.length) {
       deck.push(new PathLayer({
-        id: "ws-tracks-glow", data: glow, getPath: pathOf, getColor: [...WS.selected, 70],
-        getWidth: 12, widthUnits: "pixels", capRounded: true, jointRounded: true,
-        updateTriggers: { getPath: [rv.tracksUntil ? timeMs : 0, trig] },
+        id: "ws-tracks-glow", data: glow, getPath: lineOf, getColor: [...WS.selected, 55],
+        getWidth: 9, widthUnits: "pixels", capRounded: true, jointRounded: true,
+        updateTriggers: { getPath: [rv.tracksUntil || quiet ? timeMs : 0, quiet, trig] },
       }));
+    }
+    /* the sea a loitering candidate worked, as one quiet ring */
+    if (quiet) {
+      const areas = tracks.filter((t) => isLoiter(t)).map((t) => ({ t, a: workedArea(t) })).filter((d) => d.a && d.a.r > 0.3);
+      if (areas.length) {
+        deck.push(new PathLayer({
+          id: "ws-loiter-area", data: areas, getPath: (d) => circleRing(d.a.c[0], d.a.c[1], d.a.r, 64),
+          getColor: (d) => [...colorOf(d.t), isSel(d.t) ? 170 : 95], getWidth: 1.2, widthUnits: "pixels",
+          getDashArray: [3, 4], extensions: dashExt, pickable: true,
+          onHover: (i) => hover(i.object ? {
+            kind: "vessel", title: `${i.object.t.name ?? "MMSI " + i.object.t.mmsi} · working one area`,
+            rows: [["radius", `${i.object.a.r.toFixed(1)} km`], ["why a ring", "its track doubles back on itself; the line is not drawn"]],
+          } : null),
+          updateTriggers: { getColor: trig },
+        }));
+      }
     }
     /* closest approach: a dashed tie from each lit candidate to the origin */
     if (candidateLabels && est) {
       const box = globe.current?.getMap?.()?.getContainer?.();
       const inFrame = (pos) => {
+        if (!Number.isFinite(pos?.[0]) || !Number.isFinite(pos?.[1])) return false;
         const q = globe.current?.project?.(pos);
         return Boolean(q && box) && q[0] > 40 && q[1] > 40 && q[0] < box.clientWidth - 40 && q[1] < box.clientHeight - 40;
       };
@@ -842,6 +892,10 @@ export default function WorkspaceMap({
       }).filter(Boolean);
       /* one closest-approach tie, for the vessel being examined */
       const ties = lit.filter((d) => d.t.rank === 1 || isSel(d.t));
+      /* A badge belongs to a ship on screen. Only the vessel in question keeps
+       * one while it is out of frame (parked where it passed the origin); a
+       * dozen parked badges were a second kind of clutter. */
+      const badges = lit.filter((d) => d.onMap || d.t.rank === 1 || isSel(d.t));
       deck.push(new PathLayer({
         id: "ws-cand-ties", data: ties, getPath: (d) => d.path,
         getColor: (d) => (d.t.rank === 1 ? [...WS.suspect, 230] : [226, 232, 240, 150]),
@@ -856,7 +910,7 @@ export default function WorkspaceMap({
         updateTriggers: { getLineColor: trig },
       }));
       deck.push(new TextLayer({
-        id: "ws-cand-badges", data: lit, getPosition: (d) => d.badge,
+        id: "ws-cand-badges", data: badges, getPosition: (d) => d.badge,
         getText: (d) => `#${d.t.rank}  ${d.t.score != null ? Number(d.t.score).toFixed(2) : "—"}`,
         getSize: (d) => (d.t.rank === 1 ? 15 : 12), fontFamily: "JetBrains Mono, monospace", fontWeight: 700,
         getColor: (d) => (d.t.rank === 1 ? [4, 18, 31, 255] : [232, 238, 248, 255]),
@@ -864,9 +918,10 @@ export default function WorkspaceMap({
          * fan the badges around it so every rank stays readable */
         /* odd ranks read to the left of their ship, even to the right; the
          * origin callout sits to the right of the origin, where #1 usually is */
-        getTextAnchor: (d) => (d.t.rank % 2 ? "end" : "start"), getAlignmentBaseline: "center",
+        getTextAnchor: (d) => (d.onMap && d.t.rank % 2 ? "end" : "start"), getAlignmentBaseline: "center",
         /* badges sharing the closest point stack downwards, clear of the origin callout */
-        getPixelOffset: (d) => (d.onMap ? [d.t.rank % 2 ? -20 : 20, 0] : [d.t.rank % 2 ? -26 : 26, 34 + 24 * Math.floor((d.t.rank - 1) / 2)]),
+        /* parked badges go to the right of the origin: the origin label owns the upper left, the legend the lower left */
+        getPixelOffset: (d) => (d.onMap ? [d.t.rank % 2 ? -20 : 20, 0] : [24, d.t.rank === 1 ? 30 : 56]),
         characterSet: CHARSET,
         background: true, getBackgroundColor: (d) => (d.t.rank === 1 ? [...WS.suspect, 250] : [15, 23, 42, 235]),
         getBorderColor: (d) => (d.t.rank === 1 ? [255, 255, 255, 255] : [100, 116, 139, 255]), getBorderWidth: 1.5,

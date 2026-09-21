@@ -11,7 +11,7 @@
  *     advances that clock; prev/next step the stages.
  * Everything drawn is read from artefacts; nothing animates on its own. */
 
-import { useEffect, useRef } from "react";
+
 import { ChevronLeft, ChevronRight, Clapperboard, Loader2, Pause, Play, SkipBack, SkipForward, Square, StepForward } from "lucide-react";
 
 import { CHIP_STEPS, STAGES, STAGE_INDEX } from "../../lib/stages";
@@ -86,7 +86,6 @@ function BeatRail({ cine, onCine, canPlay }) {
 }
 
 const SPEEDS = [1, 4, 16];
-const BASE_H_PER_S = 0.5;      // 1× = half a simulated hour per real second
 
 function tickLabel(t, spanMs) {
   const d = new Date(t);
@@ -99,25 +98,11 @@ export default function StageTimeline({
   stageId, judged, onStage, clocks, domain, value, onChange, playing, onPlaying,
   speed, onSpeed, sceneT0, title = "Scene analysis", scenes, cine, onCine, canPlay,
 }) {
-  const raf = useRef(0);
-  const last = useRef(0);
-
-  useEffect(() => {
-    if (!playing || !domain) return undefined;
-    last.current = performance.now();
-    const loop = (now) => {
-      const dt = (now - last.current) / 1000;
-      last.current = now;
-      onChange((v) => {
-        const nv = (v ?? domain[0]) + dt * speed * BASE_H_PER_S * 3.6e6;
-        if (nv >= domain[1]) { onPlaying(false); return domain[1]; }
-        return nv;
-      });
-      raf.current = requestAnimationFrame(loop);
-    };
-    raf.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf.current);
-  }, [playing, speed, domain, onChange, onPlaying]);
+  /* No play loop here. The clock is TimeContext's and it advances itself;
+   * this rail only renders it and scrubs it. The loop that used to live here
+   * called the setter with an updater FUNCTION, which the shared clock (a
+   * plain "set to this number") turned into NaN: pressing play blanked every
+   * time-dependent layer. */
 
   const idx = STAGE_INDEX[stageId] ?? 0;
   const activeChip = STAGES[idx]?.chip;

@@ -146,9 +146,12 @@ function slickBbox(slick) {
 
 function candidateBbox(vessels, suspects, est) {
   if (!est?.center || !suspects?.suspects?.length) return null;
-  const ranked = new Set(suspects.suspects.map((s) => s.mmsi));
+  /* The top three only, out to ~18 km: wide enough to watch them sail through
+   * the origin now that they tow short trails, not so wide that a dozen
+   * candidates' whole tracks set the scale. */
+  const ranked = new Set(suspects.suspects.slice(0, 3).map((s) => s.mmsi));
   const [ox, oy] = est.center;
-  const reach = Math.max(0.045, (est.radiusKm || 0) / 111 * 6);     // degrees: ~5 km, or 6x the uncertainty
+  const reach = Math.max(0.16, (est.radiusKm || 0) / 111 * 6);      // degrees: ~18 km, or 6x the uncertainty
   const pts = [];
   for (const f of vessels?.features || []) {
     if (!ranked.has(f.properties?.mmsi)) continue;
@@ -511,6 +514,28 @@ function InvestigationWorkspace() {
     tileCount: grid?.n ?? null, tileLabel: selectedTile ? fmtTile(selectedTile.index) : null,
     windProvider: forcing?.wind?.provider, currentProvider: forcing?.currents?.provider,
   }) : null;
+
+  /* Attribution plays itself: from two hours before the origin window opens
+   * to the acquisition, on a loop, so the candidates are seen sailing through
+   * the origin rather than parked at one instant. Pausing (or scrubbing, which
+   * pauses) hands the clock back; leaving the stage stops it. Not under
+   * reduced-motion, and never during the presentation, which has its own clock. */
+  const autoPlayed = useRef(null);
+  useEffect(() => {
+    if (cine.active) return undefined;
+    const key = `${stageId}:${runId}`;
+    if (stageId !== "attribution" || !layers.vessels || !layers.origin_cloud || !time.range) return undefined;
+    if (autoPlayed.current === key) return undefined;
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return undefined;
+    const ws = Date.parse(layers.origin_cloud?.metadata?.origin_window_start_utc ?? "");
+    if (!Number.isFinite(ws)) return undefined;
+    autoPlayed.current = key;
+    time.setSpeed(1);
+    time.playLoop(ws - 2 * 3.6e6);
+    return () => { time.pause(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stageId, runId, Boolean(layers.vessels), Boolean(layers.origin_cloud), Boolean(time.range), cine.active]);
+  useEffect(() => { if (stageId !== "attribution") autoPlayed.current = null; }, [stageId]);
 
   /* The beat decides the stage; the stage decides the panels. */
   const beatId = cine.active ? cine.beat.id : null;
@@ -1199,7 +1224,9 @@ function InvestigationWorkspace() {
               <div><i className="lg-origin" /> Estimated origin (uncertainty)</div>
               <div><i className="lg-sel" /> Selected vessel track (AIS)</div>
               <div><i className="lg-ship lg-ship-cand" /> Ranked candidate, at the time shown</div>
-              <div><i className="lg-ship" /> Other traffic, with its last 6 h</div>
+              <div><i className="lg-ship" /> Other traffic (when switched on)</div>
+              <div><i className="lg-ring" /> A vessel working one area</div>
+              <div className="ws-maplegend-sub">Short trails, not whole tracks. Looping; pause below.</div>
               {/synthetic|mock/i.test(String(aisProv || "")) && (
                 <div className="ws-maplegend-note" data-testid="legend-ais-simulated" title="The run recorded its AIS as synthetic. Tracks that loop in one place are the generator's fishing pattern.">Simulated AIS: no real archive covers this origin. These are not observed vessels.</div>
               )}

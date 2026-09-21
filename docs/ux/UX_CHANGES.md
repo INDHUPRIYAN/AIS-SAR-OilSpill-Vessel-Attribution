@@ -735,3 +735,35 @@ same record. Scene-service tests green.
 
 Gate: lint 0 errors / 80 warnings, unit 245, e2e 35/35.
 
+---
+
+## Trails, not tracks; ships that move by themselves - 2026-09-21
+
+User, on run `inv-03840c75dc-222715` (Makassar, 12 candidates): ranked
+candidates still drew their whole tracks, a loitering one as a scribble, and
+the map showed no moving ship. "For all incidents."
+
+The generator fix (af6da5d) cannot reach sealed runs, so the rule moved into
+the drawing, where it covers every run old and new:
+
+| Before | After |
+|---|---|
+| every ranked candidate drew its entire track | once candidates are lit nobody draws their history: each ship tows a distance-limited trail (selected 60 km, ranked 14 km, other 6 km) |
+| a vessel working one patch of sea was a tangle of lines | a track whose net displacement is under 35 % of the distance it sailed is drawn as a dashed ring round the area it worked, a 7 km trail, and its ship moving inside; hover states the radius and why it is a ring |
+| direction arrows along every track | none in this mode: the ship glyph points the way |
+| a parked badge for every off-screen candidate | a badge belongs to a ship on screen; only rank 1 and the selected vessel keep one while out of frame, to the right of the origin |
+| the ships stood still unless play was pressed | Attribution plays itself on a loop, from 2 h before the origin window opens to the acquisition, at 1x; pause or scrub takes the clock back; not under prefers-reduced-motion, never during the presentation |
+| attribution framed ~5 km | top three candidates out to ~18 km, so ships are seen sailing through the origin |
+
+**A bug this exposed, present since the clock was unified (P4):** the stage
+rail kept its own play loop and called the shared setter with an updater
+FUNCTION. The shared clock is "set to this number", so the time became NaN:
+pressing Play blanked every time-dependent layer (no ships, no trails) and, at
+some instants, a NaN position reached `map.project` and crashed the page. The
+user's screenshot has tracks and no ship for this reason. The loop is deleted
+(one clock), the setter ignores non-numbers, and `trackStateAt` no longer
+emits NaN across a fix with a missing timestamp. `TimeContext.playLoop` is new.
+
+Checked on three frames 5 s apart: ships enter, move and carry their badges;
+no page errors. Gate: lint 0 / 80, maps typecheck clean, unit 245, e2e 35/35.
+
