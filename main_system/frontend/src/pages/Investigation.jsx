@@ -26,6 +26,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWorkspaceParams } from "../lib/urls";
 import { AnimatePresence, motion } from "framer-motion";
+import MapHud from "../components/workspace/MapHud";
 import { FlyToInterpolator } from "@deck.gl/core";
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2 } from "lucide-react";
 
@@ -119,6 +120,10 @@ const featureBbox = (f) => polygonBbox(f?.geometry);
 
 /** Everything the drift stage draws, as one box: the slick, the hindcast's
  *  ellipse centres hour by hour, the origin and the forecast footprints. */
+/* The HUD owns the map's upper right and the legend its lower left, so the
+ * subject is framed in what is left: more padding on the right than the left. */
+const HUD_PAD = (base) => ({ top: base, bottom: base, left: Math.max(60, base - 20), right: base + 250 });
+
 function driftBbox(c, est, origin, forecast) {
   /* Frame what the run actually claims: the slick, the origin, the hindcast
    * INSIDE the published origin window, and the forecast. The backtrack past
@@ -128,7 +133,7 @@ function driftBbox(c, est, origin, forecast) {
     .filter((f) => (f.properties?.feature_type || f.properties?.kind) === "ellipse" && Array.isArray(f.properties.center))
     .filter((f) => { const t = Date.parse(f.properties.t_utc ?? ""); return !Number.isFinite(winStart) || !Number.isFinite(t) || t >= winStart; })
     .map((f) => f.properties.center);
-  return unionBbox([c, est?.center, ...centres, ...(forecast?.features || []).map(featureBbox)], 0.05);
+  return unionBbox([c, est?.center, ...centres, ...(forecast?.features || []).map(featureBbox)], 0.015);
 }
 
 /** The ranked candidates where they matter: each one's AIS fixes within
@@ -651,7 +656,7 @@ function InvestigationWorkspace() {
       case "geometry": {
         /* the subject is the slick's shape: fill the view with it */
         const sb = slickBbox(layers.slick);
-        if (sb) flyTo({ bbox: sb, pad: 100 }); else if (selectedTile) flyTo({ bbox: selectedTile.bbox, pad: 160 }); else if (slickP?.centroid) flyTo(slickP.centroid);
+        if (sb) flyTo({ bbox: sb, pad: HUD_PAD(90) }); else if (selectedTile) flyTo({ bbox: selectedTile.bbox, pad: 160 }); else if (slickP?.centroid) flyTo(slickP.centroid);
         break;
       }
       case "drift": {
@@ -659,7 +664,7 @@ function InvestigationWorkspace() {
          * and every forecast footprint -- not just the two end points */
         const c = slickP?.centroid;
         const b = driftBbox(c, est, layers.origin_cloud, layers.forecast);
-        if (b) flyTo({ bbox: b, pad: 90 }); else if (c) flyTo(c);
+        if (b) flyTo({ bbox: b, pad: HUD_PAD(70) }); else if (c) flyTo(c);
         break;
       }
       case "ais": case "attribution": {
@@ -668,7 +673,7 @@ function InvestigationWorkspace() {
         const tight = stageId === "attribution" || subs.ais === "ranking";
         const cb = tight ? candidateBbox(layers.vessels, layers.suspects, est) : null;
         const tb = cb || bboxOfTracks(layers.vessels);
-        if (tb) flyTo({ bbox: tb, pad: cb ? 120 : 70 }); else if (bbox) flyTo(bbox);
+        if (tb) flyTo({ bbox: tb, pad: HUD_PAD(cb ? 80 : 50) }); else if (bbox) flyTo(bbox);
         break;
       }
       default: break;
@@ -963,6 +968,7 @@ function InvestigationWorkspace() {
   /* callout anchors */
   const project = (lonlat) => { try { return viewport && lonlat ? viewport.project(lonlat) : null; } catch { return null; } };
   const centroidPx = project(slickP?.centroid);
+  const originPx = project(est0?.center);
   const tilePx = selectedTile ? { nw: project([selectedTile.bbox[0], selectedTile.bbox[3]]), se: project([selectedTile.bbox[2], selectedTile.bbox[1]]) } : null;
   const scenePx = sceneBbox ? { nw: project([sceneBbox[0], sceneBbox[3]]), se: project([sceneBbox[2], sceneBbox[1]]) } : null;
   /* During the presentation the callout and the tile frame appear when their
@@ -1207,6 +1213,16 @@ function InvestigationWorkspace() {
               </div>
             </>
           )}
+
+          {/* The stage's headline, big, on the map (from Incident Replay), and a
+              soft ping on the estimated origin wherever the origin is the subject.
+              The presentation has its own HUD, so these stand down while it runs. */}
+          {!cineFrame && originPx && ["drift", "attribution"].includes(stageId) && (
+            <span className="ws-ping" style={{ left: originPx[0], top: originPx[1] }} aria-hidden="true" />
+          )}
+          <MapHud hidden={Boolean(cineFrame)} stageId={stageId} sub={subs[stageId]} slick={layers.slick} detect={layers.detect}
+            est={est0} originMeta={layers.origin_cloud?.metadata} forecast={layers.forecast} counts={counts}
+            suspects={layers.suspects} selectedMmsi={selectedMmsi} onSelect={setSelectedMmsi} />
 
           {/* frame 12: scene facts; frame 15: legend */}
           {["ais", "drift"].includes(stageId) && layers.scene_meta && (

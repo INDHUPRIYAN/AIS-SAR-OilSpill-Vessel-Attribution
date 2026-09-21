@@ -767,3 +767,40 @@ emits NaN across a fix with a missing timestamp. `TimeContext.playLoop` is new.
 Checked on three frames 5 s apart: ships enter, move and carry their badges;
 no page errors. Gate: lint 0 / 80, maps typecheck clean, unit 245, e2e 35/35.
 
+---
+
+## Incident Replay's best parts, in the Analysis workspace - 2026-09-21
+
+**The two surfaces, compared.**
+
+| | Incident Replay (`/operations/replay`) | Analysis workspace (`/investigations/...`) |
+|---|---|---|
+| What it is | a scripted film of a finished run: fixed steps, one rAF engine | the working tool on the same run: every stage inspectable, panels, exports, report |
+| Strengths | big animated callouts, ranking bars that grow in one by one, continuous pulses, a step banner | real basemap and SAR, honest provenance labels, per-stage panels, deep links, the run's numbers beside their sources |
+| Weaknesses | read-only; shows the attribution total as "82 %", which its own intel panel forbids (a weighted score is not a probability) | headline numbers small and in the side panel; the map was quiet |
+
+**Taken into the workspace** (`components/workspace/MapHud.jsx`, on the map, top right):
+
+| Stage | Headline | Below it |
+|---|---|---|
+| detection / validation / characterisation | detection confidence, 40 px (a model probability, so a percent) | area, axes, region count |
+| drift | origin uncertainty "+/- km" | coordinates, origin window, forecast horizon |
+| AIS filtering | "N of M remain" | the gates, arriving one by one - only when the run's counts actually narrow (older runs repeat the total; then it says so) |
+| ranking / attribution | the selected candidate's score, as a score: "0.82 score - weighted evidence score, not a probability" | top-five ranking: rows slide in, bars grow to their score, click selects the vessel on the map |
+
+Plus a soft radar ping on the estimated origin in drift and attribution (off
+under prefers-reduced-motion). The HUD stands down during the presentation,
+which has its own.
+
+**Zoom choreography** (asked for explicitly): drift zooms IN on slick + origin
++ in-window hindcast + forecast (margin 0.05 -> 0.015 deg); AIS filtering zooms
+OUT to all traffic; ranking and attribution zoom IN to the top three
+candidates. Measured on `inv-03840c75dc-222715`: scale bar 25 km -> 250 km ->
+25 km. Those stages now frame their subject in the space the HUD (right) and
+legend (lower left) leave free, by asymmetric fit padding.
+
+**Zone editor.** "Create zone" was disabled with no reason given. It needs a
+Zone ID and a closed ring; the panel now lists what is still missing, in order.
+
+Gate: lint 0 / 80, unit 245, e2e 35/35.
+

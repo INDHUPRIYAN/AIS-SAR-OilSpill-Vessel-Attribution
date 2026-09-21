@@ -559,3 +559,40 @@
 .ws-fact { flex-shrink: 0; }
 .ws-fact-more { flex-shrink: 0; }
 .ws-leave { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1 !important; min-width: 0; }
+
+/* ---- map HUD: the stage headline, large (after Incident Replay) ---------- */
+.hud-wrap { position: absolute; top: 58px; right: 12px; z-index: 5; width: 292px; pointer-events: none; }
+.hud { pointer-events: auto; padding: 12px 14px 13px; background: rgba(7, 12, 22, .9); border: 1px solid var(--line-bright); border-left: 3px solid var(--accent); border-radius: var(--r-sm); backdrop-filter: blur(6px); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
+.hud-oil { border-left-color: #e89260; }
+.hud-origin { border-left-color: #e2e8f0; }
+.hud-kicker { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.hud-big { margin-top: 3px; font-size: 40px; font-weight: 700; line-height: 1.05; letter-spacing: -1px; color: var(--ink-0); }
+.hud-accent .hud-big { color: var(--accent); }
+.hud-oil .hud-big { color: #f0a877; }
+.hud-unit { margin-left: 6px; font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--ink-2); font-family: Inter, sans-serif; }
+.hud-sub { margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--ink-1); }
+.hud-sub b { color: var(--ink-0); font-weight: 600; }
+.hud-dim { color: var(--ink-2); font-size: 11px; }
+.hud-rank { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line-bright); display: grid; gap: 3px; }
+.hud-rankrow { display: grid; grid-template-columns: 26px 1fr 64px 36px; align-items: center; gap: 7px; padding: 4px 5px; background: none; border: 1px solid transparent; border-radius: 4px; color: var(--ink-1); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.hud-rankrow:hover { background: rgba(255, 255, 255, .05); }
+.hud-rankrow.sel { border-color: var(--accent-line); background: rgba(34, 211, 238, .07); }
+.hud-rankrow.top { color: var(--ink-0); font-weight: 600; }
+.hud-rank-n { color: var(--ink-2); }
+.hud-rankrow.top .hud-rank-n { color: var(--accent); }
+.hud-rank-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hud-rank-bar { height: 5px; background: rgba(255, 255, 255, .08); border-radius: 3px; overflow: hidden; }
+.hud-rank-fill { display: block; height: 100%; background: #8aa0bd; border-radius: 3px; }
+.hud-rankrow.top .hud-rank-fill { background: var(--accent); }
+.hud-rank-v { text-align: right; font-size: 12.5px; color: var(--ink-0); }
+.hud-more { font-size: 10.5px; color: var(--ink-2); padding: 2px 5px 0; }
+.hud-funnel { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line-bright); display: grid; gap: 3px; font-size: 12px; color: var(--ink-1); }
+.hud-funnel-row { display: grid; grid-template-columns: 38px 1fr; gap: 8px; align-items: baseline; }
+.hud-funnel-v { text-align: right; font-size: 14px; font-weight: 700; color: var(--ink-0); }
+/* a soft radar ping on the estimated origin */
+.ws-ping { position: absolute; z-index: 3; width: 0; height: 0; pointer-events: none; }
+.ws-ping::before, .ws-ping::after { content: ""; position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border: 1.5px solid rgba(226, 232, 240, .8); border-radius: 50%; animation: ws-ping 2.6s ease-out infinite; }
+.ws-ping::after { animation-delay: 1.3s; }
+@keyframes ws-ping { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(4.2); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ws-ping::before, .ws-ping::after { animation: none; opacity: 0; } }
+@media (max-width: 1280px) { .hud-wrap { width: 250px; } .hud-big { font-size: 32px; } }

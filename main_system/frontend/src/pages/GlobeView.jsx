@@ -747,6 +747,20 @@ function EditorPanel({ editor, editTarget, newZone, setNewZone, zoneList, office
         </button>
       </div>
 
+      {/* A disabled button that does not say why is a dead end: list what is
+          still missing, in the order the operator has to do it. */}
+      {(() => {
+        const todo = [];
+        if (!editTarget && !newZone.id.trim()) todo.push("type a Zone ID (the grey text in the box is only an example)");
+        if (!editor.geometry) todo.push("close the ring: click Close ring, or click the first point again");
+        if (bad) todo.push("fix the boundary: it crosses itself (the offending edges are highlighted)");
+        return todo.length ? (
+          <div className="gv-editor-todo" data-testid="editor-todo">
+            <b>{editTarget ? "Save boundary" : "Create zone"} is disabled. Still to do:</b>
+            <ol>{todo.map((t) => <li key={t}>{t}</li>)}</ol>
+          </div>
+        ) : null;
+      })()}
       <div className="globe-actions">
         <button className="btn btn-primary btn-sm" onClick={onSave} data-testid="editor-save"
           disabled={!editor.geometry || Boolean(bad) || saveState?.busy || (!editTarget && !newZone.id.trim())}>

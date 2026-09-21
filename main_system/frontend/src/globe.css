@@ -275,3 +275,8 @@ a.ops-tile:hover { border-color: var(--accent-line); }
 .ops-demo-title { font-size: 13px; font-weight: 700; color: var(--ink-0); }
 .ops-demo-sub { font-size: 10.5px; color: var(--ink-3); margin: 2px 0 6px; }
 .ops-demo-note { font-size: 11.5px; line-height: 1.5; color: var(--ink-2); }
+
+/* zone editor: why the save button is disabled */
+.gv-editor-todo { margin: 8px 0 2px; padding: 8px 10px; border: 1px solid rgba(209,160,84,.45); border-left: 2px solid #d1a054; border-radius: var(--r-sm); background: rgba(209,160,84,.07); font-size: 11.5px; line-height: 1.5; color: var(--ink-1); }
+.gv-editor-todo b { color: var(--ink-0); font-weight: 600; }
+.gv-editor-todo ol { margin: 4px 0 0; padding-left: 18px; }

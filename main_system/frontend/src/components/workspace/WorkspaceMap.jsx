@@ -895,7 +895,7 @@ export default function WorkspaceMap({
       /* A badge belongs to a ship on screen. Only the vessel in question keeps
        * one while it is out of frame (parked where it passed the origin); a
        * dozen parked badges were a second kind of clutter. */
-      const badges = lit.filter((d) => d.onMap || d.t.rank === 1 || isSel(d.t));
+      const badges = lit.filter((d) => (d.onMap && d.t.rank <= 5) || d.t.rank === 1 || isSel(d.t));   // the HUD lists the same five
       deck.push(new PathLayer({
         id: "ws-cand-ties", data: ties, getPath: (d) => d.path,
         getColor: (d) => (d.t.rank === 1 ? [...WS.suspect, 230] : [226, 232, 240, 150]),
@@ -918,10 +918,10 @@ export default function WorkspaceMap({
          * fan the badges around it so every rank stays readable */
         /* odd ranks read to the left of their ship, even to the right; the
          * origin callout sits to the right of the origin, where #1 usually is */
-        getTextAnchor: (d) => (d.onMap && d.t.rank % 2 ? "end" : "start"), getAlignmentBaseline: "center",
+        getTextAnchor: (d) => (!d.onMap ? "middle" : d.t.rank % 2 ? "end" : "start"), getAlignmentBaseline: "center",
         /* badges sharing the closest point stack downwards, clear of the origin callout */
-        /* parked badges go to the right of the origin: the origin label owns the upper left, the legend the lower left */
-        getPixelOffset: (d) => (d.onMap ? [d.t.rank % 2 ? -20 : 20, 0] : [24, d.t.rank === 1 ? 30 : 56]),
+        /* parked badges hang below the closest point: the origin label owns the upper left, the HUD the right */
+        getPixelOffset: (d) => (d.onMap ? [d.t.rank % 2 ? -20 : 20, 0] : [0, d.t.rank === 1 ? 34 : 60]),
         characterSet: CHARSET,
         background: true, getBackgroundColor: (d) => (d.t.rank === 1 ? [...WS.suspect, 250] : [15, 23, 42, 235]),
         getBorderColor: (d) => (d.t.rank === 1 ? [255, 255, 255, 255] : [100, 116, 139, 255]), getBorderWidth: 1.5,
