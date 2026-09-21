@@ -42,6 +42,7 @@ import { landShare, validateSlick } from "../lib/geovalidate";
 import { sourceBadge } from "../components/workspace/palette";
 import { api, useApi, fmt } from "../lib/api";
 import { useRunEvents } from "../lib/useRunEvents";
+import { TimeProvider, useTime } from "../components/maps/TimeContext";
 import { hasRole, useSession } from "../lib/session";
 import { useRegisterCommands, useRunInContext } from "../lib/shell";
 import { fmtUtc } from "../lib/replay";
@@ -147,6 +148,17 @@ function candidateBbox(vessels, suspects, est) {
 }
 
 export default function Investigation() {
+  /* One clock for the whole workspace. The stage rail renders it, the map
+   * layers read it, and any panel that needs the time on screen subscribes
+   * with `useTime()` instead of being handed a prop down four levels. */
+  return (
+    <TimeProvider>
+      <InvestigationWorkspace />
+    </TimeProvider>
+  );
+}
+
+function InvestigationWorkspace() {
   const [params, setParams] = useWorkspaceParams();
   const { user } = useSession();
   const canRun = hasRole(user, "investigator", "analyst");
@@ -170,9 +182,13 @@ export default function Investigation() {
   const [toasts, setToasts] = useState([]);
   const [selectedMmsi, setSelectedMmsi] = useState(null);
   const [hover, setHover] = useState(null);
-  const [timeMs, setTimeMs] = useState(null);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(4);
+  const time = useTime();
+  const timeMs = time.t;
+  const setTimeMs = time.setT;
+  const playing = time.playing;
+  const setPlaying = useCallback((on) => (on ? time.play() : time.pause()), [time]);
+  const speed = time.speed;
+  const setSpeed = time.setSpeed;
   const [showOverride, setShowOverride] = useState({});
   const [forcing, setForcing] = useState(null);
   const [view, setView] = useState({ longitude: 80.32, latitude: 13.05, zoom: 5.5, pitch: 0, bearing: 0 });
@@ -346,7 +362,14 @@ export default function Investigation() {
     const winStart = Date.parse(layers.origin_cloud?.metadata?.origin_window_start_utc ?? "") || sceneT0 - 24 * 3.6e6;
     return [winStart - 6 * 3.6e6, sceneT0 + 24 * 3.6e6];
   }, [sceneT0, layers.origin_cloud]);
-  useEffect(() => { if (sceneT0 && timeMs == null) setTimeMs(sceneT0); }, [sceneT0, timeMs]);
+  /* The clock's range is the run's own: from six hours before the published
+   * origin window to a day past the acquisition, with the acquisition itself
+   * marked. Published to the context so every subscriber reads one domain. */
+  useEffect(() => {
+    if (!domain) return;
+    time.setRange(domain, { now: sceneT0, t: timeMs ?? sceneT0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domain?.[0], domain?.[1], sceneT0]);
 
   const maxStep = useMemo(() => {
     let m = 0;
@@ -686,7 +709,7 @@ export default function Investigation() {
   const play = useCallback((from = "globe") => {
     setPlaying(false); setLayersOpen(false); setMeasuring(false);
     cine.start(from);
-  }, [cine]);
+  }, [cine, setPlaying]);
   /* Two ways to bring a run onto the workspace, and they are different acts:
    *
    *   `present: true`   a NEW investigation starts (Proceed to detection) or

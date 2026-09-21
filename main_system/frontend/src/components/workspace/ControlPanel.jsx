@@ -227,9 +227,9 @@ export function AcquisitionPanel({
 /* ---------------------------------------------------------- analysis ---- */
 
 export function AnalysisPanel({
-  sceneMeta, inv, runId, show, onShow, aisSource, onFlyTo, onSearchArea,
+  sceneMeta, runId, show, onShow, aisSource, onFlyTo, onSearchArea,
   running, job, cancelling, replayMode, onReplayMode, onRun, onCancel, onRerun,
-  canRun, status, stageId, onClearAll, invs, invId, onPickInv, onNew, liveAis,
+  canRun, status, onClearAll, invs, invId, onPickInv, onNew, liveAis,
 }) {
   const [area, setArea] = useState("");
   const sm = sceneMeta || {};

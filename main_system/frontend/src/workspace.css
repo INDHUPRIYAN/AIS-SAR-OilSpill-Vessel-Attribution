@@ -532,3 +532,9 @@
 .tl-chip.on .tl-chip-n { opacity: 0.8; }
 .rp-brief { padding: 10px 12px; }
 @media (max-width: 1500px) { .ws-facts { gap: 0 12px; } .ws-fact dd { font-size: 12px; } }
+
+/* Bayesian origin, inside the drift stage's right panel. */
+.ip-note-err { border-left-color: var(--danger); color: var(--danger); }
+.ip-note .btn { margin-left: auto; flex-shrink: 0; }
+[data-testid="intel-bayes"] .he-result { margin: 8px 12px 12px; }
+[data-testid="intel-bayes"] .he-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }

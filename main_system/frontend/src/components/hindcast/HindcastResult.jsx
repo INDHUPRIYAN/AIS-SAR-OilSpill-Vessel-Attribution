@@ -9,6 +9,7 @@ import { AlertTriangle, CheckCircle2, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "../ui";
 import { fmt } from "../../lib/api";
+import { url } from "../../lib/urls";
 
 function Stat({ label, children, sub }) {
   return (
@@ -39,7 +40,7 @@ export default function HindcastResult({ result, source }) {
             MULTI-MODAL · {result.modes.length} origin / {result.age_modes.length} age
           </Badge>
         )}
-        {runId && <Link className="btn btn-sm" style={{ marginLeft: "auto" }} to={`/investigation?run=${runId}`}>Open run {runId}</Link>}
+        {runId && <Link className="btn btn-sm" style={{ marginLeft: "auto" }} to={url.workspace({ run: runId, stage: "drift" })}>Open run {runId}</Link>}
       </div>
 
       <div className="he-result-body">

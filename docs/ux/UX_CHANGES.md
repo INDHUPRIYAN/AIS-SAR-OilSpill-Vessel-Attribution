@@ -192,3 +192,48 @@ orphaned `useRunEvents`.
 - `CommandMap` (the `/incident` replay map) is still a second mercator mount —
   it retires with that route in P7.
 - Workspace camera in the URL (P4, with the time position).
+
+---
+
+## P4 — Hindcast and Origin: one clock, both contours, both estimates
+
+### Before → after
+
+| | Before | After |
+|---|---|---|
+| The workspace clock | local `useState` in the page, passed down as props | the shared `TimeContext`: the stage rail renders it, the map layers read it, any panel subscribes with `useTime()` |
+| Hindcast contours | the widest ellipse per step; a 50 % contour was never written and never drawn | the uncertainty ellipse **and**, where the run has it, the nested 50 % contour inside it (dashed) |
+| Particle count | `Particles 1,800` — the subsampled cloud shown as if it were the run | `1,800 of 7,500`, with what the number means on hover |
+| Confidence levels | not stated | `Contours 50 % · 90 %`, or `90 %` with "this run recorded one confidence level" |
+| The Bayesian origin | a separate page with no way back to the run; the posterior never reached the investigation | the **Bayesian** context of the Origin stage: MAP origin, credible release window, 90 % HDR, P(τ), multi-modality — the same component the engines page uses |
+| No hindcast for this run | nothing said so | "No Bayesian hindcast has been run for this run" + **Run one** (role-gated), or the live status of one that is running |
+
+### Backend exception used
+
+G1 (committed separately, before this phase): Engine B writes the 0.5 contour
+beside the 0.9 one, tagged `role: contour`, display only. The attribution gate
+skips it and the report still states the 0.9 ellipse — held by contract tests.
+Runs sealed before that change carry 0.9 alone, and the panel says so rather
+than drawing a contour that was never computed.
+
+### Autonomous decisions
+
+5. **G12 resolved without a backend change.** BAYES-TRACK already tags a job
+   started from a pipeline run with `source: "run:{id}"`, so the workspace
+   finds a run's hindcast by filtering `/api/hindcast/jobs` client-side. No new
+   route, no schema change.
+6. **The two origin estimates are shown side by side and never merged.** Engine
+   B's ellipse and BAYES-TRACK's posterior are different methods; agreement is
+   evidence and disagreement is something the analyst needs to see. The panel
+   says so in as many words.
+7. **The right-panel context strip scrolls.** A fifth context on the drift
+   stage pushed "Forecast" under the panel's collapse button (e2e W2 caught
+   it); the strip now scrolls instead of overlapping.
+
+### Deferred
+
+- `TimeController` (the shared time bar component) is built, unit-tested and
+  bound to the same context, but the workspace still renders its own rail
+  inside `StageTimeline`. They share one clock, so there is no desync — the
+  visual consolidation is P9 polish.
+- Coastline-impact ETA stays absent (G2): nothing in the stack computes landfall.

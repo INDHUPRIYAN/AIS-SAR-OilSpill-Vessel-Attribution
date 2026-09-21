@@ -14,7 +14,7 @@
 import { useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, Clapperboard, Loader2, Pause, Play, SkipBack, SkipForward, Square, StepForward } from "lucide-react";
 
-import { CHIPS, CHIP_STEPS, STAGES, STAGE_INDEX } from "../../lib/stages";
+import { CHIP_STEPS, STAGES, STAGE_INDEX } from "../../lib/stages";
 import { BEATS, BEAT_CHIPS } from "../../lib/cinematic";
 import { fmtUtc, fmtRel } from "../../lib/replay";
 

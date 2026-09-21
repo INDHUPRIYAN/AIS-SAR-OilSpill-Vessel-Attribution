@@ -271,12 +271,20 @@ export default function WorkspaceMap({
   const estO = originEstimate(origin);
   if (show.hindcast && hind.pts.length) {
     const upto = reveal ? step : (hind.max || step);
+    /* A step can carry more than one contour (Engine B writes 0.5 beside 0.9).
+     * The WIDEST is the uncertainty ellipse -- the trail, the ghosts and the
+     * origin all read from it -- and the narrower ones are drawn inside it so
+     * the analyst can see where the cloud is dense, not only how far it spread. */
     const byStep = new Map();
+    const innerAt = new Map();
     for (const f of hind.ells) {
       const q = f.properties || {}; const k = q.step_index ?? 0;
       if (!Array.isArray(q.center)) continue;
       const old = byStep.get(k);
-      if (!old || (q.confidence_level ?? 0) > (old.properties.confidence_level ?? 0)) byStep.set(k, f);
+      if (!old) { byStep.set(k, f); continue; }
+      const wider = (q.confidence_level ?? 0) > (old.properties.confidence_level ?? 0);
+      byStep.set(k, wider ? f : old);
+      innerAt.set(k, wider ? old : f);
     }
     const stepsSorted = [...byStep.keys()].sort((x, y) => x - y).filter((k) => k <= upto);
     /* The run integrates back `backtrack_hours`, but it only CLAIMS an origin
@@ -321,6 +329,19 @@ export default function WorkspaceMap({
       } : null),
       updateTriggers: { getPosition: step },
     }));
+    const inner = innerAt.get(Math.min(step, hind.max));
+    if (inner) {
+      deck.push(new GeoJsonLayer({
+        id: "ws-hindcast-inner",
+        data: { type: "FeatureCollection", features: [inner] },
+        stroked: true, filled: true,
+        getFillColor: [...WS.hindcast, 70],
+        getLineColor: [...WS.hindcast, 200],
+        getLineWidth: 1.4, lineWidthUnits: "pixels",
+        getDashArray: [4, 3], extensions: dashExt,
+        updateTriggers: { getLineColor: step },
+      }));
+    }
     const ell = byStep.get(Math.min(step, hind.max)) || hind.ells[Math.min(step, hind.ells.length - 1)];
     if (ell) {
       deck.push(new GeoJsonLayer({

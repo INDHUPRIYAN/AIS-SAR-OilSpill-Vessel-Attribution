@@ -240,6 +240,21 @@ export function HindcastPanel({ ctx }) {
     const [u, v] = sampleField(f, p.centroid[0], p.centroid[1], sceneT0); return Math.hypot(u, v);
   };
   const wS = at("wind"), cS = at("currents");
+  /* What the cloud on screen actually is, and which contours the run wrote.
+   * The server subsamples a 7,500-particle cloud to 1,800 for the workspace
+   * and says so in metadata; the map used to show the smaller number as if it
+   * were the run. Engine B writes a 0.5 contour beside the 0.9 one, but only
+   * for runs sealed after that change -- an older run has 0.9 alone and says so. */
+  const levels = useMemo(() => {
+    const set = new Set();
+    for (const f of oc?.features || []) {
+      const q = f.properties || {};
+      if ((q.feature_type || q.kind) === "ellipse" && q.confidence_level) set.add(q.confidence_level);
+    }
+    return [...set].sort((a, b) => a - b);
+  }, [oc]);
+  const drawn = md?.particles_full && md.particles_full !== md.n_particles
+    ? { shown: md.n_particles, of: md.particles_full } : null;
   /* cloud size per hour back: the run's own ellipses, widest confidence level */
   const spread = useMemo(() => {
     const by = new Map();
@@ -282,7 +297,13 @@ export function HindcastPanel({ ctx }) {
         <Row k="Wind contribution" v={fo.windage != null && wS != null ? `${(fo.windage * wS).toFixed(3)} m/s` : null}
           title={fo.windage != null && wS != null ? `windage ${fo.windage} × wind ${wS.toFixed(1)} m/s, computed here from the run's two values` : "Needs the run's windage and its wind grid"} />
         <Row k="Windage" v={fo.windage != null ? `${(fo.windage * 100).toFixed(1)} % of 10 m wind` : null} />
-        <Row k="Particles" v={md.n_particles?.toLocaleString()} />
+        <Row k="Particles" v={drawn
+          ? `${drawn.shown.toLocaleString()} of ${drawn.of.toLocaleString()}`
+          : md.n_particles?.toLocaleString()}
+          title={drawn ? "The workspace draws an evenly subsampled cloud; the run integrated the full set." : undefined} />
+        <Row k="Contours" mono={false}
+          v={levels.length ? levels.map((l) => `${Math.round(l * 100)} %`).join(" · ") : "not published"}
+          title={levels.length === 1 ? "This run recorded one confidence level. Runs sealed after the 50 % contour was added carry both." : undefined} />
         <Row k="Time step" v={md.timestep_minutes != null ? `${md.timestep_minutes} min` : null} />
         <Row k="Backward duration" v={md.backtrack_hours != null ? `${md.backtrack_hours} h` : null} testid="hind-duration" />
         <Row k="ML residual" mono={false} v={fo.ml_residual ? (fo.ml_residual.applied ? `applied (${fo.ml_residual.model})` : "not applied") : null} title={fo.ml_residual?.corrects} />

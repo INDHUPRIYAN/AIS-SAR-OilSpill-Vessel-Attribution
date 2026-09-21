@@ -7,6 +7,7 @@
  * `sub`). Either way the panel is the same component reading the same run.
  */
 
+import BayesOriginPanel from "./BayesOriginPanel";
 import CaseBrief from "./CaseBrief";
 import IntelPanel from "./IntelPanels";
 import {
@@ -16,7 +17,8 @@ import {
 const PER_STAGE = {
   detection: [["detection", "Detection"], ["segmentation", "Segmentation"]],
   validation: [["validation", "Validation"], ["wind", "Wind"]],
-  drift: [["overview", "Overview"], ["currents", "Current"], ["hindcast", "Hindcast"], ["forecast", "Forecast"]],
+  drift: [["overview", "Overview"], ["currents", "Current"], ["hindcast", "Hindcast"],
+          ["bayes", "Bayesian"], ["forecast", "Forecast"]],
   ais: [["correlation", "Correlation"], ["traffic", "Traffic"], ["filter", "Filtering"], ["ranking", "Ranking"]],
 };
 
@@ -49,6 +51,7 @@ export default function RightPanel({ ctx }) {
     case "wind": body = <ForcingPanel ctx={ctx} kind="wind" />; break;
     case "currents": body = <ForcingPanel ctx={ctx} kind="currents" />; break;
     case "hindcast": body = <HindcastPanel ctx={ctx} />; break;
+    case "bayes": body = <BayesOriginPanel ctx={ctx} />; break;
     case "forecast": body = <ForecastPanel ctx={ctx} />; break;
     case "traffic": body = <AisTrafficPanel ctx={ctx} />; break;
     case "filter": body = <AisFilterPanel ctx={ctx} />; break;

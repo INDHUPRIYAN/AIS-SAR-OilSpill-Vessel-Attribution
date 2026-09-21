@@ -23,8 +23,13 @@
 
 /* ------------------------------------------- right panel: contexts ------- */
 .rp { display: flex; flex-direction: column; min-height: 100%; }
-.rp-strip { display: flex; gap: 2px; padding: 8px 44px 0 10px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
-.rp-tab { flex: 1; height: 30px; padding: 0 4px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--ink-2); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: inherit; white-space: nowrap; }
+/* The context strip scrolls rather than sliding its last tab under the
+   panel's collapse button: a stage can offer five contexts (the drift stage
+   answers five questions) and the panel is 352 px wide. */
+.rp-strip { display: flex; gap: 2px; padding: 8px 44px 0 10px; border-bottom: 1px solid var(--line); flex-shrink: 0;
+  overflow-x: auto; scrollbar-width: none; }
+.rp-strip::-webkit-scrollbar { display: none; }
+.rp-tab { flex: 1 0 auto; min-width: 0; height: 30px; padding: 0 6px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--ink-2); font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; font-family: inherit; white-space: nowrap; }
 .rp-tab:hover { color: var(--ink-0); }
 .rp-tab.on { color: var(--accent); border-bottom-color: var(--accent); }
 .rp-body { flex: 1; display: flex; flex-direction: column; min-height: 0; animation: ws-fade-in 280ms ease-out; }
