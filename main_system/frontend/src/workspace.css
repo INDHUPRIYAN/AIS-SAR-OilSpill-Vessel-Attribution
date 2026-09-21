@@ -540,3 +540,17 @@
 [data-testid="intel-bayes"] .he-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .ws-leave { font-size: 11.5px; color: var(--ink-2); }
 .ws-ok.ws-lost { color: var(--warn); border-color: rgba(245, 165, 36, 0.45); }
+
+/* Header discipline: the map is the page. Title and badges on one line, the
+   scene on one line, the case facts on one line -- three rows, as before the
+   fact strip existed. Anything that does not fit is ellipsed, never wrapped
+   into a fourth row that pushes the map down. */
+.ws-headline-main { flex-wrap: nowrap; overflow: hidden; }
+.ws-headline-main > * { flex-shrink: 0; }
+/* The title is never the thing that gives way: trailing badges are. */
+.ws-headline-main .ws-title { flex-shrink: 0; white-space: nowrap; }
+.ws-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.ws-facts { flex-wrap: nowrap; overflow: hidden; margin-top: 3px; gap: 0 16px; }
+.ws-fact { flex-shrink: 0; }
+.ws-fact-more { flex-shrink: 0; }
+.ws-leave { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1 !important; min-width: 0; }

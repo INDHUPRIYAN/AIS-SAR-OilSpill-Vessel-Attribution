@@ -28,6 +28,18 @@ import "./maps.css";
 maplibregl.config.MAX_PARALLEL_IMAGE_REQUESTS = 4;
 export const SAR_TILE_MIN_ZOOM = 10;
 
+/* Globe when the view is of the planet, flat chart when it is of a region.
+ * While MapLibre reports a globe projection, deck draws through its globe
+ * view at EVERY zoom, and that view cannot draw billboard text, dashed paths
+ * or trips -- the workspace's callouts, AIS gaps and drift trail. So the
+ * projection follows the zoom, with hysteresis so a view hovering at the
+ * threshold does not flip back and forth. */
+const FLAT_AT = 5.0;
+const GLOBE_AT = 4.4;
+/** @param {number} zoom @param {"globe"|"mercator"} current @returns {"globe"|"mercator"} */
+export const projectionFor = (zoom, current) => (
+  current === "mercator" ? (zoom < GLOBE_AT ? "globe" : "mercator") : (zoom >= FLAT_AT ? "mercator" : "globe"));
+
 /** The run's quicklook. One URL for the whole app: the map and the analysis
  *  panels show the same image, so it is fetched once and served from cache
  *  rather than rendered three times from a 600 Mpx raster (BACKEND_GAPS G15). */
@@ -64,10 +76,16 @@ export function withSar(style, sar, origin) {
   };
 }
 
-/** @param {{layers: any[], onReady: (o: MapboxOverlay) => void}} props */
+/* OVERLAID, not interleaved. Interleaved draws deck's layers into MapLibre's
+ * own depth buffer, where everything at sea level fights the globe surface for
+ * the same depth: fills break into specks, text disappears, glow trails thin
+ * to nothing (seen side by side against the pre-refactor workspace). Overlaid
+ * gives deck its own canvas above the map, registered to the same camera
+ * (0.0 px in both projections -- GLOBE_ARCHITECTURE.md section 2).
+ * @param {{layers: any[], onReady: (o: MapboxOverlay) => void}} props */
 function DeckOverlay({ layers, onReady }) {
   const overlay = /** @type {MapboxOverlay} */ (/** @type {unknown} */ (
-    useControl(() => /** @type {any} */ (new MapboxOverlay({ interleaved: true, layers: [] })))));
+    useControl(() => /** @type {any} */ (new MapboxOverlay({ interleaved: false, layers: [] })))));
   useEffect(() => { onReady(overlay); }, [overlay, onReady]);
   overlay.setProps({ layers });
   return null;
@@ -107,19 +125,21 @@ const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} *
   /** A flight asked for before the map loaded (a deep link's first act). */
   const pending = useRef(/** @type {null | [Partial<Camera>, number]} */ (null));
   const ready = useRef(false);
+  const pendingFit = useRef(/** @type {null | [number[], number, any]} */ (null));
   const [hovering, setHovering] = useState(false);
   const [sarState, setSarState] = useState(/** @type {"idle"|"loading"|"ready"|"error"} */ ("idle"));
-  const [view, setView] = useState({ zoom: initialCamera.zoom, projection: "globe" });
+  const [view, setView] = useState(/** @type {{zoom: number, projection: "globe"|"mercator"}} */ ({
+    zoom: initialCamera.zoom, projection: projectionFor(initialCamera.zoom, "globe") }));
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const resolved = resolveBasemap(basemap, MAP_CONFIG);
   const showKey = JSON.stringify(show || {});
   const sarKey = sar && sar.visible !== false ? `${sar.runId}|${sar.bbox?.join(",")}` : "";
   const style = useMemo(
-    () => withSar(buildStyle({ basemap, theme, graticule, show, origin }), sar, origin),
+    () => withSar(buildStyle({ basemap, theme, graticule, show, origin, projection: view.projection }), sar, origin),
     // `show` and `sar` are compared by value: callers pass fresh literals.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [basemap, theme, graticule, showKey, sarKey, origin]);
+    [basemap, theme, graticule, showKey, sarKey, origin, view.projection]);
 
   const cameraOf = () => {
     const m = mapRef.current?.getMap?.();
@@ -145,13 +165,16 @@ const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} *
       // than the camera looping out to orbit and back.
       else m.flyTo({ ...opts, duration: ms, curve: 1.1, essential: true });
     },
-    /** @param {number[]} bbox @param {number} [ms] */
-    fitBounds: (bbox, ms = 1400) => {
+    /** Frame a [w, s, e, n] box. The map does the fitting: it knows its real
+     *  size, and a caller computing a zoom before the map exists gets it wrong.
+     *  @param {number[]} bbox @param {number} [ms] @param {{padding?: number, maxZoom?: number}} [o] */
+    fitBounds: (bbox, ms = 1400, o = {}) => {
       const m = mapRef.current?.getMap?.();
-      if (!m) return;
+      if (!m || !ready.current) { pendingFit.current = [bbox, ms, o]; return; }
       const el = m.getContainer();
-      api.flyTo({ longitude: (bbox[0] + bbox[2]) / 2, latitude: (bbox[1] + bbox[3]) / 2,
-        zoom: zoomForBbox(bbox, el.clientWidth, el.clientHeight) }, ms);
+      const cam = m.cameraForBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: o.padding ?? 70 });
+      const zoom = Math.min(cam?.zoom ?? zoomForBbox(bbox, el.clientWidth, el.clientHeight), o.maxZoom ?? 16);
+      api.flyTo({ longitude: (bbox[0] + bbox[2]) / 2, latitude: (bbox[1] + bbox[3]) / 2, zoom, bearing: 0, pitch: 0 }, ms);
     },
     /** @param {number} d */
     zoomBy: (d) => mapRef.current?.getMap?.()?.easeTo({ zoom: (mapRef.current.getMap().getZoom() || 0) + d, duration: 300 }),
@@ -204,11 +227,26 @@ const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} *
   };
   useEffect(() => () => cancelAnimationFrame(hoverFrame.current), []);
 
+  /* The camera is usable as soon as the map object exists and its style has
+   * arrived. It must NOT wait for MapLibre's `load`: that event waits for every
+   * source, and the SAR quicklook of a large scene takes ~20 s to render, so a
+   * deep link to the detection stage sat at the default view for 20 seconds. */
+  const flushPending = () => {
+    if (!mapRef.current?.getMap?.()) return;
+    ready.current = true;
+    const p = pending.current; pending.current = null;
+    const f = pendingFit.current; pendingFit.current = null;
+    if (f) api.fitBounds(f[0], Math.min(f[1], 900), f[2]); else if (p) api.flyTo(p[0], Math.min(p[1], 900));
+  };
+
   /** @param {boolean} end */
   const report = (end) => {
     const c = cameraOf();
     if (!c) return;
-    if (end) setView({ zoom: c.zoom, projection: mapRef.current?.getMap?.()?.getProjection?.()?.type || "globe" });
+    // Decided when a move ENDS, never during one: changing projection swaps
+    // the style, and a style swap mid-flight aborts the flight (a flight from
+    // the default view to the Gulf of Mexico stopped over Mozambique).
+    if (end) setView((v) => ({ zoom: c.zoom, projection: projectionFor(c.zoom, v.projection) }));
     onCameraChange?.(c, { end });
   };
   const lastMove = useRef(0);
@@ -258,7 +296,8 @@ const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} *
         cursor={cursor || (hovering ? "pointer" : "grab")}
         onMove={() => { const now = performance.now(); if (now - lastMove.current > 120) { lastMove.current = now; report(false); } }}
         onMoveEnd={() => report(true)}
-        onLoad={() => { ready.current = true; const p = pending.current; pending.current = null; if (p) api.flyTo(p[0], Math.min(p[1], 900)); report(true); }}
+        onStyleData={flushPending}
+        onLoad={() => { flushPending(); report(true); }}
         onClick={(e) => { const info = infoAt(e); if (!toLayer("onClick", info)) onClick?.(info); }}
         onMouseMove={handleMove}
         onMouseOut={() => { setHovering(false); onHover?.({ object: null, layer: null, coordinate: undefined }); }}
@@ -271,7 +310,9 @@ const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} *
           Satellite basemap not configured — showing the vector basemap
         </div>
       )}
-      {sarState === "loading" && (
+      {/* Only while the quicklook is what the view needs: from z10 the tile
+          pyramid draws the scene and the quicklook is irrelevant. */}
+      {sarState === "loading" && view.zoom < SAR_TILE_MIN_ZOOM && (
         <div className="mg-note mg-note-busy" role="status" data-testid="sar-note">
           <span className="spinner" /> Loading SAR scene…
         </div>

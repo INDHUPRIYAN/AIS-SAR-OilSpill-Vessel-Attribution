@@ -66,24 +66,21 @@ const LAYER_STAGE = {
 const isoDay = (d) => new Date(d).toISOString().slice(0, 10);
 
 /** Strip the map's own report marker, so a derived view reads as a command. */
-const stripEcho = ({ __echo, ...v }) => v;
+const stripEcho = ({ __echo, fitBbox, fitPad, ...v }) => v;
 const FLY = { transitionDuration: 900, transitionInterpolator: new FlyToInterpolator() };
 
 /** Fit a bbox in the current viewport size, with an eased flight. */
 const CUT = { transitionDuration: 0, transitionInterpolator: undefined };
 
-function fitView(viewIn, size, bbox, pad = 70, motion = FLY) {
+function fitView(viewIn, _size, bbox, pad = 70, motion = FLY) {
   // A camera the map reported is tagged; a camera built here is a command.
-  const { __echo, ...view } = viewIn;
-  if (!bbox || !size?.width) return { ...view, longitude: (bbox?.[0] + bbox?.[2]) / 2 || view.longitude, latitude: (bbox?.[1] + bbox?.[3]) / 2 || view.latitude, ...motion };
-  try {
-    const vp = new WebMercatorViewport({ ...view, width: size.width, height: size.height });
-    const { longitude, latitude, zoom } = vp.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: pad });
-    // ESRI World Imagery serves placeholder tiles offshore past ~z13; SAR tiles go to z16.
-    return { ...view, longitude, latitude, zoom: Math.min(zoom, 13.2), pitch: 0, bearing: 0, ...motion };
-  } catch {
-    return view;
-  }
+  // The command is "frame this box": the map fits it with its real size and
+  // projection (WorkspaceMap -> MaritimeGlobe.fitBounds). Working the zoom out
+  // here needed the viewport size, which is not known until the map has
+  // loaded -- so the first flight of every page load kept the default zoom.
+  const { __echo, fitBbox: _old, fitPad: _p, ...view } = viewIn;
+  if (!bbox) return view;
+  return { ...view, fitBbox: bbox, fitPad: pad, pitch: 0, bearing: 0, ...motion };
 }
 
 function bboxOfTracks(vessels) {
@@ -1139,7 +1136,7 @@ function InvestigationWorkspace() {
                 <line x1={centroidPx[0]} y1={centroidPx[1]} x2={Math.min(centroidPx[0] + 120, (viewport?.width || 0) - 250)} y2={centroidPx[1] - 40} />
                 <circle cx={centroidPx[0]} cy={centroidPx[1]} r={7} />
               </svg>
-              <div className="ws-callout" style={{ left: Math.min(centroidPx[0] + 120, (viewport?.width || 0) - 250), top: centroidPx[1] - 40 }} data-testid="slick-callout">
+              <div className="ws-callout" style={{ left: Math.min(centroidPx[0] + 120, (viewport?.width || 0) - 250), top: Math.max(8, centroidPx[1] - 40) }} data-testid="slick-callout">
                 <div className="ws-callout-title">{stageId === "validation" ? "Validation" : "Candidate slick"}</div>
                 {stageId === "validation" ? (
                   <>

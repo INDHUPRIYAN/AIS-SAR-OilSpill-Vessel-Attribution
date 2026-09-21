@@ -102,8 +102,10 @@ export const LABELS_ANCHOR = "ot-labels-anchor";
  * @param {{countries?: boolean, coastlines?: boolean, labels?: boolean}} [o.show]
  * @param {string} [o.origin]  where /geo and /fonts are served from
  * @param {ReturnType<typeof readMapConfig>} [o.config]
+ * @param {"globe"|"mercator"} [o.projection]
  */
-export function buildStyle({ basemap, theme = "dark", graticule: grid = true, show = {}, origin, config = MAP_CONFIG }) {
+export function buildStyle({ basemap, theme = "dark", graticule: grid = true, show = {}, origin, config = MAP_CONFIG,
+  projection = "globe" }) {
   const { id } = resolveBasemap(basemap, config);
   const base = origin ?? (typeof window !== "undefined" ? window.location.origin : "");
   const ink = INK[id === "dark" ? "dark" : "geopolitical"][theme === "light" ? "light" : "dark"];
@@ -169,7 +171,7 @@ export function buildStyle({ basemap, theme = "dark", graticule: grid = true, sh
   return {
     version: 8,
     name: `oceantrace-${id}-${theme}`,
-    projection: { type: "globe" },
+    projection: { type: projection === "mercator" ? "mercator" : "globe" },
     glyphs: `${base}/fonts/{fontstack}/{range}.pbf`,
     sky: { "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.6, 5, 0.15, 7, 0] },
     sources,

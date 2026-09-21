@@ -614,3 +614,41 @@ raster unavailable"; "50 % contour not recorded for this run"; "No scene loaded"
 | `docs/ux/acceptance/*.png` | 20 screenshots from the acceptance walkthrough |
 | `DEMO_RUNBOOK.md` | now opens with the one-click demo case |
 | `scripts/build_basemap_natural_earth.py` | rebuilds the bundled basemap |
+
+---
+
+## Analysis workspace restored to the old visual - 2026-09-21
+
+Reported by the user after the run: the Analysis (investigation workspace)
+looked broken next to the previous version. It was, and the cause was mine -
+the P3 port of the workspace map onto the new engine. Nothing in the backend,
+the APIs or the other sections was touched to fix it.
+
+**Method.** The pre-refactor frontend was built from git (`64603f8`) and served
+beside the current one against the same backend; both were screenshotted on the
+flagship run at detection, characterisation, drift, AIS and attribution. The old
+build is the visual reference; the new backend data drives both.
+
+**What was broken, and is fixed** (detail in GLOBE_ARCHITECTURE section 4):
+fragmented slick fills and vanished glow trails; every map callout and rank
+badge missing; Detection opening at the wrong camera for ~20 s with no SAR
+tiles, tile frame or candidate callout; the first camera fit of a page load
+ignored; script errors on every workspace load (`RightPanel`'s `Proxy` threw
+for any non-stage key).
+
+**Structure, back to the old proportions.** The header had grown to five rows
+(wrapped badges, scene line, fact strip, a button on its own row) and pushed
+the map down 75 px. It is three rows again - title + badges, scene, facts -
+each a single line that ellipses rather than wraps; the title never gives way
+to a badge. The right panel shows a context strip only on stages that have
+contexts (with Brief appended); stages without one get their old panel back,
+and a two-tab strip appears only while the brief is open. Attribution analysis
+is above "Seen before" again.
+
+**Kept from P3-P10**, because they are backend-true and do not disturb the old
+visual: the case-fact strip, numbered stepper, real stage progress and SSE,
+both hindcast contours, the Bayesian context, the shared vessel identity, AIS
+gaps, honest scene facts, the shared clock.
+
+**Result.** Side by side, the map at each compared stage now matches the old
+one; e2e 35/35, unit 245/245, lint and maps typecheck clean.

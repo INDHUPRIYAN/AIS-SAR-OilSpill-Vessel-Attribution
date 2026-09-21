@@ -797,11 +797,6 @@ export function AttributionPanel({ ctx }) {
             <div className="ip-r"><span className="ip-rk">AIS source</span><span className={`badge badge-${prov.tone}`} data-testid="attr-ais-source">{prov.label}</span></div>
             {prov.label === "SYNTHETIC" && <div className="ip-note">Synthetic AIS carries no identity: the MMSI is the whole record.</div>}
           </Section>
-          <Section title="Seen before" testid="attr-history">
-            {/* The cross-run index: every other run that considered this MMSI,
-                which is the question a second sighting of a ship raises. */}
-            <VesselHistory dossier={d} exceptRun={runRow?.id} />
-          </Section>
           <Section title="Attribution analysis" testid="attr-analysis">
             {FACTORS.map(([k, label]) => s.sub_scores?.[k] != null && (
               <FactorBar key={k} name={label} value={s.sub_scores[k]} weight={sus?.weights?.[k]} tone="accent" />
@@ -812,6 +807,11 @@ export function AttributionPanel({ ctx }) {
               <span className="ip-combined-v mono" data-testid="attr-score">{num(s.total_score, 2)}</span>
             </div>
             <div className="ip-note"><Info size={12} /> Score indicates relative likelihood based on available evidence. Not a definitive determination of responsibility.</div>
+          </Section>
+          <Section title="Seen before" testid="attr-history">
+            {/* The cross-run index: every other run that considered this MMSI,
+                which is the question a second sighting of a ship raises. */}
+            <VesselHistory dossier={d} exceptRun={runRow?.id} />
           </Section>
           {list.length > 1 && (
             <Section title="Other candidates" open={false}>

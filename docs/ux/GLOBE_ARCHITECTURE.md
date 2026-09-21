@@ -136,3 +136,22 @@ frame on every page with a globe, to make the Earth drift under a still mouse.
 frame. `MAX_PARALLEL_IMAGE_REQUESTS = 4`. The JS bundle is currently one
 4.07 MB chunk (MapLibre is now a static import of the shell's dashboard);
 route-level code splitting is scheduled for P9.
+
+## 4. Correction after the Analysis regression (2026-09-21)
+
+Section 3 says the deck overlay is *interleaved*. It is now **overlaid**, and
+the map's projection **follows the zoom**. Both came from putting the ported
+workspace next to the pre-refactor one, stage by stage, on the same run:
+
+| Symptom in the workspace | Cause | Fix |
+|---|---|---|
+| slick fills broken into specks, glow trails thinned to nothing | interleaved deck layers share MapLibre's depth buffer; everything at sea level fights the globe surface | `MapboxOverlay({ interleaved: false })` - deck on its own canvas, same camera (0.0 px registration, section 2) |
+| every text callout missing (FORECAST POINT, ORIGIN POINT, DETECTED SLICK, rank badges) | while MapLibre reports a globe projection, deck draws through `_GlobeView` at **every** zoom, and that view cannot draw billboard text, dashed paths or trips | `projectionFor(zoom)`: globe below z4.4, mercator from z5.0 (hysteresis), decided only when a move **ends** - switching mid-flight swaps the style and aborts the flight |
+| a deep link to Detection sat at the default camera for ~20 s | camera commands were held until MapLibre's `load`, which waits for every source - including the SAR quicklook that takes ~20 s to render | commands are released on `styledata` |
+| first flight of each page load kept the default zoom | the page computed the fit zoom itself and needed the viewport size before the map existed | "frame this box" is a command the map executes (`fitBounds` via `cameraForBounds`) |
+
+The spike (section 1) tested fills, paths, scatter and rasters. It did not
+test `TextLayer`, and it judged the interleaved fills from a world-zoom
+screenshot where the damage is invisible. Both omissions are why this was
+found by the user and not by the spike. `tests-e2e/tools/_cmp.mjs` (old build
+vs new, same run, per stage) is the check that would have caught it.

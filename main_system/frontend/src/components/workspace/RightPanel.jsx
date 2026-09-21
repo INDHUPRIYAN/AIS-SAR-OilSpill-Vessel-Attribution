@@ -27,15 +27,24 @@ const PER_STAGE = {
  * and then mounted nowhere. */
 const BRIEF = ["brief", "Brief"];
 
-export const CONTEXTS = new Proxy(PER_STAGE, {
-  get: (target, stage) => (typeof stage === "string"
-    ? [...(target[stage] || []), BRIEF] : target[stage]),
-});
+/** The contexts a stage offers: its own, then the brief. */
+export const contextsFor = (stage) => [...(PER_STAGE[stage] || []), BRIEF];
+
+/* Kept for callers that index by stage: a plain object, built once. */
+export const CONTEXTS = Object.fromEntries(
+  ["acquisition", "scene", "preprocess", "tiling", "detection", "validation", "geometry", "drift",
+    "ais", "attribution", "evidence", "report"].map((st) => [st, contextsFor(st)]));
 
 export const defaultContext = (stage) => PER_STAGE[stage]?.[0]?.[0] ?? null;
 
 export default function RightPanel({ ctx }) {
-  const options = CONTEXTS[ctx.stage];
+  /* A stage with contexts of its own gains "Brief" at the end of its strip. A
+   * stage without any keeps the panel it always had, with no strip -- until
+   * the brief is opened (the header's "Case brief"), when a two-tab strip is
+   * the way back. A lone "BRIEF" tab over every such panel read as a heading. */
+  const own = PER_STAGE[ctx.stage];
+  const options = own ? [...own, BRIEF]
+    : ctx.sub === "brief" ? [["main", "Analysis"], BRIEF] : null;
   const sub = options?.some(([id]) => id === ctx.sub) ? ctx.sub : defaultContext(ctx.stage);
   let body;
   switch (sub) {

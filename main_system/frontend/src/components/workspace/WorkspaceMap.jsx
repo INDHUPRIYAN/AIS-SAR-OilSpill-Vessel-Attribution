@@ -146,7 +146,9 @@ export default function WorkspaceMap({
   });
   useEffect(() => {
     if (!view || view.__echo) return;
-    globe.current?.flyTo(view, view.transitionDuration ?? 0);
+    // "Frame this box" is the map's to work out; "go here" is a plain flight.
+    if (view.fitBbox) globe.current?.fitBounds(view.fitBbox, view.transitionDuration ?? 0, { padding: view.fitPad ?? 70, maxZoom: 13.2 });
+    else globe.current?.flyTo(view, view.transitionDuration ?? 0);
   }, [view]);
 
   const handleCamera = useCallback((camera, info) => {
