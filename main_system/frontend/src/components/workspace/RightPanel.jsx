@@ -37,6 +37,8 @@ export const CONTEXTS = Object.fromEntries(
 
 export const defaultContext = (stage) => PER_STAGE[stage]?.[0]?.[0] ?? null;
 
+import { StoryHead, StorySummary } from "./StoryPanel";
+
 export default function RightPanel({ ctx }) {
   /* A stage with contexts of its own gains "Brief" at the end of its strip. A
    * stage without any keeps the panel it always had, with no strip -- until
@@ -69,6 +71,12 @@ export default function RightPanel({ ctx }) {
   }
   return (
     <div className="rp" data-testid="right-panel" data-context={sub || ctx.panel}>
+      {/* Incident Replay's sidebar shape: where you are and what this step
+          does, one focused card, then (below the divider) the full analysis
+          panels, then the fixed summary. The presentation narrates itself, so
+          the story stands down while it plays. */}
+      {!ctx.cine?.active && sub !== "brief" && <StoryHead ctx={ctx} />}
+      {!ctx.cine?.active && sub !== "brief" && <div className="sp-divider" data-testid="story-divider"><span>Analysis detail</span></div>}
       {options && (
         <div className="rp-strip" role="tablist" data-testid="context-strip">
           {options.map(([id, label]) => (
@@ -78,6 +86,7 @@ export default function RightPanel({ ctx }) {
         </div>
       )}
       <div className="rp-body" key={sub || ctx.panel}>{body}</div>
+      {!ctx.cine?.active && sub !== "brief" && <StorySummary ctx={ctx} />}
     </div>
   );
 }

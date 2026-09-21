@@ -804,3 +804,35 @@ Zone ID and a closed ring; the panel now lists what is still missing, in order.
 
 Gate: lint 0 / 80, unit 245, e2e 35/35.
 
+---
+
+## The workspace sidebar, in the shape of Incident Replay's - 2026-09-21
+
+User: the replay's right sidebar is clearer and friendlier; rebuild the
+analysis sidebar like it, on our backend.
+
+`components/workspace/StoryPanel.jsx`, mounted by `RightPanel`:
+
+| Part | Replay had | Workspace now has |
+|---|---|---|
+| Stage header | step n / N, title, one-line blurb, progress bar | the same, with plain titles (two stages were both "Validated Slick"), a blurb built from the run's numbers ("30 vessels were near. Three gates remove..."), progress from the stage's real state |
+| Scene steps | INVESTIGATION ZONE rows | scene id, centre, acquired, sensor, pixel spacing, provider, tile count |
+| Detection | big confidence, area, axes | big detection confidence, area, oil / look-alike regions, engine, model |
+| Characterisation | (none) | big area; axes, perimeter, damping, age with its confidence label |
+| Drift | -N h hero, particles; origin coordinates, window, uncertainty | the same from `origin_cloud.metadata`, the hero following the shared clock; a forcing card (providers the run consumed) and a forecast card (50 % / 90 % area per horizon) on those tabs |
+| Vessel filtering | funnel with -removed per gate | the same from `/runs/{id}/funnel`, plus the backend's removal reasons and its note that gates are evaluated together |
+| Ranking | rows sliding in, bars growing | the same, full list, click selects the vessel on the map |
+| Evidence | big score, WHY THIS VESSEL, SCORE FACTORS | the same; score printed as a score; "to origin region" wording; simulated-AIS flag |
+| Summary | fixed INCIDENT SUMMARY | the same, from the live context |
+
+The detailed panels the workspace always had are unchanged, below an
+"Analysis detail" divider, so nothing was lost and every existing test id is
+where it was. The sidebar now scrolls as one column (the detail body used to
+take "whatever height is left", which the story would have squeezed to zero).
+Anything the run does not carry reads "not recorded". The story stands down
+during the presentation and on the Case brief tab.
+
+Gate: lint 0 / 80, unit 245, e2e 35/35 (D1 timed out on `page.goto` once in the
+full run while the backend was busy with the preceding analysis test; passes
+alone in 28 s).
+

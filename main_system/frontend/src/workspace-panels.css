@@ -178,3 +178,68 @@
 .ip-why-b { color: var(--ink-1); }
 .ip-why-l { margin: 5px 0; padding-left: 16px; color: var(--ink-1); }
 .ip-why-l li { overflow-wrap: anywhere; }
+
+/* ---- story sidebar (after Incident Replay's intel panel) ------------------ */
+.sp { display: grid; gap: 10px; margin-bottom: 4px; }
+.sp-body { display: grid; gap: 10px; }
+.sp-step, .sp-card, .sp-summary { padding: 13px 15px; }
+.sp-step-head { display: flex; gap: 10px; align-items: flex-start; }
+.sp-step-n { font-size: 10px; color: var(--accent); letter-spacing: 1px; }
+.sp-step-title { font-size: 14px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: var(--ink-0); }
+.sp-step-blurb { font-size: 12px; color: var(--ink-1); line-height: 1.55; margin-top: 9px; }
+.sp-progress { height: 3px; background: rgba(255,255,255,.07); border-radius: 2px; margin-top: 11px; overflow: hidden; }
+.sp-progress-f { height: 100%; background: var(--accent); border-radius: 2px; transition: width 500ms ease-out; }
+.sp-progress-f.bad { background: var(--danger, #f87171); }
+.sp-section { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-2); margin: 13px 0 7px; }
+.sp-section.first { margin-top: 0; }
+.sp-topline { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--accent); }
+.sp-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,.05); }
+.sp-row:last-child { border-bottom: 0; }
+.sp-k { color: var(--ink-2); flex-shrink: 0; }
+.sp-v { color: var(--ink-0); text-align: right; overflow-wrap: anywhere; }
+.sp-v.accent { color: var(--accent); font-weight: 700; }
+.sp-v.warn { color: #d1a054; }
+.sp-hero { text-align: center; padding: 10px 0 12px; }
+.sp-hero-big { font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; color: var(--accent); }
+.sp-hero-big.oil { color: #f0a877; }
+.sp-hero-big.hind { color: #a79ee0; }
+.sp-hero-big.forecast { color: #d1a054; }
+.sp-hero-big.origin { color: #e2e8f0; }
+.sp-hero-big.small { font-size: 17px; letter-spacing: 0; line-height: 1.35; }
+.sp-hero-sub { font-size: 10.5px; color: var(--ink-2); letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+.sp-hero-name { font-size: 15px; font-weight: 700; margin-top: 4px; color: var(--ink-0); }
+.sp-note { font-size: 11px; color: var(--ink-2); line-height: 1.5; margin-top: 9px; }
+.sp-flag { display: flex; align-items: center; gap: 6px; margin-top: 10px; padding: 6px 8px; font-size: 11px; color: #d1a054; border: 1px solid rgba(209,160,84,.4); border-radius: var(--r-sm); background: rgba(209,160,84,.07); }
+.sp-legend { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 5px 0; color: var(--ink-1); }
+.sp-legend span { margin-left: auto; font-size: 11px; color: var(--ink-0); text-align: right; }
+.sp-why { font-size: 12px; color: var(--ink-1); padding: 3px 0; }
+.sp-factor { display: grid; grid-template-columns: 92px 1fr 34px; align-items: center; gap: 8px; padding: 3px 0; font-size: 11.5px; color: var(--ink-1); }
+.sp-factor-n { text-transform: capitalize; }
+.sp-factor-t { height: 5px; background: rgba(255,255,255,.07); border-radius: 3px; overflow: hidden; }
+.sp-factor-f { display: block; height: 100%; border-radius: 3px; }
+.sp-factor-v { text-align: right; color: var(--ink-0); }
+.sp-funnel { display: flex; align-items: center; gap: 8px; padding: 7px 9px; margin-bottom: 4px; border-radius: 5px; font-size: 12px; color: var(--ink-1); }
+.sp-funnel.now { background: rgba(34,211,238,.09); box-shadow: inset 0 0 0 1px rgba(34,211,238,.3); color: var(--ink-0); }
+.sp-funnel-l { flex: 1; }
+.sp-funnel-r { color: var(--danger, #f87171); font-size: 11px; }
+.sp-funnel-c { font-weight: 700; min-width: 26px; text-align: right; color: var(--ink-0); }
+.sp-rankrow { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 9px; margin-bottom: 5px; background: rgba(255,255,255,.02); border: 1px solid var(--line); border-radius: 6px; color: var(--ink-1); font: inherit; font-size: 12.5px; cursor: pointer; }
+.sp-rankrow:hover { border-color: var(--line-bright); }
+.sp-rankrow.top { border-color: rgba(34,211,238,.45); background: rgba(34,211,238,.07); color: var(--ink-0); }
+.sp-rankrow.sel { box-shadow: inset 0 0 0 1px var(--accent); }
+.sp-rank-n { color: var(--ink-2); font-size: 11px; }
+.sp-rank-name { flex: 1; text-align: left; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-rank-bar { width: 74px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.07); overflow: hidden; flex-shrink: 0; }
+.sp-rank-fill { display: block; height: 100%; background: #8aa0bd; border-radius: 3px; }
+.sp-rankrow.top .sp-rank-fill { background: var(--accent); }
+.sp-rank-v { font-size: 12px; min-width: 34px; text-align: right; color: var(--ink-0); }
+.sp-summary { margin-top: 12px; }
+.sp-divider { display: flex; align-items: center; gap: 10px; margin: 14px 0 10px; font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-2); }
+.sp-divider::before, .sp-divider::after { content: ""; flex: 1; height: 1px; background: var(--line-bright); }
+/* the sidebar scrolls as ONE column now that the story sits above the detail:
+   the detail body keeps its natural height instead of "whatever is left" */
+.rp-body { flex: 1 0 auto; min-height: auto; }
+.sp { padding: 10px 10px 0; }
+.sp-step { padding-right: 46px; }            /* clear of the collapse button */
+.sp-summary { margin: 12px 10px 14px; }
+.sp-divider { padding: 0 10px; }
