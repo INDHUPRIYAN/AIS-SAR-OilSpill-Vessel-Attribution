@@ -652,3 +652,35 @@ gaps, honest scene facts, the shared clock.
 
 **Result.** Side by side, the map at each compared stage now matches the old
 one; e2e 35/35, unit 245/245, lint and maps typecheck clean.
+
+---
+
+## Attribution map: ships, wakes and less ink - 2026-09-21
+
+Reported by the user from run `inv-85ba402b6f-094027` (East Mediterranean):
+vessels "rounding in the same place", no moving ship, a congested map.
+
+**Where the looping vessels come from.** Not from the frontend. The run's own
+manifest records `ais.file = vessels_generated.parquet`, `data_source =
+synthetic`: no real archive covers that origin, so the pipeline generated a
+fleet, and the generator's fishing pattern (`ais_service/ais/generator.py`,
+`_fishing_track`) hops between waypoints inside a small radius. The backend is
+untouched; the map now says so. The legend carries "Simulated AIS: no real
+archive covers this origin. These are not observed vessels." whenever the run
+recorded its AIS as synthetic.
+
+**What changed on the map (frontend only, `WorkspaceMap.jsx`).**
+
+| Before | After |
+|---|---|
+| vessels were round dots | a hull glyph at the vessel's interpolated position, turned to its recorded heading, moving with the shared clock; click selects |
+| every vessel drew its whole track, dashed, with direction arrows | once candidates are lit, only ranked and selected vessels keep their track; the rest of the traffic is a faint ship with its last 6 h behind it |
+| a dashed tie and a dot from every candidate to the origin | one tie, for rank 1 and the selected vessel; the closest-approach mark is a ring so the ship shows through |
+| rank badges fanned around the shared closest point, overlapping | the badge rides on its ship; a ship that has sailed out of frame at the shown time gets its badge back at the closest point, stacked clear of the origin callout |
+| AIS-gap dashes for every vessel | for ranked and selected vessels once candidates are lit |
+
+Nothing is computed that the run did not record: positions are interpolated
+between the run's fixes (as the dots were), the 6 h wake length is a drawing
+choice and is named in the legend.
+
+Gate: lint 0 errors / 80 warnings, unit 245, e2e 35/35.

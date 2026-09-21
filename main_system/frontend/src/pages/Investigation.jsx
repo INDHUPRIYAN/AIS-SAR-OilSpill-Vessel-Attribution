@@ -1173,7 +1173,11 @@ function InvestigationWorkspace() {
               <div><i className="lg-slick" /> Detected oil slick (Sentinel-1)</div>
               <div><i className="lg-origin" /> Estimated origin (uncertainty)</div>
               <div><i className="lg-sel" /> Selected vessel track (AIS)</div>
-              <div><i className="lg-other" /> Other vessel tracks (AIS)</div>
+              <div><i className="lg-ship lg-ship-cand" /> Ranked candidate, at the time shown</div>
+              <div><i className="lg-ship" /> Other traffic, with its last 6 h</div>
+              {/synthetic|mock/i.test(String(aisProv || "")) && (
+                <div className="ws-maplegend-note" data-testid="legend-ais-simulated" title="The run recorded its AIS as synthetic. Tracks that loop in one place are the generator's fishing pattern.">Simulated AIS: no real archive covers this origin. These are not observed vessels.</div>
+              )}
             </div>
           )}
           {["ais", "attribution"].includes(stageId) && !layers.suspects?.suspects?.length && judged.attribution.state === "done" && (

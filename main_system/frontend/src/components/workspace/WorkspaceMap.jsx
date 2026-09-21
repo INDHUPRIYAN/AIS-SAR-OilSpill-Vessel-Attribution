@@ -21,7 +21,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   GeoJsonLayer, ScatterplotLayer, PathLayer, PolygonLayer,
-  TextLayer,
+  TextLayer, IconLayer,
 } from "@deck.gl/layers";
 import { PathStyleExtension } from "@deck.gl/extensions";
 
@@ -40,6 +40,28 @@ const span = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
 
 const dashExt = [new PathStyleExtension({ dash: true })];
 const CHARSET = "auto";
+
+/* A hull seen from above: pointed bow, parallel sides, square stern. Drawn as
+ * a mask so one glyph takes every track colour. width/height must be on the
+ * <svg> itself or createImageBitmap refuses it and nothing is drawn. */
+const SHIP_ICON = {
+  url: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="36" viewBox="0 0 24 36">'
+    + '<path d="M12 1 C17 7 19 12 19 18 L19 33 Q19 35 17 35 L7 35 Q5 35 5 33 L5 18 C5 12 7 7 12 1 Z" fill="white"/></svg>')}`,
+  width: 24, height: 36, anchorY: 18, mask: true,
+};
+/* How much of a background vessel's past is drawn behind it once candidates
+ * are on the map. The fixes are the run's own; only the length is a choice. */
+const WAKE_MS = 6 * 3600 * 1000;
+function wakeOf(track, ms) {
+  const full = trackPathUntil(track, ms);
+  const { times } = track;
+  if (!full || !times?.length || times.length !== track.path.length) return full;
+  const from = ms - WAKE_MS;
+  let i = 0;
+  while (i < full.length - 2 && times[i + 1] != null && times[i + 1] < from) i++;
+  return full.slice(i);
+}
 
 /* The workspace names a basemap after the ANALYSIS it belongs to -- the drift
  * stage wants satellite, the tiling stage wants a plain chart. Those names map
@@ -666,14 +688,20 @@ export default function WorkspaceMap({
     const pathOf = (t) => (rv.tracksUntil && timeMs != null ? trackPathUntil(t, timeMs) : t.path);
     const drawn = rv.tracksUntil && timeMs != null ? tracks.filter((t) => pathOf(t)) : tracks;
     const trig = [selectedMmsi, dim, rv.gate, rv.ranked];
+    /* Once candidates are lit the question on the map is "which of these",
+     * so the rest of the traffic steps back: a ship with a short wake instead
+     * of its whole track, no dashes, no arrows, no gap marks. */
+    const focus = (t) => isSel(t) || Boolean(litRank(t));
+    const quiet = candidateLabels && timeMs != null && tracks.some((t) => litRank(t));
+    const lineOf = (t) => (quiet && !focus(t) ? wakeOf(t, timeMs) || [] : pathOf(t));
 
     deck.push(new PathLayer({
       id: "ws-tracks", data: drawn,
-      getPath: pathOf,
-      getColor: (d) => [...colorOf(d), alphaOf(d)],
+      getPath: lineOf,
+      getColor: (d) => [...colorOf(d), quiet && !focus(d) ? Math.min(alphaOf(d), 90) : alphaOf(d)],
       getWidth: (d) => (isSel(d) ? 3.4 : litRank(d) === 1 ? 2.6 : litRank(d) ? 1.8 : 1.1),
       widthUnits: "pixels",
-      getDashArray: (d) => (litRank(d) || isSel(d) ? [0, 0] : [5, 4]),
+      getDashArray: (d) => (focus(d) || quiet ? [0, 0] : [5, 4]),
       extensions: dashExt,
       pickable: true,
       onClick: (i) => {
@@ -698,13 +726,14 @@ export default function WorkspaceMap({
           ["source", i.object.source],
         ],
       } : null),
-      updateTriggers: { getPath: [rv.tracksUntil ? timeMs : 0], getColor: trig, getWidth: trig, getDashArray: trig },
+      updateTriggers: { getPath: [rv.tracksUntil || quiet ? timeMs : 0, quiet, trig], getColor: [trig, quiet], getWidth: trig, getDashArray: [trig, quiet] },
     }));
 
     /* direction arrows: sparse rotated glyphs along each visible track */
     const arrows = [];
     for (const t of drawn) {
       if (t.filtered && gateDone(t) && !isSel(t)) continue;
+      if (quiet && !focus(t)) continue;
       const path = pathOf(t);
       const stride = Math.max(6, Math.floor(path.length / 5));
       for (let i = stride; i < path.length - 1; i += stride) {
@@ -728,14 +757,14 @@ export default function WorkspaceMap({
         const st = trackStateAt(t, timeMs);
         return st ? { ...t, pos: st.pos, heading: st.heading, sogNow: st.sog } : null;
       }).filter(Boolean);
-      deck.push(new ScatterplotLayer({
+      deck.push(new IconLayer({
         id: "ws-vessel-now", data: now,
         getPosition: (d) => d.pos,
-        getRadius: (d) => (litRank(d) === 1 ? 500 : 320),
-        radiusMinPixels: 3, radiusMaxPixels: 8,
-        getFillColor: (d) => [...colorOf(d), d.filtered && gateDone(d) ? 90 : 255],
-        stroked: true, getLineColor: [10, 16, 32, 220], getLineWidth: 1,
-        lineWidthUnits: "pixels",
+        getIcon: () => SHIP_ICON,
+        getSize: (d) => (isSel(d) || litRank(d) === 1 ? 26 : litRank(d) ? 21 : 14),
+        sizeUnits: "pixels", billboard: true,
+        getAngle: (d) => -(d.heading ?? 0),
+        getColor: (d) => [...colorOf(d), d.filtered && gateDone(d) ? 90 : focus(d) ? 255 : 190],
         pickable: true,
         onHover: (i) => hover(i.object ? {
           kind: "vessel-now",
@@ -743,7 +772,8 @@ export default function WorkspaceMap({
           rows: [["speed", i.object.sogNow != null ? `${i.object.sogNow.toFixed(1)} kn` : "—"],
                  ["heading", i.object.heading != null ? `${Math.round(i.object.heading)}°` : "—"]],
         } : null),
-        updateTriggers: { getPosition: timeMs, getFillColor: trig },
+        onClick: (i) => i.object && onSelect?.(i.object.mmsi),
+        updateTriggers: { getPosition: timeMs, getAngle: timeMs, getColor: trig, getSize: trig },
       }));
     }
 
@@ -758,11 +788,24 @@ export default function WorkspaceMap({
     }
     /* closest approach: a dashed tie from each lit candidate to the origin */
     if (candidateLabels && est) {
-      const ties = tracks.filter((t) => litRank(t)).map((t) => {
+      const box = globe.current?.getMap?.()?.getContainer?.();
+      const inFrame = (pos) => {
+        const q = globe.current?.project?.(pos);
+        return Boolean(q && box) && q[0] > 40 && q[1] > 40 && q[0] < box.clientWidth - 40 && q[1] < box.clientHeight - 40;
+      };
+      const lit = tracks.filter((t) => litRank(t)).map((t) => {
         let best = null, bd = Infinity;
         for (const q of t.path) { const d = haversineKm(est.center[1], est.center[0], q[1], q[0]); if (d < bd) { bd = d; best = q; } }
-        return best ? { path: [best, est.center], t, at: best, km: bd } : null;
+        /* the badge rides on the ship; candidates all pass the origin, so
+         * badges pinned to the closest point pile up on top of it */
+        const ship = timeMs != null ? trackStateAt(t, timeMs)?.pos : null;
+        /* ...unless the ship has already sailed out of frame at this time:
+         * then the badge goes back to where the vessel passed the origin */
+        const onMap = ship && inFrame(ship);
+        return best ? { path: [best, est.center], t, at: best, km: bd, badge: onMap ? ship : best, onMap } : null;
       }).filter(Boolean);
+      /* one closest-approach tie, for the vessel being examined */
+      const ties = lit.filter((d) => d.t.rank === 1 || isSel(d.t));
       deck.push(new PathLayer({
         id: "ws-cand-ties", data: ties, getPath: (d) => d.path,
         getColor: (d) => (d.t.rank === 1 ? [...WS.suspect, 230] : [226, 232, 240, 150]),
@@ -770,24 +813,28 @@ export default function WorkspaceMap({
         updateTriggers: { getColor: trig },
       }));
       deck.push(new ScatterplotLayer({
-        id: "ws-cand-closest", data: ties, getPosition: (d) => d.at, getRadius: (d) => (d.t.rank === 1 ? 7 : 5), radiusUnits: "pixels",
-        stroked: true, filled: true, lineWidthUnits: "pixels", getLineWidth: 2,
-        getFillColor: (d) => (d.t.rank === 1 ? [...WS.suspect, 255] : [226, 232, 240, 255]), getLineColor: [7, 12, 22, 255],
-        updateTriggers: { getFillColor: trig },
+        id: "ws-cand-closest", data: ties, getPosition: (d) => d.at, getRadius: (d) => (d.t.rank === 1 ? 17 : 14), radiusUnits: "pixels",
+        /* a ring, not a disc: the ship is often exactly here and must show through */
+        stroked: true, filled: false, lineWidthUnits: "pixels", getLineWidth: 1.6,
+        getLineColor: (d) => (d.t.rank === 1 ? [...WS.suspect, 255] : [226, 232, 240, 255]),
+        updateTriggers: { getLineColor: trig },
       }));
       deck.push(new TextLayer({
-        id: "ws-cand-badges", data: ties, getPosition: (d) => d.at,
+        id: "ws-cand-badges", data: lit, getPosition: (d) => d.badge,
         getText: (d) => `#${d.t.rank}  ${d.t.score != null ? Number(d.t.score).toFixed(2) : "—"}`,
-        getSize: (d) => (d.t.rank === 1 ? 17 : 14), fontFamily: "JetBrains Mono, monospace", fontWeight: 700,
+        getSize: (d) => (d.t.rank === 1 ? 15 : 12), fontFamily: "JetBrains Mono, monospace", fontWeight: 700,
         getColor: (d) => (d.t.rank === 1 ? [4, 18, 31, 255] : [232, 238, 248, 255]),
         /* candidates often share a closest point (all pass through the origin):
          * fan the badges around it so every rank stays readable */
-        getTextAnchor: "middle", getAlignmentBaseline: "center",
-        getPixelOffset: (d) => { const a = (-90 + (d.t.rank - 1) * 58) * Math.PI / 180; const r = d.t.rank === 1 ? 46 : 58; return [Math.cos(a) * r, Math.sin(a) * r]; },
+        /* odd ranks read to the left of their ship, even to the right; the
+         * origin callout sits to the right of the origin, where #1 usually is */
+        getTextAnchor: (d) => (d.t.rank % 2 ? "end" : "start"), getAlignmentBaseline: "center",
+        /* badges sharing the closest point stack downwards, clear of the origin callout */
+        getPixelOffset: (d) => (d.onMap ? [d.t.rank % 2 ? -20 : 20, 0] : [d.t.rank % 2 ? -26 : 26, 34 + 24 * Math.floor((d.t.rank - 1) / 2)]),
         characterSet: CHARSET,
         background: true, getBackgroundColor: (d) => (d.t.rank === 1 ? [...WS.suspect, 250] : [15, 23, 42, 235]),
         getBorderColor: (d) => (d.t.rank === 1 ? [255, 255, 255, 255] : [100, 116, 139, 255]), getBorderWidth: 1.5,
-        backgroundPadding: [8, 4, 8, 4], updateTriggers: { getColor: trig, getBackgroundColor: trig, getSize: trig },
+        backgroundPadding: [7, 3, 7, 3], updateTriggers: { getPosition: [timeMs, view?.zoom, view?.longitude, view?.latitude], getPixelOffset: [timeMs, view?.zoom, view?.longitude, view?.latitude], getColor: trig, getBackgroundColor: trig, getSize: trig },
       }));
     }
 
@@ -839,6 +886,7 @@ export default function WorkspaceMap({
     const gaps = [];
     for (const t of tracks) {
       if (t.filtered && show.excluded === false) continue;
+      if (candidateLabels && tracks.some((x) => x.rank) && !(t.rank || t.mmsi === selectedMmsi)) continue;
       for (const g of aisGaps(t)) gaps.push({ ...g, mmsi: t.mmsi, name: t.name });
     }
     if (gaps.length) {
