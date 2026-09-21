@@ -701,11 +701,15 @@ function InvestigationWorkspace() {
   const chase = useMemo(() => buildChase(layers.origin_cloud, layers.forecast, layers.slick, sceneT0, est0),
     [layers.origin_cloud, layers.forecast, layers.slick, sceneT0, est0]);
   const chaseState = useRef({ at: 0, framed: null });
+  const chaseT = cineFrame?.timeMs ?? timeMs;
   const beatNow = cine.active ? cine.beat.id : null;
   useEffect(() => {
     const on = cine.active ? ["hindcast", "forecast"].includes(beatNow) : stageId === "drift";
     if (!on || !chase) { chaseState.current.framed = null; return; }
-    const cmd = chaseAt(chase, timeMs);
+    /* The time ON SCREEN: the presentation runs its own clock (cineFrame.timeMs)
+     * and leaves the shared one parked, so watching the shared clock alone kept
+     * the camera frozen on the slick for the whole hindcast beat. */
+    const cmd = chaseAt(chase, chaseT, { followThrough: cine.active });
     if (!cmd) { chaseState.current.framed = null; return; }
     if (cmd.kind === "frame") {
       if (chaseState.current.framed === cmd.key) return;
@@ -724,7 +728,7 @@ function InvestigationWorkspace() {
     const east = cine.active ? 0 : 0.17 * viewDeg;
     setView((v) => ({ ...stripEcho(v), longitude: cmd.center[0] + east, latitude: cmd.center[1], zoom: cmd.zoom, pitch: 0, bearing: 0, transitionDuration: 260, ease: true }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeMs, stageId, beatNow, chase, cine.active]);
+  }, [chaseT, stageId, beatNow, chase, cine.active]);
 
   /* The presentation's camera: one eased flight per beat (two for tiling:
    * the whole grid, then the selected tile). Every target is a real

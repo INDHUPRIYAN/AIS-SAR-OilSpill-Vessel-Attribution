@@ -896,3 +896,17 @@ presentation test (investigation 6) failed once in a first full run while the
 backend was also running an analysis; it then passed 4/4 alone and in a second
 full run.
 
+**Correction, same day (user: "the screen is not moving with the centre of
+travel").** Reproduced with "Play replay": through the hindcast beat the clock
+ran -1 h to -24 h and the camera stayed frozen on the slick
+(34.7954, 35.5658). The presentation runs its own clock (`cineFrame.timeMs`)
+and leaves the shared one parked; the chase was watching the shared clock, so
+it only worked when the rail was scrubbed - which is all the first check did.
+The chase now follows the time on screen (`cineFrame?.timeMs ?? timeMs`), and in
+the presentation it stays with the travel for the whole beat
+(`followThrough`) instead of easing out at the window and then sitting still;
+the origin beat does the ease-out. Measured after: hindcast beat centre
+34.7941,35.5642 (-1 h) -> 34.7106,35.4696 (-24 h) at z13.2, origin beat z12.1
+on the origin; forecast beat 34.7972,35.5679 -> 34.8284,35.6171. Unit 251
+(+1), e2e 35/35.
+

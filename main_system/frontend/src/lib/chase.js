@@ -83,13 +83,16 @@ function interp(list, t) {
 
 /** What the camera should do at clock time `t`.
  *  @returns {null | { kind: "follow", center: number[], zoom: number } | { kind: "frame", key: string, bbox: number[] }} */
-export function chaseAt(chase, t) {
+export function chaseAt(chase, t, { followThrough = false } = {}) {
   if (!chase || t == null || !Number.isFinite(t)) return null;
   const HOLD = 20 * 60 * 1000;                       // within 20 min of the acquisition nothing is moving yet
   if (Math.abs(t - chase.t0) < HOLD) return null;
   if (t < chase.t0) {
     if (!chase.hind.length) return null;
-    if (chase.winStart != null && t <= chase.winStart && chase.originBox) return { kind: "frame", key: "origin", bbox: chase.originBox };
+    /* `followThrough`: the presentation runs the hindcast on past the window
+     * to the backtrack limit and has a beat of its own for the ease-out, so
+     * there the camera stays with the travel until the beat ends. */
+    if (!followThrough && chase.winStart != null && t <= chase.winStart && chase.originBox) return { kind: "frame", key: "origin", bbox: chase.originBox };
     /* the hindcast list ends at the acquisition with the slick itself */
     const c = interp([...chase.hind, { t: chase.t0, c: chase.fore[0].c }], t);
     return c ? { kind: "follow", center: c, zoom: chase.zoom } : null;

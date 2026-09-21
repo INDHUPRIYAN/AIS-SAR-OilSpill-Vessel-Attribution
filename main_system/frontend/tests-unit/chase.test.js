@@ -42,6 +42,12 @@ describe("drift chase camera", () => {
     expect(e).toBeGreaterThan(34.805); expect(n).toBeGreaterThan(35.575); // the whole slick outline
   });
 
+  it("in the presentation it stays with the travel past the window: the origin beat does the ease-out", () => {
+    const c = chaseAt(chase, T0 - 7 * H, { followThrough: true });
+    expect(c.kind).toBe("follow");
+    expect(c.center[0]).toBeCloseTo(34.8 - 0.004 * 7, 4);
+  });
+
   it("follows the forecast, then frames slick plus every footprint at the last horizon", () => {
     const mid = chaseAt(chase, T0 + 3 * H);
     expect(mid.kind).toBe("follow");
