@@ -105,3 +105,21 @@ def test_fleet_seed_changes_identity_but_stays_valid():
     df = _generate(fleet_seed=123, n_hard_negatives=3)
     validate_vessels_df(df)
     assert 900000000 not in set(df["mmsi"])              # realistic MMSIs instead
+
+
+def test_fishing_tracks_never_circle():
+    """A fishing vessel tows along a bending leg; it does not retrace a small
+    closed shape. Straightness = net displacement / distance sailed: a vessel
+    orbiting a polygon scores near 0, a +/-70 deg bounded tow stays well up."""
+    import numpy as np
+    from ais.generator import _fishing_track
+
+    times_hr = np.linspace(0.0, 36.0, 73)
+    for seed in range(40):
+        rng = np.random.default_rng(seed)
+        speeds = np.full(73, 4.0)
+        lat, lon = _fishing_track(rng, 73, times_hr, (34.78, 35.55), 0.04, speeds)
+        k = np.cos(np.radians(35.55))
+        sailed = np.hypot(np.diff(lat), np.diff(lon) * k).sum()
+        net = np.hypot(lat[-1] - lat[0], (lon[-1] - lon[0]) * k)
+        assert net / sailed > 0.45, f"seed {seed}: straightness {net / sailed:.2f}"

@@ -129,34 +129,31 @@ def _lane_track(rng, n, times_hr, anchor, course_deg, speeds, wobble=0.012):
 
 
 def _fishing_track(rng, n, times_hr, centre, radius_deg, speeds):
-    """Loitering fishing pattern: hop between random waypoints inside a small
-    ground, at trawling speed. Small local loops -- not a tangle the size of
-    the investigation zone."""
-    n_wp = int(rng.integers(5, 9))
-    wps = [(centre[0] + rng.uniform(-radius_deg, radius_deg),
-            centre[1] + rng.uniform(-radius_deg, radius_deg))
-           for _ in range(n_wp)]
-    seg = [np.hypot(b[0] - a[0], b[1] - a[1])
-           for a, b in zip(wps[:-1], wps[1:])]
-    total = sum(seg) or 1e-6
+    """A trawler towing: a slow, steadily curving leg through its ground.
+
+    The heading wanders with low-frequency noise but is held within +/-70 deg
+    of the tow course, so the track can bend and meander but can never close
+    on itself. The earlier version hopped between a handful of waypoints and
+    wrapped the distance modulo the polygon length: every fishing vessel drew
+    the same small closed shape over and over for the whole window, which no
+    vessel does and which read on the map as ships circling on the spot.
+
+    `radius_deg` sets how far off the ground centre the tow starts, so the
+    vessel still works the area it was anchored to.
+    """
+    course = rng.uniform(0.0, 2.0 * np.pi)
+    wander = np.cumsum(_smooth_noise(rng, n, 0.22, kernel=25))
+    heading = course + np.clip(wander, -np.radians(70.0), np.radians(70.0))
     dt = np.diff(times_hr, prepend=times_hr[0])
-    s = np.cumsum(speeds * dt * KN_TO_DEG_LAT_PER_HR) % total
-    lat = np.empty(n); lon = np.empty(n)
-    for i, si in enumerate(s):
-        acc = 0.0
-        placed = False
-        for (a, b), L in zip(zip(wps[:-1], wps[1:]), seg):
-            if si <= acc + L and L > 0:
-                f = (si - acc) / L
-                lon[i] = a[0] + (b[0] - a[0]) * f
-                lat[i] = a[1] + (b[1] - a[1]) * f
-                placed = True
-                break
-            acc += L
-        if not placed:
-            lon[i], lat[i] = wps[-1]
-    lat += _smooth_noise(rng, n, 0.002, kernel=7)
-    lon += _smooth_noise(rng, n, 0.002, kernel=7)
+    step = speeds * dt * KN_TO_DEG_LAT_PER_HR
+    lon_scale = 1.0 / max(np.cos(np.radians(centre[1])), 0.2)
+    dlat = np.cumsum(step * np.cos(heading))
+    dlon = np.cumsum(step * np.sin(heading)) * lon_scale
+    # pass through the ground mid-window rather than starting on it
+    i_mid = int(rng.integers(n // 3, max(n // 3 + 1, 2 * n // 3)))
+    off = rng.uniform(-radius_deg, radius_deg, 2)
+    lat = centre[1] + off[1] + dlat - dlat[i_mid]
+    lon = centre[0] + off[0] + dlon - dlon[i_mid]
     return lat, lon
 
 
