@@ -596,3 +596,9 @@
 @keyframes ws-ping { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(4.2); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .ws-ping::before, .ws-ping::after { animation: none; opacity: 0; } }
 @media (max-width: 1280px) { .hud-wrap { width: 250px; } .hud-big { font-size: 32px; } }
+
+/* map legend: collapse to its title bar */
+.ws-maplegend-toggle { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; padding: 0; background: none; border: 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-0); cursor: pointer; }
+.ws-maplegend-toggle:hover { color: var(--accent); }
+.ws-maplegend.min { padding: 5px 10px; }
+.ws-maplegend.min .ws-maplegend-toggle { margin: 0; }

@@ -28,7 +28,7 @@ import { useWorkspaceParams } from "../lib/urls";
 import { AnimatePresence, motion } from "framer-motion";
 import MapHud from "../components/workspace/MapHud";
 import { FlyToInterpolator } from "@deck.gl/core";
-import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Loader2 } from "lucide-react";
 
 import WorkspaceMap from "../components/workspace/WorkspaceMap";
 import MapChrome from "../components/workspace/MapChrome";
@@ -967,6 +967,10 @@ function InvestigationWorkspace() {
 
   /* callout anchors */
   const project = (lonlat) => { try { return viewport && lonlat ? viewport.project(lonlat) : null; } catch { return null; } };
+  /* The map key can be minimised to its title bar; the choice is remembered
+   * per browser (a viewer convenience, so localStorage, guarded). */
+  const [legendOpen, setLegendOpen] = useState(() => { try { return window.localStorage.getItem("ot.ws.legend") !== "min"; } catch { return true; } });
+  const toggleLegend = () => setLegendOpen((o) => { try { window.localStorage.setItem("ot.ws.legend", o ? "min" : "open"); } catch { /* private window */ } return !o; });
   const centroidPx = project(slickP?.centroid);
   const originPx = project(est0?.center);
   const tilePx = selectedTile ? { nw: project([selectedTile.bbox[0], selectedTile.bbox[3]]), se: project([selectedTile.bbox[2], selectedTile.bbox[1]]) } : null;
@@ -1234,8 +1238,12 @@ function InvestigationWorkspace() {
             </div>
           )}
           {["attribution", "evidence", "report"].includes(stageId) && layers.slick && (
-            <div className="ws-maplegend" data-testid="map-legend-box">
-              <div className="ws-maplegend-title">Legend</div>
+            <div className={`ws-maplegend ${legendOpen ? "" : "min"}`} data-testid="map-legend-box" data-open={legendOpen ? "true" : "false"}>
+              <button type="button" className="ws-maplegend-title ws-maplegend-toggle" onClick={toggleLegend} data-testid="map-legend-toggle"
+                aria-expanded={legendOpen} title={legendOpen ? "Minimise the legend" : "Show the legend"}>
+                <span>Legend</span>{legendOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+              </button>
+              {legendOpen && <>
               <div><i className="lg-slick" /> Detected oil slick (Sentinel-1)</div>
               <div><i className="lg-origin" /> Estimated origin (uncertainty)</div>
               <div><i className="lg-sel" /> Selected vessel track (AIS)</div>
@@ -1246,6 +1254,7 @@ function InvestigationWorkspace() {
               {/synthetic|mock/i.test(String(aisProv || "")) && (
                 <div className="ws-maplegend-note" data-testid="legend-ais-simulated" title="The run recorded its AIS as synthetic. Tracks that loop in one place are the generator's fishing pattern.">Simulated AIS: no real archive covers this origin. These are not observed vessels.</div>
               )}
+              </>}
             </div>
           )}
           {["ais", "attribution"].includes(stageId) && !layers.suspects?.suspects?.length && judged.attribution.state === "done" && (
