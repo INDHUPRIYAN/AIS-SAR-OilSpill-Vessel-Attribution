@@ -307,6 +307,40 @@ class CDSEAdapter:
             checksum=checksum,
         )
 
+    def _lookup_by_name(self, scene_id: str) -> Optional[dict]:
+        """Catalogue record for an exact product name: its UUID, start time and
+        footprint bbox. None when the catalogue does not know the name."""
+        name = scene_id if scene_id.endswith(".SAFE") else f"{scene_id}.SAFE"
+        query = urllib.parse.urlencode({"$filter": f"Name eq '{name}'", "$top": "1"})
+        req = urllib.request.Request(f"{self.odata_endpoint}?{query}",
+                                     headers={"Accept": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=30.0) as resp:
+                rows = json.loads(resp.read().decode("utf-8")).get("value") or []
+        except Exception:                              # noqa: BLE001 - fall through to the old URL
+            return None
+        if not rows:
+            return None
+        row = rows[0]
+        bbox = None
+        try:
+            ring = (row.get("GeoFootprint") or {}).get("coordinates", [[]])[0]
+            if ring and isinstance(ring[0][0], list):  # MultiPolygon
+                ring = ring[0]
+            xs = [float(q[0]) for q in ring]
+            ys = [float(q[1]) for q in ring]
+            bbox = [min(xs), min(ys), max(xs), max(ys)]
+        except Exception:                              # noqa: BLE001
+            bbox = None
+        acquired = None
+        start = (row.get("ContentDate") or {}).get("Start")
+        if start:
+            try:
+                acquired = datetime.fromisoformat(start.replace("Z", "+00:00"))
+            except ValueError:
+                acquired = None
+        return {"id": row.get("Id"), "bbox": bbox, "acquired": acquired}
+
     def download_scene(
         self,
         scene: Union[SceneMetadata, str],
@@ -329,11 +363,17 @@ class CDSEAdapter:
 
         if isinstance(scene, str):
             scene_id = scene
+            # CDSE serves a product by its UUID, never by its name:
+            # Products(<name>)/$value is a 422. Resolve the name first, and take
+            # the real acquisition time and footprint from the same record
+            # instead of the placeholders this branch used to invent.
+            looks_real = scene_id[:3] in ("S1A", "S1B", "S1C") and scene_id.count("_") >= 8
+            found = self._lookup_by_name(scene_id) if (looks_real and not self.mock_mode) else None
             metadata = SceneMetadata(
                 scene_id=scene_id,
-                acquisition_time=datetime.now(timezone.utc),
-                bbox=[0.0, 0.0, 1.0, 1.0],
-                download_url=f"{self.odata_endpoint}({scene_id})/$value",
+                acquisition_time=(found or {}).get("acquired") or datetime.now(timezone.utc),
+                bbox=(found or {}).get("bbox") or [0.0, 0.0, 1.0, 1.0],
+                download_url=f"{self.odata_endpoint}({(found or {}).get('id') or scene_id})/$value",
             )
         else:
             scene_id = scene.scene_id
