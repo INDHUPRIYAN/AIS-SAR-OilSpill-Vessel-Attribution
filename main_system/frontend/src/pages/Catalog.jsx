@@ -23,7 +23,7 @@ import {
   AlertTriangle, Cpu, Database, HardDrive, Layers, Server, ShieldQuestion,
 } from "lucide-react";
 
-import { Badge, Card, Spinner } from "../components/ui";
+import { Badge, Card, DataState, Spinner } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
 import { useUrlTab } from "../lib/urls";
 
@@ -59,12 +59,24 @@ function Coverage({ coverage }) {
 
 export default function Catalog() {
   const [tab, setTab] = useUrlTab(["providers", "models", "health"]);
-  const { data: catalog, loading: l1 } = useApi(() => api.catalog(), []);
-  const { data: models, loading: l2 } = useApi(() => api.models(), []);
-  const { data: sys, loading: l3 } = useApi(() => api.systemHealth(), [],
+  const { data: catalog, loading: l1, error: catalogError, reload: reloadCatalog } = useApi(() => api.catalog(), []);
+  const { data: models } = useApi(() => api.models(), []);
+  const { data: sys } = useApi(() => api.systemHealth(), [],
     { interval: 20000 });
 
-  if (l1 && l2 && l3) return <div className="page"><Spinner /></div>;
+  // The catalogue is the page; models and health fill in around it. The old
+  // guard (`l1 && l2 && l3`) showed a spinner only while all three were still
+  // loading, so the usual case -- one slow, two back -- rendered blank rows.
+  if (l1 && !catalog) return <div className="page"><Spinner /></div>;
+  if (catalogError && !catalog) {
+    return (
+      <div className="page">
+        <DataState kind="error" title="The data catalogue did not load" error={catalogError} testid="catalog-error">
+          <button className="btn btn-sm" onClick={reloadCatalog}>Retry</button>
+        </DataState>
+      </div>
+    );
+  }
 
   const vocab = catalog?.vocabulary ?? {};
   const credVocab = catalog?.credentials_vocabulary ?? {};

@@ -249,3 +249,29 @@ a.crumb:focus-visible { outline: 2px solid var(--accent); }
 .cp-matching { margin-top: 7px; font-size: var(--fs-sm); color: var(--ink-3); }
 .cp-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 14px; border-top: 1px solid var(--line); color: var(--ink-3); }
 .cp-foot span { display: flex; align-items: center; gap: 6px; }
+
+/* ------------------------------------------------------- notifications -- */
+/* The bell opens what is waiting, rather than navigating away from the work. */
+.ntf-wrap { position: relative; }
+.ntf {
+  position: absolute; right: 0; top: calc(100% + 6px); width: 380px; max-height: 70vh; overflow-y: auto;
+  z-index: var(--z-drawer); padding: 6px;
+  background: var(--bg-1); border: 1px solid var(--line-bright); border-radius: var(--r-md);
+  box-shadow: var(--shadow-3); animation: ot-fade-in var(--t-fast) var(--ease);
+}
+.ntf-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px 8px; border-bottom: 1px solid var(--line); }
+.ntf-note { display: flex; align-items: center; gap: 8px; padding: 14px 10px; font-size: var(--fs-sm); line-height: 1.5; color: var(--ink-2); }
+.ntf-note .btn { margin-left: auto; }
+.ntf-err { color: var(--danger); }
+.ntf-row { display: flex; align-items: center; gap: 8px; padding: 2px 4px; border-radius: var(--r-sm); }
+.ntf-row:hover { background: var(--bg-2); }
+.ntf-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); flex-shrink: 0; }
+.ntf-dot.tone-danger { background: var(--danger); }
+.ntf-dot.tone-warn { background: var(--warn); }
+.ntf-body { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 6px 2px; color: var(--ink-1); text-decoration: none; line-height: 1.35; }
+.ntf-body:hover { color: var(--ink-0); }
+.ntf-title { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ntf-why { font-size: 10.5px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ntf-ack { width: 24px; height: 24px; display: grid; place-items: center; flex-shrink: 0; border-radius: var(--r-xs);
+  border: 1px solid var(--line-bright); background: transparent; color: var(--ink-2); cursor: pointer; }
+.ntf-ack:hover { border-color: var(--ok); color: var(--ok); }

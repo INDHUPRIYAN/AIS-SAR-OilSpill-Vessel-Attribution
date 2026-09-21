@@ -10,13 +10,13 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FolderOpen, Plus, PlayCircle, WifiOff, Layers, FileCheck } from "lucide-react";
 
-import { Badge, Card, Dot, PageHeader, Spinner, Stat, Empty } from "../components/ui";
+import { Badge, Card, DataState, Dot, PageHeader, Spinner, Stat, Empty } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
 import { url } from "../lib/urls";
 
 export default function Dashboard() {
   const nav = useNavigate();
-  const { data: runs, reload } = useApi(() => api.listRuns(), [], { interval: 6000 });
+  const { data: runs, reload, error: runsError, loading: runsLoading } = useApi(() => api.listRuns(), [], { interval: 6000 });
   const { data: replay } = useApi(() => api.replayRuns(), []);
   const { data: invs, reload: reloadInvs } = useApi(() => api.listInvestigations(), []);
   const { data: catalog } = useApi(() => api.localScenes(), []);
@@ -184,11 +184,22 @@ export default function Dashboard() {
                 </td>
               </tr>
             ))}
+            {/* Four states, not one: a registry that failed to answer used to
+                read as a registry with nothing in it. */}
             {!runs?.length && (
               <tr><td colSpan={9} style={{ padding: 32 }}>
-                <Empty icon={<Layers size={24} color="var(--ink-3)" />}
-                  title="No runs yet"
-                  hint="Create an investigation above to run the pipeline end to end." />
+                {runsError ? (
+                  <DataState kind="error" compact title="The run registry did not answer"
+                    error={runsError} testid="registry-error">
+                    <button className="btn btn-sm" onClick={reload}>Retry</button>
+                  </DataState>
+                ) : runsLoading ? (
+                  <DataState kind="loading" compact title="Reading the run registry" />
+                ) : (
+                  <Empty icon={<Layers size={24} color="var(--ink-3)" />}
+                    title="No runs yet"
+                    hint="Create an investigation above to run the pipeline end to end." />
+                )}
               </td></tr>
             )}
           </tbody>

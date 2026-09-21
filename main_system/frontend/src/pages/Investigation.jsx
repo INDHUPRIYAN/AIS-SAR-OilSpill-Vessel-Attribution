@@ -294,6 +294,10 @@ function InvestigationWorkspace() {
     return () => { alive = false; clearInterval(id); };
   }, [running, runId, eventBeat]);
 
+  /* A backend that stops answering used to be invisible here: the poll's
+   * catch was empty, so the workspace went on showing the last status it had
+   * as if it were current. Two misses in a row is not a blip. */
+  const [statusMisses, setStatusMisses] = useState(0);
   const statusSeq = useRef(0);
   useEffect(() => {
     if (!invId && !runId) return undefined;
@@ -316,7 +320,11 @@ function InvestigationWorkspace() {
           }
           if (st.state !== "running") setRunning(false);
         }
-      } catch { /* backend briefly away; keep polling */ }
+        setStatusMisses(0);
+      } catch {
+        // Keep polling: the server may be restarting. Say so after two misses.
+        if (alive && mine === statusSeq.current) setStatusMisses((n) => n + 1);
+      }
     };
     tick();
     // The stream is the trigger while it is up; the interval is the floor.
@@ -742,10 +750,13 @@ function InvestigationWorkspace() {
       toast(e.message || "run failed");
     } finally { setBusy(null); }
   }
+  /* The job behind the run on screen, whether this tab started it or not. */
+  const liveJob = job?.id ? job : (runState === "running" && runId ? { id: `job-${runId}`, run_id: runId } : null);
+
   async function cancelRun() {
-    if (!job?.id) return;
+    if (!liveJob?.id) return;
     setCancelling(true);
-    try { const r = await api.cancelJob(job.id); toast(r.detail || "cancelling at the next stage boundary", "warn"); }
+    try { const r = await api.cancelJob(liveJob.id); toast(r.detail || "cancelling at the next stage boundary", "warn"); }
     catch (e) { toast(e.message || "could not cancel"); setCancelling(false); }
   }
   async function rerunLast() {
@@ -967,7 +978,7 @@ function InvestigationWorkspace() {
             onUploadGeojson={onUploadGeojson} drawActive={drawActive} canCreate={canRun} />
         ) : (
           <AnalysisPanel sceneMeta={layers.scene_meta} inv={inv} runId={runId} show={show} onShow={onShow}
-            aisSource={aisProv} onFlyTo={flyTo} onSearchArea={searchArea} running={running} job={job}
+            aisSource={aisProv} onFlyTo={flyTo} onSearchArea={searchArea} running={running || runState === "running"} job={liveJob}
             cancelling={cancelling} replayMode={replayMode} onReplayMode={setReplayMode} onRun={() => run()}
             onCancel={cancelRun} onRerun={rerunLast} canRun={canRun} status={status} stageId={stageId}
             onClearAll={() => { setShowOverride({}); setSelectedMmsi(null); setMeasurePoints([]); }}
@@ -987,7 +998,19 @@ function InvestigationWorkspace() {
             {runState === "running" && (
               <span className="ws-ok running" data-testid="run-progress">
                 <Loader2 size={14} className="ws-spin" />
-                {progress.current ? `${progress.current} · ` : ""}stage {progress.done + 1} of {progress.total}
+                {progress.current ? `${progress.current} · ` : ""}stage {Math.min(progress.done + 1, progress.total)} of {progress.total}
+              </span>
+            )}
+            {statusMisses >= 2 && (
+              <span className="ws-ok ws-lost" data-testid="status-lost" role="status"
+                title="The status request has failed repeatedly. What is on screen is the last answer the server gave.">
+                <AlertTriangle size={13} /> Lost contact with the server — retrying. Figures shown are from the last answer.
+              </span>
+            )}
+            {runState === "running" && (
+              <span className="ws-leave" data-testid="run-leave-note"
+                title="The run executes on the server. It keeps going when you close this tab.">
+                You can leave this page — OceanTrace will notify you when it finishes.
               </span>
             )}
             {runId && <span className={`badge ${overall === "COMPLETE" ? "badge-ok" : overall === "RUNNING" ? "badge-warn" : overall === "FAILED-PARTIAL" ? "badge-danger" : overall === "CANCELLED" ? "badge-warn" : "badge-neutral"}`} data-testid="overall-status">{overall}</span>}

@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { AlertTriangle, BarChart3, Crosshair, Info, Radar as RadarIcon, Waves } from "lucide-react";
 
-import { Card, PageHeader, Spinner, Stat, useThemeColors } from "../components/ui";
+import { Card, DataState, PageHeader, Spinner, Stat, useThemeColors } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
 
 const mkAxis = (c) => ({ fill: c.ink2, fontSize: 10 });
@@ -25,12 +25,21 @@ const mkTooltip = (c) => ({
 });
 
 export default function Analytics() {
-  const { data, loading } = useApi(() => api.metrics(), []);
+  const { data, loading, error, reload } = useApi(() => api.metrics(), []);
   const tc = useThemeColors();
   const AXIS = mkAxis(tc);
   const TOOLTIP = mkTooltip(tc);
 
-  if (loading) return <div className="page"><Card><Spinner label="loading metrics…" /></Card></div>;
+  if (loading && !data) return <div className="page"><Card><Spinner label="loading metrics…" /></Card></div>;
+  if (error && !data) {
+    return (
+      <div className="page">
+        <DataState kind="error" title="The measured metrics did not load" error={error} testid="analytics-error">
+          <button className="btn btn-sm" onClick={reload}>Retry</button>
+        </DataState>
+      </div>
+    );
+  }
 
   const seg = data?.segmentation;
   const screen = data?.screening;

@@ -7,9 +7,9 @@
  * in context and nothing else. */
 
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
-  Bell, ChevronDown, Eye, Inbox, LogIn, LogOut, Menu, Moon, Search, ShieldCheck, Sun, Waves,
+  ChevronDown, Eye, Inbox, LogIn, LogOut, Menu, Moon, Search, ShieldCheck, Sun, Waves,
 } from "lucide-react";
 
 import { useSession } from "../../lib/session";
@@ -19,6 +19,7 @@ import { useTheme } from "../../lib/theme";
 import { ProvenanceChips, ZuluClock } from "../TopBarStatus";
 import { Kbd, LiveIndicator } from "../ui";
 import Breadcrumbs from "./Breadcrumbs";
+import Notifications from "./Notifications";
 
 const ROLE_LABEL = {
   super_admin: "Super Admin", admin: "Admin", investigator: "Investigator",
@@ -57,7 +58,6 @@ export default function TopHeader({ status, ais, alertsSummary, onToggleNav }) {
   const { user, signOut, isEvaluator, openLogin } = useSession();
   const { openPalette } = useShell();
   const { theme, toggle } = useTheme();
-  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -69,8 +69,6 @@ export default function TopHeader({ status, ais, alertsSummary, onToggleNav }) {
   }, [menuOpen]);
 
   const pulse = systemPulse(status, ais);
-  const open = alertsSummary?.open ?? 0;
-  const critical = alertsSummary?.by_severity?.critical ?? 0;
 
   return (
     <header className="hdr" data-testid="top-header">
@@ -103,11 +101,7 @@ export default function TopHeader({ status, ais, alertsSummary, onToggleNav }) {
 
         <LiveIndicator tone={pulse.tone} label={pulse.label} title={pulse.title} />
 
-        <button className={`hdr-btn ${open ? "on" : ""}`} onClick={() => navigate(url.alerts())}
-          title={open ? `${open} open alert(s)` : "no open alerts"} data-testid="alert-bell">
-          <Bell size={15} />
-          {open > 0 && <span className={`hdr-count ${critical ? "crit" : ""}`}>{open}</span>}
-        </button>
+        <Notifications summary={alertsSummary} />
 
         <button className="hdr-btn" onClick={toggle} data-testid="theme-toggle"
           title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}>

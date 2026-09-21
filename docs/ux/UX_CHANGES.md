@@ -339,3 +339,35 @@ as deferred.
   into `/system/data-sources`.
 - Merge `/investigations/registry` into `/investigations`.
 - `/operations/replay` retirement (above).
+
+---
+
+## P8 — States, async jobs, search, notifications
+
+### Before → after
+
+| | Before | After |
+|---|---|---|
+| The bell | a link to the alert queue | a panel over the page: open alerts, each saying *why* it is there ("a run failed", "a run you started finished", "the detector opened a case") and opening the thing itself — the run, the incident — with acknowledge-in-place through the same endpoint the queue uses. Empty and failed feeds each say so |
+| What feeds it | new scenes and auto-opened cases only | also every run that fails and every run a person started that finishes (backend exception G3) |
+| Leaving a running job | Cancel disappeared on return (the job id was component state); nothing said the run would continue | Cancel works whenever the run on screen is running — the server names jobs `job-{run id}`; the header says **"You can leave this page — OceanTrace will notify you when it finishes."** |
+| Backend stops answering | the workspace's status poll swallowed every error and kept showing the last answer as current | after two consecutive misses: **"Lost contact with the server — retrying. Figures shown are from the last answer."** |
+| Run registry, Analytics, Data sources | no error branch: a failed request rendered as "No runs yet", an empty dashboard, or blank rows (Data sources only spun while *all three* of its requests were loading) | loading, error-with-retry, empty and populated are four different screens |
+| Search | ⌘K only | `/` too, listed in the `?` overlay (the keymap is the overlay's source, so it cannot drift) |
+
+### Autonomous decisions
+
+10. **The bell opens a panel, not a page.** An analyst who has started a run and
+    moved on should not have to leave their work to learn it finished. The
+    queue is still one click away for triage.
+11. **Two misses before saying "lost contact".** One failed poll during a
+    backend restart is normal; announcing it would train people to ignore the
+    warning.
+
+### Deferred
+
+- Browser (OS-level) notifications: would need a permission prompt and a
+  service worker; the in-app bell reaches anyone with the app open.
+- The remaining pages without all five states (Monitoring, Officers,
+  Operations' side panels) render real data and fail visibly enough today;
+  a uniform pass is listed for later.

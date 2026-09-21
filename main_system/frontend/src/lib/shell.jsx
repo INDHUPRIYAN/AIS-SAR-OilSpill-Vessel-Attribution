@@ -182,6 +182,13 @@ export const KEYMAP = [
     test: (e) => (e.metaKey || e.ctrlKey) && String(e.key || "").toLowerCase() === "k",
   },
   {
+    // Search is the palette: investigations, vessels, detections, scenes and
+    // coordinates, grouped, each result a canonical address.
+    id: "search", keys: ["/"], scope: "global",
+    label: "Search investigations, vessels, detections, scenes",
+    test: (e) => e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey,
+  },
+  {
     id: "help", keys: ["?"], scope: "global",
     label: "Show this shortcut list",
     test: (e) => e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey,
@@ -263,7 +270,7 @@ export function ShellProvider({ children }) {
         if (typing && binding.id !== "close") continue;
         if (!binding.test(e)) continue;
         e.preventDefault();
-        if (binding.id === "palette") { setHelpOpen(false); setPaletteOpen(true); }
+        if (binding.id === "palette" || binding.id === "search") { setHelpOpen(false); setPaletteOpen(true); }
         if (binding.id === "help") { setPaletteOpen(false); setHelpOpen(true); }
         if (binding.id === "close") { setPaletteOpen(false); setHelpOpen(false); }
         return;

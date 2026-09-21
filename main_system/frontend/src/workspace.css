@@ -538,3 +538,5 @@
 .ip-note .btn { margin-left: auto; flex-shrink: 0; }
 [data-testid="intel-bayes"] .he-result { margin: 8px 12px 12px; }
 [data-testid="intel-bayes"] .he-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ws-leave { font-size: 11.5px; color: var(--ink-2); }
+.ws-ok.ws-lost { color: var(--warn); border-color: rgba(245, 165, 36, 0.45); }
