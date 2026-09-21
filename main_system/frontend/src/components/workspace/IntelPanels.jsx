@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { Check_, Meter, Primary, Row, Section, Tabs, latlon, num, utc } from "./intel";
+import VesselIdentity, { VesselHistory } from "../vessels/VesselIdentity";
 import SpillPanel from "./SpillPanel";
 import DriftPanel from "./DriftPanel";
 import SuspectsPanel from "./SuspectsPanel";
@@ -781,21 +782,23 @@ export function AttributionPanel({ ctx }) {
                 {s.rank === 1 ? "Highest-Ranked Candidate" : `Candidate #${s.rank}`}
               </span>
             </div>
-            <div className="ip-vessel-photo"><Ship size={22} /><span>No vessel image available</span></div>
+            {/* Identity is the same block the vessel's own page shows. It used
+                to be a weaker copy here, with a DWT row no provider fills and a
+                slot for a photograph that does not exist. */}
+            <VesselIdentity dossier={d} mmsi={s.mmsi} name={s.vessel_name} type={s.vessel_type} linkOut />
             <div className="ip-grid2">
-              <div><span className="ip-gk">MMSI</span><span className="ip-gv mono">{s.mmsi}</span></div>
-              <div><span className="ip-gk">IMO</span><span className="ip-gv mono">{d?.imo || "—"}</span></div>
-              <div><span className="ip-gk">Vessel type</span><span className="ip-gv">{s.vessel_type || d?.vessel_type || "—"}</span></div>
-              <div><span className="ip-gk">Call sign</span><span className="ip-gv mono">{d?.call_sign || "—"}</span></div>
-              <div><span className="ip-gk">Flag</span><span className="ip-gv">{d?.flag || "—"}</span></div>
-              <div><span className="ip-gk">DWT</span><span className="ip-gv">—</span></div>
               <div><span className="ip-gk">Speed (at origin time)</span><span className="ip-gv mono">{stateAt?.sog != null ? `${stateAt.sog.toFixed(1)} kn` : "—"}</span></div>
               <div><span className="ip-gk">Distance from slick</span><span className="ip-gv mono">{s.evidence?.closest_approach_km != null ? `${num(s.evidence.closest_approach_km, 1)} km` : "—"}</span></div>
               <div><span className="ip-gk">Course (at origin time)</span><span className="ip-gv mono">{stateAt?.heading != null ? `${Math.round(stateAt.heading)}°` : "—"}</span></div>
               <div><span className="ip-gk">Time in origin window</span><span className="ip-gv mono">{s.evidence?.time_in_origin_window_min != null ? `${Math.round(s.evidence.time_in_origin_window_min)} min` : "—"}</span></div>
             </div>
             <div className="ip-r"><span className="ip-rk">AIS source</span><span className={`badge badge-${prov.tone}`} data-testid="attr-ais-source">{prov.label}</span></div>
-            {!d?.identity_available && <div className="ip-note">{prov.label === "SYNTHETIC" ? "Synthetic AIS carries no identity: the MMSI is the whole record." : "No name, IMO or call sign in the AIS archive for this MMSI."}</div>}
+            {prov.label === "SYNTHETIC" && <div className="ip-note">Synthetic AIS carries no identity: the MMSI is the whole record.</div>}
+          </Section>
+          <Section title="Seen before" testid="attr-history">
+            {/* The cross-run index: every other run that considered this MMSI,
+                which is the question a second sighting of a ship raises. */}
+            <VesselHistory dossier={d} exceptRun={runRow?.id} />
           </Section>
           <Section title="Attribution analysis" testid="attr-analysis">
             {FACTORS.map(([k, label]) => s.sub_scores?.[k] != null && (

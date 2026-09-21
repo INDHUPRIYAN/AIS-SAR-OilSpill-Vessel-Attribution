@@ -114,7 +114,7 @@ const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} *
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const resolved = resolveBasemap(basemap, MAP_CONFIG);
   const showKey = JSON.stringify(show || {});
-  const sarKey = sar && sar.visible !== false ? `${sar.runId}|${sar.bbox?.join(",")}|${sar.opacity ?? 1}` : "";
+  const sarKey = sar && sar.visible !== false ? `${sar.runId}|${sar.bbox?.join(",")}` : "";
   const style = useMemo(
     () => withSar(buildStyle({ basemap, theme, graticule, show, origin }), sar, origin),
     // `show` and `sar` are compared by value: callers pass fresh literals.
@@ -212,6 +212,19 @@ const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} *
     onCameraChange?.(c, { end });
   };
   const lastMove = useRef(0);
+
+  /* The presentation fades the SAR raster in over a couple of seconds. That is
+   * a paint property: rebuilding the style for it would drop and re-add the
+   * image source -- and re-fetch a scene that takes tens of seconds to render
+   * -- sixty times a second. */
+  const sarOpacity = sar && sar.visible !== false ? (sar.opacity ?? 1) : 1;
+  useEffect(() => {
+    const m = mapRef.current?.getMap?.();
+    if (!m || !sarKey) return;
+    for (const id of ["ot-sar-quick", "ot-sar-tiles"]) {
+      if (m.getLayer(id)) m.setPaintProperty(id, "raster-opacity", sarOpacity);
+    }
+  }, [sarOpacity, sarKey]);
 
   // SAR quicklook state: it is slow on large scenes, and slow must not look broken.
   useEffect(() => {

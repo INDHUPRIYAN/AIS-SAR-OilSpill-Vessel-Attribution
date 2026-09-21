@@ -26,8 +26,10 @@ import {
 import { PathStyleExtension } from "@deck.gl/extensions";
 
 import { WS } from "./palette";
+import { MAP_COLORS } from "../maps/palette";
 import {
   circleRing, destination, trackStateAt, trackPathUntil, bearingDeg, fmtUtc, haversineKm,
+  aisGaps, AIS_GAP_MIN,
 } from "../../lib/replay";
 import { segments as measureSegments } from "../../lib/geodesy";
 import { originEstimate, vectorArrows } from "../../lib/drift";
@@ -822,6 +824,38 @@ export default function WorkspaceMap({
           updateTriggers: { getPosition: timeMs },
         }));
       }
+    }
+  }
+
+  /* -------------------------------------------------------- AIS gaps --
+   * Where a transponder stopped reporting, drawn dashed in the alarm colour
+   * across the silence. The run records one total per candidate, which says a
+   * vessel went dark but never where; these come from the intervals between
+   * the fixes themselves, so a gap is only drawn over a stretch the archive
+   * really has no data for. */
+  if (show.vessels && show.aisGaps !== false && tracks.length) {
+    const gaps = [];
+    for (const t of tracks) {
+      if (t.filtered && show.excluded === false) continue;
+      for (const g of aisGaps(t)) gaps.push({ ...g, mmsi: t.mmsi, name: t.name });
+    }
+    if (gaps.length) {
+      deck.push(new PathLayer({
+        id: "ws-ais-gaps", data: gaps,
+        getPath: (d) => [d.from, d.to],
+        getColor: MAP_COLORS.aisGap,
+        getWidth: (d) => (d.mmsi === selectedMmsi ? 2.6 : 1.6),
+        widthUnits: "pixels", widthMinPixels: 1.4,
+        getDashArray: [6, 4], extensions: dashExt,
+        pickable: true,
+        onHover: (i) => hover(i.object ? {
+          kind: "gap", title: `${i.object.name || `MMSI ${i.object.mmsi}`} · AIS gap`,
+          rows: [["silent for", `${Math.round(i.object.minutes)} min`],
+                 ["from", fmtUtc(i.object.startMs)], ["to", fmtUtc(i.object.endMs)],
+                 ["drawn above", `${AIS_GAP_MIN} min`]],
+        } : null),
+        updateTriggers: { getWidth: selectedMmsi },
+      }));
     }
   }
 

@@ -464,3 +464,38 @@ export const MODE_BASEMAP = {
   oil: "darkmatter", hindcastM: "darkmatter", forecastM: "darkmatter",
   hybrid: "esri",
 };
+
+/** Default: a silence longer than this is worth drawing. Class-A AIS reports
+ *  every few minutes under way, so half an hour without a fix is a gap and not
+ *  a reporting interval. */
+export const AIS_GAP_MIN = 30;
+
+/** Stretches of a track where the transponder went quiet.
+ *
+ *  Derived from the fixes the run actually recorded -- the interval between
+ *  consecutive reports -- not from anything inferred. `suspects.json` carries
+ *  one `ais_gap_minutes` TOTAL per candidate, which tells an analyst that a
+ *  vessel went dark but not where, so the map could never show it. Each gap is
+ *  the straight segment between the last fix before the silence and the first
+ *  after it, with how long the silence lasted.
+ *
+ *  @param {{path: number[][], times: (number|null)[]}} track  times in epoch ms
+ *  @param {number} [minMinutes]
+ */
+export function aisGaps(track, minMinutes = AIS_GAP_MIN) {
+  const path = track?.path || [];
+  const times = track?.times || [];
+  const out = [];
+  let last = -1;
+  for (let i = 0; i < path.length; i += 1) {
+    if (times[i] == null || !Number.isFinite(times[i])) continue;
+    if (last >= 0) {
+      const minutes = (times[i] - times[last]) / 60000;
+      if (minutes >= minMinutes) {
+        out.push({ from: path[last], to: path[i], minutes, startMs: times[last], endMs: times[i] });
+      }
+    }
+    last = i;
+  }
+  return out;
+}

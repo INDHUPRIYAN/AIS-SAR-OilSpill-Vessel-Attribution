@@ -237,3 +237,39 @@ than drawing a contour that was never computed.
   inside `StageTimeline`. They share one clock, so there is no desync — the
   visual consolidation is P9 polish.
 - Coastline-impact ETA stays absent (G2): nothing in the stack computes landfall.
+
+---
+
+## P5 — AIS attribution and the vessel dossier
+
+### Before → after
+
+| | Before | After |
+|---|---|---|
+| Vessel identity | two different blocks: the workspace showed a `DWT` row that was always a dash and a slot for a photograph no provider supplies; the register showed dimensions, draught and cross-run appearances | one `VesselIdentity`, used by both. A field the archive did not supply says **not supplied**; a field nothing in the system can fill has no row |
+| "Have we seen this ship before?" | only on the register, never beside a candidate | **Seen before** in the Attribution stage: every other run that considered this MMSI, each linking to that run's attribution |
+| AIS gaps | `suspects.json` records one total per candidate — a vessel went dark, but not where | drawn on the track, dashed in the alarm colour, from the intervals between the fixes the archive actually holds, with how long the silence lasted |
+| Archive coverage | `first_seen_utc` / `last_seen_utc` fetched and never shown | **First heard** / **Last heard** on the vessel page |
+
+### Autonomous decisions
+
+8. **AIS gaps are derived, not read.** The contract carries `ais_gap_minutes`
+   as one number per candidate with no position, so a gap could never be drawn
+   from it. `lib/replay.aisGaps` finds the stretches between consecutive fixes
+   longer than 30 minutes — a class-A transponder reports every few minutes
+   under way — and the map draws only those. The threshold is stated on hover.
+9. **A real performance defect the suite exposed.** The presentation fades the
+   SAR raster in; the engine treated opacity as part of the map style's
+   identity, so every frame of that fade dropped and re-added the image source
+   and re-requested a scene render that takes tens of seconds. Opacity is now a
+   paint property. The e2e suite went from two different failures per run to
+   28/28, and 3.3 → 2.6 minutes.
+
+### Deferred
+
+- A behaviour timeline with anomalies shaded (brief's dossier spec) needs
+  per-fix anomaly flags the contract does not carry — not invented. The
+  factor bars and the gate table already say *why* a vessel ranked or was
+  excluded, which is the same question answered from the data that exists.
+- Live AIS / current / wind as named map "modes": the layers and their honest
+  empty states exist; a mode switcher that presets them is P7 with the Live Map.

@@ -129,3 +129,45 @@
 .ap-cand-subs em b { color: var(--ink-0); font-weight: 600; }
 .ap-spark i.out { background: repeating-linear-gradient(45deg, rgba(192, 38, 211, .22), rgba(192, 38, 211, .22) 2px, transparent 2px, transparent 4px); }
 .ap-spark-win { color: var(--ink-1); }
+
+/* ------------------------------------------------- vessel identity ------- */
+/* One block, shown in the Attribution stage and on the vessel's own page. */
+.vi { padding: 2px 0; }
+.vi-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.vi-ico { width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--r-sm);
+  background: var(--accent-soft); color: var(--accent); flex-shrink: 0; }
+.vi-name { font-size: 14px; font-weight: 700; color: var(--ink-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vi-sub { font-size: 11px; color: var(--ink-2); }
+.vi-head .btn { margin-left: auto; flex-shrink: 0; }
+.vi-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; }
+.vi-f { display: flex; flex-direction: column; min-width: 0; }
+.vi-k { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.vi-v { font-size: 12.5px; color: var(--ink-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vi-note { margin-top: 8px; padding: 6px 8px; font-size: 11px; line-height: 1.5; color: var(--ink-2);
+  background: var(--bg-2); border-left: 2px solid var(--line-bright); border-radius: var(--r-xs); }
+.vi-hist { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.vi-hist-row { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: var(--r-xs);
+  color: var(--ink-1); text-decoration: none; font-size: 11.5px; }
+.vi-hist-row:hover { background: var(--bg-3); color: var(--ink-0); }
+.vi-hist-run { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* ------------------------------------------------- vessel identity ------- */
+/* One block, shown in the Attribution stage and on the vessel's own page. */
+.vi { padding: 2px 0; }
+.vi-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.vi-ico { width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--r-sm);
+  background: var(--accent-soft); color: var(--accent); flex-shrink: 0; }
+.vi-name { font-size: 14px; font-weight: 700; color: var(--ink-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vi-sub { font-size: 11px; color: var(--ink-2); }
+.vi-head .btn { margin-left: auto; flex-shrink: 0; }
+.vi-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; }
+.vi-f { display: flex; flex-direction: column; min-width: 0; }
+.vi-k { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.vi-v { font-size: 12.5px; color: var(--ink-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vi-note { margin-top: 8px; padding: 6px 8px; font-size: 11px; line-height: 1.5; color: var(--ink-2);
+  background: var(--bg-2); border-left: 2px solid var(--line-bright); border-radius: var(--r-xs); }
+.vi-hist { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.vi-hist-row { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: var(--r-xs);
+  color: var(--ink-1); text-decoration: none; font-size: 11.5px; }
+.vi-hist-row:hover { background: var(--bg-3); color: var(--ink-0); }
+.vi-hist-run { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }

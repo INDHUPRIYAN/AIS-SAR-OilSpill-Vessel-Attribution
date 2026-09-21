@@ -27,6 +27,7 @@ import {
 } from "../components/ui";
 import { fmtLat, fmtLon } from "../components/Globe";
 import { api, fmt, useApi } from "../lib/api";
+import VesselIdentity from "../components/vessels/VesselIdentity";
 import { useVesselParams } from "../lib/urls";
 
 const num = (v, d = 1) => (v == null || Number.isNaN(Number(v)) ? "—" : Number(v).toFixed(d));
@@ -168,36 +169,22 @@ function VesselDossier({ mmsi, dossier, live, loading, error }) {
     <div className="stack" style={{ gap: 12 }}>
       <Panel title="Vessel dossier" icon={<Anchor size={12} />}
         right={<ProvenanceBadge source={dossier.source} />}>
-        <div className="gv-sel-head">
-          <span className="gv-sel-ico accent"><Ship size={15} /></span>
-          <div style={{ minWidth: 0 }}>
-            <div className="gv-sel-title">
-              {dossier.name || <span className="dim">name not supplied</span>}
-            </div>
-            <div className="gv-sel-sub">MMSI {dossier.mmsi}</div>
-          </div>
-        </div>
+        <VesselIdentity dossier={dossier} mmsi={mmsi} />
 
         {dossier.source !== "real" && (
           <Notice tone="mock" style={{ marginBottom: 8 }}>
             This vessel exists only inside scenario data. It is not a record of a real ship.
           </Notice>
         )}
-        {!dossier.identity_available && (
-          <Notice style={{ marginBottom: 8 }}>
-            No identity was supplied by the source. The AIS contract carries no name, IMO or call
-            sign for this vessel, and none is inferred here.
-          </Notice>
-        )}
 
         <div className="kv-dense">
-          <KV k="MMSI" v={dossier.mmsi} />
-          <KV k="IMO" v={dossier.imo || "not supplied"} />
-          <KV k="Call sign" v={dossier.call_sign || "not supplied"} />
-          <KV k="Type" v={dossier.vessel_type || "not supplied"} />
           <KV k="Appearances" v={dossier.appearances ?? appearances.length} />
           <KV k="Ranked in" v={dossier.ranked_in ?? ranked.length} />
           <KV k="Excluded in" v={dossier.filtered_in ?? excluded.length} />
+          {/* When the archive first and last heard from this MMSI: the coverage
+              behind every other number on this page. */}
+          <KV k="First heard" v={dossier.first_seen_utc ? fmt.utc(dossier.first_seen_utc) : "not recorded"} />
+          <KV k="Last heard" v={dossier.last_seen_utc ? fmt.utc(dossier.last_seen_utc) : "not recorded"} />
         </div>
       </Panel>
 
