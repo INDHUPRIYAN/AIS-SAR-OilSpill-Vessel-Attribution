@@ -29,6 +29,7 @@ import { originEstimate, screenVerdict } from "../../lib/drift";
 import { haversineKm, sampleField, trackStateAt, guessPlace } from "../../lib/replay";
 import { FactorBar, provenanceOf } from "../ui";
 import IncidentReport from "../report/IncidentReport";
+import { sceneFact } from "../../lib/sceneName";
 
 /* --------------------------------------------------------------- shared -- */
 
@@ -108,12 +109,12 @@ export function ScenePanel({ ctx }) {
    * selected catalogue product / local scene. */
   const s = sm ? {
     id: sm.scene_id, acquired: sm.acquired_utc, bbox: sm.bbox, pol: sm.polarisation,
-    res: sm.pixel_spacing_m, provider: sm.provider_used, source: sm.source, product: "GRD",
+    res: sm.pixel_spacing_m, provider: sm.provider_used, source: sm.source, product: sceneFact(sm, "product"),
     orbit: null, size: null, status: "loaded", crs: sm.crs || "EPSG:4326", platform: "Sentinel-1",
   } : sel ? {
     id: sel.product_id || sel.scene_id, acquired: sel.acquired_utc, bbox: sel.bbox,
     pol: sel.polarisation, res: sel.pixel_spacing_m, provider: sel.provider_used || sel.provider,
-    source: sel.kind === "local" ? sel.source : null, product: sel.product_type || "GRD",
+    source: sel.kind === "local" ? sel.source : null, product: sel.product_type || "not recorded",
     orbit: sel.orbit_direction, size: sel.size_bytes, platform: sel.platform || "Sentinel-1",
     status: sel.kind === "local" ? (sel.available ? "available" : sel.unavailable_reason)
       : sel.cached_path ? "cached" : "not downloaded", crs: "EPSG:4326",

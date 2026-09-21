@@ -371,3 +371,38 @@ as deferred.
 - The remaining pages without all five states (Monitoring, Officers,
   Operations' side panels) render real data and fail visibly enough today;
   a uniform pass is listed for later.
+
+---
+
+## P9 — Fabricated values out, bundle down
+
+### Fabricated values removed (functionality matrix §B / UX_AUDIT §6)
+
+| Was | Where | Now |
+|---|---|---|
+| `Sentinel-1` · `IW` · `GRD` · `VV` whenever the record was silent | Satellite, Dashboard, intel panel, workspace scene card and map overlay, **printed incident report** | recorded value → else read from the **ESA product name** (`S1A_IW_GRDH_1SDV_…` names mission, beam mode, product, polarisation) → else **"not recorded"**. `lib/sceneName.js`, unit-tested including an uploaded chip with no name |
+| `Age confidence: LOW` literal | workspace validation callout | the slick's own `age_confidence_label`, or "not recorded" |
+| `Windage 0.03 (default)` | forcing page | the run's recorded windage, or "not recorded by this run" |
+| `CMEMS chain` / `ERA5 chain` badges on any grid | forcing page | the grid's own `provider` |
+| New zone parent `"zone-bob"` baked into the editor | Live Map zone editor | the jurisdiction zone the server returned |
+| Default investigation name `"Chennai / Ennore investigation"` | run registry | empty field |
+| Place names from 19 hand-drawn boxes, read as fact | registers, report, brief | prefixed **"near …"**: a convenience label for a region, not a gazetteer answer |
+
+### Performance
+
+| | Before | After |
+|---|---|---|
+| Entry JS | one 4.07 MB chunk (every page, the map engine, every chart, every Lucide icon) | **374 KB**. Each page is its own chunk (`React.lazy`); MapLibre + deck (1.8 MB) load with the first map page; Recharts with the first chart |
+| Sidebar icons | `import * as Icons` — ~1,400 icons for the twenty-odd drawn | named imports; a unit test fails if a route names an icon the sidebar cannot draw |
+| SAR fade-in | rebuilt the map style every frame (fixed in P5) | paint property |
+| Workspace clock | page re-render every animation frame | `TimeContext` commits at ~20 fps (P4) |
+
+### Deferred
+
+- Memoising the ~40 deck layers `WorkspaceMap` builds per render: the per-frame
+  causes (style rebuild, clock) are gone, and the layer builder is 1,100 lines
+  under e2e guard — not worth the regression risk this late.
+- Lint warnings: 80, held by the ratchet (was 88 at P1). Mostly unused imports
+  in pages not otherwise touched.
+- The decorative radar/scanline animation in `CommandMap` leaves with
+  `/operations/replay` (see RETIREMENT_PARITY.md).

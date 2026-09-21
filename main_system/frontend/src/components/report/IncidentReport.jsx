@@ -18,6 +18,7 @@
 import { fmt } from "../../lib/api";
 import { originEstimate, screenVerdict } from "../../lib/drift";
 import { guessPlace } from "../../lib/replay";
+import { sceneFact } from "../../lib/sceneName";
 import { sourceBadge } from "../workspace/palette";
 
 const DASH = "—";
@@ -251,9 +252,11 @@ export default function IncidentReport({
           </figure>
           <KV rows={[
             ["Acquisition Time (UTC)", <span className="mono">{fmt.utc(sceneMeta?.acquired_utc)}</span>],
-            ["Sensor / Mission", "Sentinel-1"],
-            ["Polarization", text(sceneMeta?.polarisation)],
-            ["Product Type", text(sceneMeta?.product_type ?? (basis?.label === "REAL" || !basis ? "GRD" : null))],
+            // Printed and signed: every value here is recorded or read from
+            // the ESA product name, never a constant (lib/sceneName).
+            ["Sensor / Mission", sceneFact(sceneMeta, "mission")],
+            ["Polarization", sceneFact(sceneMeta, "polarisation")],
+            ["Product Type", sceneFact(sceneMeta, "product")],
             ["Spatial Resolution", sceneMeta?.pixel_spacing_m != null
               ? `${num(sceneMeta.pixel_spacing_m, 0)} m / px` : "not recorded"],
             ["Scene ID", <span className="mono ir-break">{text(sceneMeta?.scene_id ?? run?.scene_id)}</span>],

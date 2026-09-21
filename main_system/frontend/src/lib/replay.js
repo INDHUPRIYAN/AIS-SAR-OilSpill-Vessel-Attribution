@@ -309,9 +309,15 @@ const REGIONS = [
   [66, 76, 15, 25, "the Arabian Sea"],
 ];
 
+/** A readable name for a position, and whether it is one.
+ *
+ *  The names come from a short list of hand-drawn boxes in this file, not
+ *  from any gazetteer the API serves, so a name here is a convenience label
+ *  for a region and must read as one: "near the Bay of Bengal, off Chennai".
+ *  Outside every box the coordinates are the only honest answer. */
 export function guessPlace([lon, lat]) {
   for (const [w, e, s, n, name] of REGIONS) {
-    if (lon > w && lon < e && lat > s && lat < n) return name;
+    if (lon > w && lon < e && lat > s && lat < n) return `near ${name}`;
   }
   return `${fmtLat(lat)}, ${fmtLon(lon)}`;
 }

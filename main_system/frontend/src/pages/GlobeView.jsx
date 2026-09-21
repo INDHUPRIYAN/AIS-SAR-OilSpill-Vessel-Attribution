@@ -82,6 +82,9 @@ export default function GlobeViewPage() {
   const { zones, zoneList, incidents, vessels, live, stream, aisBadge, runLayers, runId } = data;
   const selectedZone = selected?.kind === "zone"
     ? zoneList.find((z) => z.id === selected.id) || null : null;
+  /* A new zone's default parent is the jurisdiction the server holds -- read
+   * from the zones it returned, not a zone id baked into the editor. */
+  const rootZoneId = zoneList.find((z) => z.kind === "jurisdiction" && !z.parent_id)?.id || null;
 
   /* Deep link: /globe?zone=… or ?incident=… selects and flies. */
   useEffect(() => {
@@ -170,7 +173,7 @@ export default function GlobeViewPage() {
   const startNewZone = () => {
     setEditTarget(null);
     editor.reset([]);
-    setNewZone({ id: "", name: "", parent_id: selectedZone?.id || "zone-bob", officer: "" });
+    setNewZone({ id: "", name: "", parent_id: selectedZone?.id || rootZoneId || "", officer: "" });
     setMode(MODES.SPLITTING);
     setSaveState(null);
     setRailOpen(true);

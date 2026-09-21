@@ -41,6 +41,7 @@ import { useTheme } from "../lib/theme";
 import { useGlobeData } from "../lib/useGlobeData";
 import "../globe.css";
 import { url } from "../lib/urls";
+import { sceneFact } from "../lib/sceneName";
 
 const LAYER_ROWS = [
   { key: "vessels", label: "Vessels (live AIS)", swatch: "var(--c-vessel)" },
@@ -320,7 +321,7 @@ export default function Operations() {
                   </Badge>
                 </span>
                 <div className="ops-scene-cap">
-                  <span>SENTINEL-1 · {latestScene?.polarisation || "VV"}</span>
+                  <span>{sceneFact(latestScene, "mission").toUpperCase()} · {sceneFact(latestScene, "polarisation")}</span>
                   <span>{latestScene?.acquired_utc ? fmt.utc(latestScene.acquired_utc) : "—"}</span>
                 </div>
               </div>

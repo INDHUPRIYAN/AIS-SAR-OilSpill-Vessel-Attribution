@@ -26,6 +26,7 @@ import {
 import { fmtLat, fmtLon } from "../components/Globe";
 import { api, fmt, useApi } from "../lib/api";
 import { url } from "../lib/urls";
+import { sceneFact } from "../lib/sceneName";
 
 const num = (v, d = 2) => (v == null || Number.isNaN(Number(v)) ? "—" : Number(v).toFixed(d));
 
@@ -133,7 +134,7 @@ export default function Satellite() {
                       onError={(e) => { e.currentTarget.style.display = "none"; }} />
                   )}
                   <div className="sat-tags">
-                    <Badge tone="neutral">SENTINEL-1 · {sceneMeta?.polarisation || "VV"}</Badge>
+                    <Badge tone="neutral">{sceneFact(sceneMeta, "mission").toUpperCase()} · {sceneFact(sceneMeta, "polarisation")}</Badge>
                     {showMask && <Badge tone="danger">U-NET MASK OVERLAY</Badge>}
                     {layers?.meta?.detect_engine && (
                       <Badge tone={layers.meta.detect_engine === "ml" ? "ok" : "warn"}>
@@ -211,8 +212,8 @@ export default function Satellite() {
                 <div className="kv-dense">
                   <KV k="Scene id" v={sceneMeta.scene_id || "—"} wrap />
                   <KV k="Acquired" v={fmt.utc(sceneMeta.acquired_utc)} />
-                  <KV k="Sensor" v={`Sentinel-1 · ${sceneMeta.polarisation || "VV"}`} />
-                  <KV k="Mode" v={sceneMeta.mode || "IW"} />
+                  <KV k="Sensor" v={`${sceneFact(sceneMeta, "mission")} · ${sceneFact(sceneMeta, "polarisation")}`} />
+                  <KV k="Mode" v={sceneFact(sceneMeta, "mode")} />
                   <KV k="Provider" v={sceneMeta.provider_used || "—"} />
                   <KV k="Centre" v={centre ? `${fmtLat(centre.lat)}  ${fmtLon(centre.lon)}` : "—"} />
                   <KV k="Coverage (bbox)" v={sceneMeta.bbox

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { STEPS } from "../lib/replay";
+import { sceneFact } from "../lib/sceneName";
 import {
   fmtLat, fmtLon, fmtUtc, fmtDur, clamp01,
 } from "../lib/replay";
@@ -117,7 +118,7 @@ function StepContent({ b, step, frame, effects, sel, selSuspect, onSelect }) {
         <Row k="Scene" v={b.sceneMeta?.scene_id} />
         <Row k="Centre" v={`${fmtLat(b.sceneCenter[1])}  ${fmtLon(b.sceneCenter[0])}`} />
         <Row k="Acquired" v={b.sceneMeta?.acquired_utc?.replace("T", " ").slice(0, 16) + "Z"} />
-        <Row k="Sensor" v={`Sentinel-1 · ${b.sceneMeta?.polarisation ?? "VV"}`} />
+        <Row k="Sensor" v={`${sceneFact(b.sceneMeta, "mission")} · ${sceneFact(b.sceneMeta, "polarisation")}`} />
         <Row k="Provider" v={b.sceneMeta?.provider_used} />
       </div>);
 

@@ -275,3 +275,4 @@ a.crumb:focus-visible { outline: 2px solid var(--accent); }
 .ntf-ack { width: 24px; height: 24px; display: grid; place-items: center; flex-shrink: 0; border-radius: var(--r-xs);
   border: 1px solid var(--line-bright); background: transparent; color: var(--ink-2); cursor: pointer; }
 .ntf-ack:hover { border-color: var(--ok); color: var(--ok); }
+.page-loading { height: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ink-2); }

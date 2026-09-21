@@ -5,36 +5,40 @@
  * remembering to add a screen twice. The shell chrome itself lives in
  * components/shell. */
 
+import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
 import { Waves } from "lucide-react";
 
-import Operations from "./pages/Operations";
-import Satellite from "./pages/Satellite";
-import SarDatabase from "./pages/SarDatabase";
-import Environment from "./pages/Environment";
-import Reports from "./pages/Reports";
-import Models from "./pages/Models";
-import SystemOps from "./pages/SystemOps";
-import Audit from "./pages/Audit";
-import HindcastEngines from "./pages/HindcastEngines";
-import GlobeViewPage from "./pages/GlobeView";
-import OfficerDashboard from "./pages/OfficerDashboard";
-import OfficersPage from "./pages/Officers";
-import ZonesPage from "./pages/Zones";
-import Incident from "./pages/Incident";
-import Investigation from "./pages/Investigation";
-import Investigations from "./pages/Investigations";
-import Monitoring from "./pages/Monitoring";
-import Catalog from "./pages/Catalog";
-import Alerts from "./pages/Alerts";
-import Keys from "./pages/Keys";
-import Dashboard from "./pages/Dashboard";
-import Analytics from "./pages/Analytics";
-import About from "./pages/About";
-import Report from "./pages/Report";
-import Incidents from "./pages/Incidents";
-import Vessels from "./pages/Vessels";
+/* Each page is its own chunk: the shell and the sign-in form load first, and
+ * a map-heavy page (the workspace, the Live Map) is fetched when it is opened
+ * rather than on every visit to the Reports list. */
+const Operations = lazy(() => import("./pages/Operations"));
+const Satellite = lazy(() => import("./pages/Satellite"));
+const SarDatabase = lazy(() => import("./pages/SarDatabase"));
+const Environment = lazy(() => import("./pages/Environment"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Models = lazy(() => import("./pages/Models"));
+const SystemOps = lazy(() => import("./pages/SystemOps"));
+const Audit = lazy(() => import("./pages/Audit"));
+const HindcastEngines = lazy(() => import("./pages/HindcastEngines"));
+const GlobeViewPage = lazy(() => import("./pages/GlobeView"));
+const OfficerDashboard = lazy(() => import("./pages/OfficerDashboard"));
+const OfficersPage = lazy(() => import("./pages/Officers"));
+const ZonesPage = lazy(() => import("./pages/Zones"));
+const Incident = lazy(() => import("./pages/Incident"));
+const Investigation = lazy(() => import("./pages/Investigation"));
+const Investigations = lazy(() => import("./pages/Investigations"));
+const Monitoring = lazy(() => import("./pages/Monitoring"));
+const Catalog = lazy(() => import("./pages/Catalog"));
+const Alerts = lazy(() => import("./pages/Alerts"));
+const Keys = lazy(() => import("./pages/Keys"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const About = lazy(() => import("./pages/About"));
+const Report = lazy(() => import("./pages/Report"));
+const Incidents = lazy(() => import("./pages/Incidents"));
+const Vessels = lazy(() => import("./pages/Vessels"));
 import SignIn from "./pages/SignIn";
 import NotFound from "./pages/NotFound";
 import CommandPalette, { ShortcutOverlay } from "./components/CommandPalette";
@@ -96,9 +100,20 @@ function VesselsRoute() {
   return to ? <Navigate to={to} replace /> : <Vessels />;
 }
 
+/* While a page's chunk arrives. Quiet and brief: it is a network fetch of
+ * code, not work the system is doing, so it claims nothing. */
+function PageLoading() {
+  return (
+    <div className="page-loading" role="status" aria-live="polite" data-testid="page-loading">
+      <span className="spinner" /> <span className="tiny muted">Loading</span>
+    </div>
+  );
+}
+
 function App() {
   return (
     <AppShell>
+      <Suspense fallback={<PageLoading />}>
       <Routes>
         {ROUTES.flatMap((r) => {
           const Page = r.id === "vessels" ? VesselsRoute : PAGES[r.id];
@@ -107,6 +122,7 @@ function App() {
         {LEGACY_PATHS.map((path) => <Route key={path} path={path} element={<LegacyRedirect />} />)}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
       <CommandPalette />
       <ShortcutOverlay />
     </AppShell>

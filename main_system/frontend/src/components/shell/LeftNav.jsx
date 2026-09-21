@@ -11,7 +11,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import * as Icons from "lucide-react";
+import {
+  Activity, BarChart3, BookOpen, BrainCircuit, ClipboardList, Cpu, Database, FileText, Film, FolderOpen, Globe2, Inbox, KeyRound, Layers, LayoutDashboard, Map, Radar, Satellite, ScanSearch, ScrollText, Server, Ship, Siren, Users, Wind, Settings2, Folder, Circle, ChevronRight,
+} from "lucide-react";
+
+/* A named import per icon, not `import * as Icons`: the wildcard pulled all
+ * ~1,400 Lucide icons into the entry bundle for the twenty-odd the sidebar
+ * draws. A route whose icon is not listed here falls back to a circle, and
+ * tests-unit/routes.test.jsx fails first. */
+export const NAV_ICONS = { Activity, BarChart3, BookOpen, BrainCircuit, ClipboardList, Cpu, Database, FileText, Film, FolderOpen, Globe2, Inbox, KeyRound, Layers, LayoutDashboard, Map, Radar, Satellite, ScanSearch, ScrollText, Server, Ship, Siren, Users, Wind, Settings2, Folder, Circle, ChevronRight };
+const Icons = NAV_ICONS;
 
 import { useSession } from "../../lib/session";
 import { GROUP_LABEL, MAIN_ORDER, ROUTES, operationsInMain, routeFor } from "../../lib/shell";

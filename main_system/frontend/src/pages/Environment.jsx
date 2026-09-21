@@ -150,7 +150,7 @@ export default function Environment() {
           <div className="stack" style={{ gap: 12 }}>
             <div className="grid grid-2">
               <Panel title="Ocean current" icon={<Waves size={12} />}
-                right={currents ? <Badge tone="teal">CMEMS chain</Badge> : <Badge tone="ghost">NO GRID</Badge>}>
+                right={currents ? <Badge tone="teal">{currents.provider || "provider not recorded"}</Badge> : <Badge tone="ghost">NO GRID</Badge>}>
                 <FieldPreview field={currents} color="var(--teal)" label="current" />
                 <div className="kv-dense mt-2">
                   <KV k="Mean speed" v={currents?.mean_speed != null ? `${num(currents.mean_speed, 3)} m/s` : "—"} />
@@ -161,7 +161,7 @@ export default function Environment() {
               </Panel>
 
               <Panel title="Wind (10 m)" icon={<Wind size={12} />}
-                right={wind ? <Badge tone="accent">ERA5 chain</Badge> : <Badge tone="ghost">NO GRID</Badge>}>
+                right={wind ? <Badge tone="accent">{wind.provider || "provider not recorded"}</Badge> : <Badge tone="ghost">NO GRID</Badge>}>
                 <FieldPreview field={wind} color="var(--accent)" label="wind" />
                 <div className="kv-dense mt-2">
                   <KV k="Mean speed" v={wind?.mean_speed != null ? `${num(wind.mean_speed, 2)} m/s` : "—"} />
@@ -180,7 +180,7 @@ export default function Environment() {
             <Panel title="Drift model" icon={<Compass size={12} />}>
               <div className="kv-dense">
                 <KV k="Engine" v={md.forcing?.engine || "—"} />
-                <KV k="Windage coefficient" v={md.forcing?.windage ?? "0.03 (default)"} />
+                <KV k="Windage coefficient" v={md.forcing?.windage ?? "not recorded by this run"} />
                 <KV k="Timestep" v={md.timestep_minutes != null ? `${md.timestep_minutes} min` : "—"} />
                 <KV k="Backtrack" v={md.backtrack_hours != null ? `${md.backtrack_hours} h` : "—"} />
                 <KV k="Origin window" v={md.origin_window_start_utc

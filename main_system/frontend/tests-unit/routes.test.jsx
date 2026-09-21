@@ -139,3 +139,10 @@ describe("breadcrumbs", () => {
     expect(crumbsFor("/nowhere")).toEqual([{ label: "Not found" }]);
   });
 });
+
+describe("sidebar icons", () => {
+  it("has a real icon for every screen it lists", async () => {
+    const { NAV_ICONS } = await import("../src/components/shell/LeftNav");
+    for (const r of ROUTES.filter((x) => x.icon)) expect(NAV_ICONS[r.icon], r.id).toBeTruthy();
+  });
+});

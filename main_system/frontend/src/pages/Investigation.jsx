@@ -54,6 +54,7 @@ import {
 import { BEAT_INDEX, FINAL_SHOW, filterCounts, frameOf, readiness as beatReadiness } from "../lib/cinematic";
 import { useCinematic } from "../lib/useCinematic";
 import { aisBadgeFor } from "../lib/useGlobeData";
+import { sceneFact } from "../lib/sceneName";
 
 const LAYER_STAGE = {
   scene_meta: "detect", detect: "detect", slick: "characterise",
@@ -1132,7 +1133,7 @@ function InvestigationWorkspace() {
                   <>
                     <div>Backscatter: <b>{slickP.damping_ratio != null ? `${Number(slickP.damping_ratio).toFixed(1)} dB damping` : "—"}</b></div>
                     <div>Shape: <b>{slickP.major_axis_m && slickP.minor_axis_m ? (slickP.major_axis_m / slickP.minor_axis_m >= 3 ? "Elongated" : slickP.major_axis_m / slickP.minor_axis_m >= 1.5 ? "Oblong" : "Compact") : "—"}</b></div>
-                    <div>Age confidence: <b>LOW</b></div>
+                    <div>Age confidence: <b>{slickP.age_confidence_label ? String(slickP.age_confidence_label).toUpperCase() : "not recorded"}</b></div>
                   </>
                 ) : (
                   <>
@@ -1151,10 +1152,10 @@ function InvestigationWorkspace() {
           {/* frame 12: scene facts; frame 15: legend */}
           {["ais", "drift"].includes(stageId) && layers.scene_meta && (
             <div className="ws-infobox mono" data-testid="scene-infobox">
-              <div>Scene: <b>Sentinel-1 (SAR)</b></div>
+              <div>Scene: <b>{sceneFact(layers.scene_meta, "mission")} (SAR)</b></div>
               <div>Acquisition: <b>{fmtUtc(sceneT0)}</b></div>
               <div>Polarization: <b>{layers.scene_meta.polarisation || "—"}</b></div>
-              <div>Product: <b>GRD</b></div>
+              <div>Product: <b>{sceneFact(layers.scene_meta, "product")}</b></div>
             </div>
           )}
           {["attribution", "evidence", "report"].includes(stageId) && layers.slick && (

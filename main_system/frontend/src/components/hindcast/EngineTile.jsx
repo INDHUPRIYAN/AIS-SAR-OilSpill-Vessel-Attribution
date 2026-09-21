@@ -2,7 +2,10 @@
  * are the Monitoring Engines page. Everything shown comes from the engine's
  * own run row: the tile computes nothing. */
 
-import * as Icons from "lucide-react";
+import { Crosshair, Satellite, Shapes, Target, Timer, Waves, Wind, Cpu } from "lucide-react";
+
+/* The icons the seven BAYES-TRACK engines name (engines/*.py `icon`). */
+const Icons = { Crosshair, Satellite, Shapes, Target, Timer, Waves, Wind, Cpu };
 import { ChevronRight, Clock, ScrollText } from "lucide-react";
 import { fmt } from "../../lib/api";
 

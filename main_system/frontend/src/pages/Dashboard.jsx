@@ -21,7 +21,7 @@ export default function Dashboard() {
   const { data: invs, reload: reloadInvs } = useApi(() => api.listInvestigations(), []);
   const { data: catalog } = useApi(() => api.localScenes(), []);
   const [creating, setCreating] = useState(false);
-  const [name, setName] = useState("Chennai / Ennore investigation");
+  const [name, setName] = useState("");
   // Null until the catalog arrives, then the server's declared default -- a
   // real acquisition. The mock raster used to be hardcoded here, which made
   // every run started from this page a 1-of-5-real smoke test (audit N-14).
