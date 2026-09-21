@@ -18,6 +18,7 @@ import { X } from "lucide-react";
 
 import { api, useApi } from "../lib/api";
 import { useShell } from "../lib/shell";
+import { url } from "../lib/urls";
 
 const IST_OFFSET_MS = 5.5 * 3600 * 1000;
 
@@ -117,7 +118,7 @@ export function ProvenanceChips() {
 
   return (
     <span className="pchips" data-testid="provenance-chips">
-      <Link className="pchip pchip-ctx mono" to={`/investigation?run=${run.run_id}`}
+      <Link className="pchip pchip-ctx mono" to={url.workspace({ run: run.run_id })}
         title={`Run in context: ${run.run_id}`} data-testid="chip-run">
         {run.incident_id ? `${run.incident_id} ▸ ` : ""}{run.run_id}
       </Link>

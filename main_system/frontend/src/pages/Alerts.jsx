@@ -31,6 +31,7 @@ import {
 } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
 import { hasRole, useSession } from "../lib/session";
+import { url } from "../lib/urls";
 
 const SEVERITY_TONE = { critical: "danger", warning: "warn", info: "neutral" };
 const STATUS_TONE = {
@@ -118,7 +119,7 @@ export default function Alerts() {
           {unrouted.filter((a) => a.routing === "unzoned").length} fell outside every declared
           zone; {unrouted.filter((a) => a.routing === "unassigned").length} landed in a zone with
           no assigned officer. These are in nobody&apos;s queue.{" "}
-          <Link to="/zones">Review zones <ArrowRight size={11} /></Link>{" · "}
+          <Link to={url.zones()}>Review zones <ArrowRight size={11} /></Link>{" · "}
           <Link to="/officers">assign officers <ArrowRight size={11} /></Link>
         </Notice>
       )}
@@ -176,15 +177,15 @@ export default function Alerts() {
 
                       <div className="alert-actions">
                         {a.incident_id && (
-                          <Link className="btn btn-xs btn-primary" to={`/incidents?focus=${a.incident_id}`}>
+                          <Link className="btn btn-xs btn-primary" to={url.incidents(a.incident_id)}>
                             <FolderSearch size={11} /> Open incident
                           </Link>
                         )}
                         {a.run_id && (
-                          <Link className="btn btn-xs" to={`/investigation?run=${a.run_id}`}>Workspace</Link>
+                          <Link className="btn btn-xs" to={url.workspace({ run: a.run_id })}>Workspace</Link>
                         )}
                         {a.run_id && (
-                          <Link className="btn btn-xs" to={`/incident?run=${a.run_id}`}>
+                          <Link className="btn btn-xs" to={url.replay(a.run_id)}>
                             <Film size={11} /> Replay
                           </Link>
                         )}

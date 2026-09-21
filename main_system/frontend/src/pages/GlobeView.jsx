@@ -354,7 +354,7 @@ export default function GlobeViewPage() {
               })}
               {runLayers && (
                 <div className="tiny muted mt-2">
-                  Run overlays: <Link to={`/investigation?run=${runId}`} className="mono">{runId}</Link>
+                  Run overlays: <Link to={url.workspace({ run: runId })} className="mono">{runId}</Link>
                   {runLayers.run?.stages_mock ? <Badge tone="mock" className="ml-auto" style={{ marginLeft: 6 }}>{runLayers.run.stages_mock} MOCK STAGES</Badge> : null}
                 </div>
               )}
@@ -424,7 +424,7 @@ function SelectedPanel({ selected, zone, zoneList, zonesLoading, zonesError, inc
           <KV k="Reports" v={v.message_count ?? "--"} />
         </div>
         <div className="globe-actions">
-          <Link className="btn btn-sm" to={`/vessels?mmsi=${v.mmsi}`}>Vessel dossier</Link>
+          <Link className="btn btn-sm" to={url.vessel(v.mmsi)}>Vessel dossier</Link>
           <button className="btn btn-sm" onClick={() => cam.flyTo({ longitude: v.lon, latitude: v.lat, zoom: 8 }, 900)}>
             <Crosshair size={12} /> Centre
           </button>
@@ -459,12 +459,12 @@ function SelectedPanel({ selected, zone, zoneList, zonesLoading, zonesError, inc
           <KV k="Runs" v={i.runs ?? 0} />
         </div>
         <div className="globe-actions">
-          <Link className="btn btn-primary btn-sm" to={`/incidents?focus=${i.id}`}>Open incident</Link>
+          <Link className="btn btn-primary btn-sm" to={url.incidents(i.id)}>Open incident</Link>
           {i.source_run_id && (
-            <Link className="btn btn-sm" to={`/investigation?run=${i.source_run_id}`}><Radar size={12} /> Investigation</Link>
+            <Link className="btn btn-sm" to={url.workspace({ run: i.source_run_id })}><Radar size={12} /> Investigation</Link>
           )}
           {i.source_run_id && (
-            <Link className="btn btn-sm" to={`/incident?run=${i.source_run_id}`}><Film size={12} /> Replay</Link>
+            <Link className="btn btn-sm" to={url.replay(i.source_run_id)}><Film size={12} /> Replay</Link>
           )}
         </div>
       </Panel>
@@ -495,7 +495,7 @@ function SelectedPanel({ selected, zone, zoneList, zonesLoading, zonesError, inc
         </div>
         <div className="globe-actions">
           {runLayers?.runId && <Link className="btn btn-sm" to={url.workspace({ run: runLayers.runId })}><Radar size={12} /> Open in workspace</Link>}
-          {selected.kind === "track" && <Link className="btn btn-sm" to={`/vessels?mmsi=${p.mmsi}`}>Dossier</Link>}
+          {selected.kind === "track" && <Link className="btn btn-sm" to={url.vessel(p.mmsi)}>Dossier</Link>}
         </div>
       </Panel>
     );
@@ -588,7 +588,7 @@ function ZonePanel({ zone, zoneList, loading, error, canDraw, onReshape, onSelec
         {zone.bbox && (
           <button className="btn btn-sm" onClick={() => onFly(zone.bbox)}><Crosshair size={12} /> Centre</button>
         )}
-        <Link className="btn btn-sm" to={`/zones?zone=${zone.id}`}>Manage</Link>
+        <Link className="btn btn-sm" to={url.zones(zone.id)}>Manage</Link>
       </div>
       {!zone.can_edit && zone.cannot_edit_reason && (
         /* The server's own reason, shown verbatim. An operator told only

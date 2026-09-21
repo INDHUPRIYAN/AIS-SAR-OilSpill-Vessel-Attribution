@@ -22,6 +22,7 @@ import {
 import { sourceBadge } from "./palette";
 import { fmt } from "../../lib/api";
 import { provenanceOf } from "../ui";
+import { url } from "../../lib/urls";
 
 const MISSIONS = [
   { id: "S1", label: "Sentinel-1" },
@@ -325,7 +326,7 @@ export function AnalysisPanel({
         ) : (
           <button className="ctl-btn grow" disabled data-testid="export-bundle"><Download size={12} /> Export bundle</button>
         )}
-        <Link className={`ctl-btn grow ${runId ? "" : "off"}`} to={runId ? `/report?run=${runId}` : "#"} target="_blank"
+        <Link className={`ctl-btn grow ${runId ? "" : "off"}`} to={runId ? url.reportPrint(runId) : "#"} target="_blank"
           data-testid="export-report" title="Printable incident report">
           <FileText size={12} /> Report
         </Link>

@@ -11,6 +11,7 @@ import { statusTone } from "../../lib/api";
 import { Dot } from "../ui";
 
 import pkg from "../../../package.json";
+import { url } from "../../lib/urls";
 
 /* Short display names for the providers the pipeline actually depends on. */
 const SHORT = {
@@ -57,7 +58,7 @@ export default function StatusBar({ status, ais, health, workers }) {
             );
           })}
         {stream && (
-          <Link className="sbar-item" to="/globe" title={ais?.stream?.note || "Live AIS stream"}
+          <Link className="sbar-item" to={url.map()} title={ais?.stream?.note || "Live AIS stream"}
             data-testid="sbar-ais-stream">
             <Dot tone={stream.tone} pulsing={stream.tone === "ok"} />
             <span className="sbar-k">AISStream</span>

@@ -112,3 +112,22 @@ test("S6: at tablet width the sidebar is a drawer", async ({ page }) => {
   await expect(page).toHaveURL(/\/reports$/);
   await expect(page.getByTestId("left-nav")).not.toBeInViewport();
 });
+
+test("S7: in-page links are canonical — nothing relies on a redirect", async ({ page }) => {
+  await signIn(page);
+  const legacy = ["/globe", "/sar-database", "/satellite", "/dashboard", "/alerts", "/my-desk",
+    "/incident", "/hindcast", "/monitoring", "/catalog", "/models", "/analytics", "/audit",
+    "/officers", "/keys", "/zones", "/environment", "/about", "/investigation", "/report", "/incidents"];
+  const offenders = [];
+  for (const path of ["/", "/investigations", "/map", "/detections", "/vessels", "/reports",
+    "/operations/incidents", "/operations/alerts", "/operations/desk", "/system/zones", "/system/health"]) {
+    await page.goto(path);
+    await expect(page.getByTestId("left-nav")).toBeVisible();
+    const hrefs = await page.locator("#main a[href^='/']").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+    for (const h of hrefs) {
+      const p = h.split("?")[0].replace(/\/$/, "") || "/";
+      if (legacy.includes(p)) offenders.push(`${path} → ${h}`);
+    }
+  }
+  expect(offenders, offenders.join("\n")).toEqual([]);
+});

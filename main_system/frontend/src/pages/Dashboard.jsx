@@ -12,6 +12,7 @@ import { FolderOpen, Plus, PlayCircle, WifiOff, Layers, FileCheck } from "lucide
 
 import { Badge, Card, Dot, PageHeader, Spinner, Stat, Empty } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
+import { url } from "../lib/urls";
 
 export default function Dashboard() {
   const nav = useNavigate();
@@ -41,7 +42,7 @@ export default function Dashboard() {
       });
       const started = await api.startRun(inv.id, { engine: "auto" });
       await reloadInvs();
-      nav(`/investigation?run=${started.run_id}`);
+      nav(url.workspace({ run: started.run_id }));
     } finally { setCreating(false); }
   }
 
@@ -130,7 +131,7 @@ export default function Dashboard() {
               key={r.run_id}
               whileHover={{ y: -1 }}
               className="btn btn-sm"
-              onClick={() => nav(`/investigation?run=${r.run_id}`)}
+              onClick={() => nav(url.workspace({ run: r.run_id }))}
               title={`${r.files.length} contract files · ${r.stages_real}/${r.stages_total} stages real`}
             >
               <FileCheck size={11} color="var(--ok)" />
@@ -156,7 +157,7 @@ export default function Dashboard() {
           <tbody>
             {(runs || []).map((r) => (
               <tr key={r.run_id} className="clickable"
-                onClick={() => nav(`/investigation?run=${r.run_id}`)}>
+                onClick={() => nav(url.workspace({ run: r.run_id }))}>
                 <td><Dot status={r.status} pulsing={r.status === "running"} /></td>
                 <td className="mono tiny">{r.run_id}</td>
                 <td className="tiny muted">{r.scene_id || "—"}</td>
@@ -173,11 +174,11 @@ export default function Dashboard() {
                 <td style={{ whiteSpace: "nowrap" }}>
                   <button className="btn btn-sm btn-primary" title="Incident replay"
                     style={{ marginRight: 6 }}
-                    onClick={(e) => { e.stopPropagation(); nav(`/incident?run=${r.run_id}`); }}>
+                    onClick={(e) => { e.stopPropagation(); nav(url.replay(r.run_id)); }}>
                     <PlayCircle size={11} /> Replay
                   </button>
                   <button className="btn btn-sm"
-                    onClick={(e) => { e.stopPropagation(); nav(`/investigation?run=${r.run_id}`); }}>
+                    onClick={(e) => { e.stopPropagation(); nav(url.workspace({ run: r.run_id })); }}>
                     Open
                   </button>
                 </td>

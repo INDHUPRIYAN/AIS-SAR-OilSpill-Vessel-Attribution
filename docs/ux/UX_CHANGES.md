@@ -273,3 +273,29 @@ than drawing a contour that was never computed.
   excluded, which is the same question answered from the data that exists.
 - Live AIS / current / wind as named map "modes": the layers and their honest
   empty states exist; a mode switcher that presets them is P7 with the Live Map.
+
+---
+
+## P6 — Forecast, Report, and the end of the redirects
+
+### Before → after
+
+| | Before | After |
+|---|---|---|
+| Weathering | the whole block flattened to one line of `key value · key value`, which dropped the caveats | its own section: assumed oil type and temperature (both labelled *assumed*), evaporated fraction, water content and viscosity at the horizon on screen, the engine's own honesty note, and **what this model does not account for** behind a disclosure |
+| "Download PDF" | opened an HTML page | **Printable report**, with "use your browser's Print to save it as a PDF" on hover. There is no server-side PDF (G5) and nothing now implies there is |
+| CSV / JSON export | reachable only from the Reports library | also from the Report stage, beside the document they describe |
+| `/api/reports` shape | one caller assumed a bare array and would have shown "compose a report" forever the day it paginates | normalised once in `lib/api`; every caller keeps working |
+| In-page links | ~100 links spelled legacy addresses and worked through the permanent redirects | every link is canonical; **e2e S7** walks eleven screens and fails if any `#main` link points at an address that would redirect |
+
+### Why the landfall ETA is still absent
+
+The forecast's own metadata names `coastline stranding` in
+`processes_not_modelled`. The gap (G2) is now visible in the product, in the
+engine's words, on the stage where someone would look for it — rather than
+being a silent omission.
+
+### Deferred
+
+- The Reports library page itself (a thin document list) is reviewed in P7
+  with the other secondary pages.

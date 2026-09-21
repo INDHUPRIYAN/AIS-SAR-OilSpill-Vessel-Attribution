@@ -28,7 +28,7 @@ import {
 import { fmtLat, fmtLon } from "../components/Globe";
 import { api, fmt, useApi } from "../lib/api";
 import VesselIdentity from "../components/vessels/VesselIdentity";
-import { useVesselParams } from "../lib/urls";
+import { url, useVesselParams } from "../lib/urls";
 
 const num = (v, d = 1) => (v == null || Number.isNaN(Number(v)) ? "—" : Number(v).toFixed(d));
 
@@ -62,7 +62,7 @@ export default function Vessels() {
         sub="What the system knows about one MMSI, across every run it appeared in — including the runs that excluded it."
         actions={<>
           <button className="btn btn-sm" onClick={listQ.reload}><RefreshCw size={12} /> Refresh</button>
-          <Link className="btn btn-sm" to="/globe"><Crosshair size={12} /> On globe</Link>
+          <Link className="btn btn-sm" to={url.map()}><Crosshair size={12} /> On globe</Link>
         </>} />
 
       <div className="grid grid-4 mb-3">
@@ -230,10 +230,10 @@ function VesselDossier({ mmsi, dossier, live, loading, error }) {
             determination is made or implied by this system.
           </Notice>
           <div className="globe-actions">
-            <Link className="btn btn-primary btn-sm" to={`/investigation?run=${best.run_id}`}>
+            <Link className="btn btn-primary btn-sm" to={url.workspace({ run: best.run_id })}>
               <Radar size={12} /> Open investigation
             </Link>
-            <Link className="btn btn-sm" to={`/incident?run=${best.run_id}`}><Film size={12} /> Replay</Link>
+            <Link className="btn btn-sm" to={url.replay(best.run_id)}><Film size={12} /> Replay</Link>
           </div>
         </Panel>
       )}
@@ -251,7 +251,7 @@ function VesselDossier({ mmsi, dossier, live, loading, error }) {
                 {appearances.map((a, i) => (
                   <tr key={`${a.run_id}-${i}`} className={a.filtered ? "row-dim" : ""}>
                     <td className="mono tiny">
-                      <Link to={`/investigation?run=${a.run_id}`}>{a.run_id}</Link>
+                      <Link to={url.workspace({ run: a.run_id })}>{a.run_id}</Link>
                       {a.scene_id && <div className="sub ellipsis" style={{ maxWidth: 150 }}>{a.scene_id}</div>}
                     </td>
                     <td>

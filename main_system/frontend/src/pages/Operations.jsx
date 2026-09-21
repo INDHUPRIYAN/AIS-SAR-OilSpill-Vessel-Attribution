@@ -40,6 +40,7 @@ import { hasRole, useSession } from "../lib/session";
 import { useTheme } from "../lib/theme";
 import { useGlobeData } from "../lib/useGlobeData";
 import "../globe.css";
+import { url } from "../lib/urls";
 
 const LAYER_ROWS = [
   { key: "vessels", label: "Vessels (live AIS)", swatch: "var(--c-vessel)" },
@@ -99,20 +100,20 @@ export default function Operations() {
       items.push({ t: Date.parse(a.created_utc), kind: "alert",
         tone: SEVERITY_TONE[a.severity] || "neutral", icon: <Bell size={11} />,
         title: a.title, sub: `${a.kind}${a.zone_id ? ` · ${a.zone_id}` : ""} · ${a.status}`,
-        to: "/alerts" });
+        to: url.alerts() });
     }
     for (const i of incidents) {
       items.push({ t: Date.parse(i.created_utc || i.detected_utc), kind: "incident", tone: "danger",
         icon: <ClipboardList size={11} />, title: `${i.id} · ${i.title}`,
         sub: `${i.severity || "severity —"} · ${i.zone_id || "outside all zones"}${i.origin ? ` · ${i.origin}` : ""}`,
-        to: `/incidents?focus=${i.id}` });
+        to: url.incidents(i.id) });
     }
     for (const r of runs?.items || []) {
       items.push({ t: Date.parse(r.started_utc), kind: "run",
         tone: r.status === "complete" ? "ok" : r.status === "failed" ? "danger" : "accent",
         icon: <Radar size={11} />, title: `Run ${r.status} · ${r.run_id}`,
         sub: `${r.scene_id || "no scene"} · ${r.stages_real ?? "?"}/${r.stages_total ?? "?"} stages real`,
-        to: `/investigation?run=${r.run_id}` });
+        to: url.workspace({ run: r.run_id }) });
     }
     return items.filter((x) => Number.isFinite(x.t)).sort((a, b) => b.t - a.t);
   }, [alerts, incidents, runs]);
@@ -156,26 +157,26 @@ export default function Operations() {
         <Panel title="Real-time overview" icon={<Activity size={12} />} collapsible
           right={<span className="tiny mono dim">{live?.as_of_utc ? fmt.utc(live.as_of_utc).slice(11) : ""}</span>}>
           <div className="ops-tiles">
-            <Link className="ops-tile" to="/globe" data-testid="tile-vessels">
+            <Link className="ops-tile" to={url.map()} data-testid="tile-vessels">
               <div className="k">Vessels · live</div>
               <LiveValue className="v" value={live ? fmt.int(live.total_in_view) : "—"} as="div" />
               <div className="s">
                 {aisBadge ? <Badge tone={aisBadge.tone}>{aisBadge.text}</Badge> : <span>reading stream…</span>}
               </div>
             </Link>
-            <Link className="ops-tile" to="/incidents" data-testid="tile-incidents">
+            <Link className="ops-tile" to={url.incidents()} data-testid="tile-incidents">
               <div className="k">Active incidents</div>
               <LiveValue className={`v ${active.length ? "danger" : ""}`} value={active.length} as="div" />
               <div className="s">{incidents.length} total · {incidents.filter((i) => i.origin === "auto").length} auto-opened</div>
             </Link>
-            <Link className="ops-tile" to="/investigations" data-testid="tile-investigations">
+            <Link className="ops-tile" to={url.investigations()} data-testid="tile-investigations">
               <div className="k">Investigations</div>
               <LiveValue className="v" value={invs ? invs.length : "—"} as="div" />
               <div className="s">{running.length
                 ? <span className="tone-accent">{running.length} running now</span>
                 : `${runs?.total ?? "—"} runs recorded`}</div>
             </Link>
-            <Link className="ops-tile" to="/alerts" data-testid="tile-alerts">
+            <Link className="ops-tile" to={url.alerts()} data-testid="tile-alerts">
               <div className="k">Open alerts</div>
               <LiveValue className={`v ${summary?.by_severity?.critical ? "danger" : summary?.open ? "warn" : ""}`}
                 value={summary ? summary.open : "—"} as="div" />
@@ -204,7 +205,7 @@ export default function Operations() {
 
         {user?.role === "zone_officer" && (
           <Panel title="My desk" icon={<Inbox size={12} />}
-            right={<Link className="btn btn-xs" to="/my-desk">Open</Link>}>
+            right={<Link className="btn btn-xs" to={url.desk()}>Open</Link>}>
             <div className="kv-dense">
               <KV k="My zones" v={mine ? (mine.zones || []).map((z) => z.id).join(", ") || "none assigned" : "—"}
                 tone={mine && !(mine.zones || []).length ? "danger" : ""} />
@@ -216,7 +217,7 @@ export default function Operations() {
         )}
 
         <Panel title="Latest events" icon={<Bell size={12} />} flush
-          right={<Link className="btn btn-xs" to="/alerts">View all</Link>}>
+          right={<Link className="btn btn-xs" to={url.alerts()}>View all</Link>}>
           {feed.length === 0 ? (
             <div className="state state-compact"><div className="state-title">No recent events</div></div>
           ) : (
@@ -236,7 +237,7 @@ export default function Operations() {
         </Panel>
 
         <Panel title="Live satellite" icon={<Satellite size={12} />}
-          right={runId && <Link className="btn btn-xs" to={`/incident?run=${runId}`}><Film size={11} /> Replay</Link>}>
+          right={runId && <Link className="btn btn-xs" to={url.replay(runId)}><Film size={11} /> Replay</Link>}>
           {!runId ? (
             <div className="state state-compact">
               <div className="state-title">No satellite scene available</div>
@@ -273,7 +274,7 @@ export default function Operations() {
         <div className="map-toolbar">
           <BasemapSwitch value={basemap} onChange={setBasemap} className="mc-basemap-inline" />
           <span className="sep" />
-          <Link className="btn btn-sm" to="/globe"><Target size={12} /> Zones &amp; splitting</Link>
+          <Link className="btn btn-sm" to={url.map()}><Target size={12} /> Zones &amp; splitting</Link>
         </div>
       </div>
 
@@ -358,7 +359,7 @@ export default function Operations() {
 
         {tool === "incidents" && (
           <Panel title="Incidents" icon={<AlertTriangle size={12} />} flush
-            right={<Link className="btn btn-xs" to="/incidents">Register</Link>}>
+            right={<Link className="btn btn-xs" to={url.incidents()}>Register</Link>}>
             {incidents.length === 0 ? (
               <div className="state state-compact">
                 <div className="state-title">No active incidents</div>
@@ -431,7 +432,7 @@ function SelectedObject({ selected, runId, onClose, onCentre }) {
           <KV k="Source" v={`${o.provider || "AISStream"} · LIVE`} />
         </div>
         <div className="globe-actions">
-          <Link className="btn btn-primary btn-sm" to={`/vessels?mmsi=${o.mmsi}`}>
+          <Link className="btn btn-primary btn-sm" to={url.vessel(o.mmsi)}>
             <Ship size={12} /> Vessel dossier
           </Link>
           <button className="btn btn-sm" onClick={() => onCentre(o.lon, o.lat)}><Crosshair size={12} /> Centre</button>
@@ -459,11 +460,11 @@ function SelectedObject({ selected, runId, onClose, onCentre }) {
         </div>
         <div className="globe-actions">
           <Link className="btn btn-primary btn-sm"
-            to={o.source_run_id ? `/investigation?run=${o.source_run_id}` : `/incidents?focus=${o.id}`}>
+            to={o.source_run_id ? url.workspace({ run: o.source_run_id }) : url.incidents(o.id)}>
             <FolderSearch size={12} /> Open investigation
           </Link>
           {o.source_run_id && (
-            <Link className="btn btn-sm" to={`/incident?run=${o.source_run_id}`}><Film size={12} /> Replay</Link>
+            <Link className="btn btn-sm" to={url.replay(o.source_run_id)}><Film size={12} /> Replay</Link>
           )}
         </div>
       </Panel>
@@ -482,8 +483,8 @@ function SelectedObject({ selected, runId, onClose, onCentre }) {
           <KV k="Open incidents" v={o.open_incident_count ?? 0} />
         </div>
         <div className="globe-actions">
-          <Link className="btn btn-sm" to={`/globe?zone=${o.id}`}>Global View</Link>
-          <Link className="btn btn-sm" to={`/zones?zone=${o.id}`}>Manage</Link>
+          <Link className="btn btn-sm" to={url.map({ zone: o.id })}>Global View</Link>
+          <Link className="btn btn-sm" to={url.zones(o.id)}>Manage</Link>
         </div>
       </Panel>
     );
@@ -500,10 +501,10 @@ function SelectedObject({ selected, runId, onClose, onCentre }) {
           <KV k="Source" v={String(o.source || "unrecorded").toUpperCase()} />
         </div>
         <div className="globe-actions">
-          <Link className="btn btn-primary btn-sm" to={`/investigation?run=${runId}`}>
+          <Link className="btn btn-primary btn-sm" to={url.workspace({ run: runId })}>
             <Radar size={12} /> Open investigation
           </Link>
-          <Link className="btn btn-sm" to={`/incident?run=${runId}`}><Film size={12} /> Replay</Link>
+          <Link className="btn btn-sm" to={url.replay(runId)}><Film size={12} /> Replay</Link>
         </div>
       </Panel>
     );
@@ -525,8 +526,8 @@ function SelectedObject({ selected, runId, onClose, onCentre }) {
           <Notice style={{ marginTop: 8 }}>Potential source attribution — investigative support, not proof of guilt.</Notice>
         )}
         <div className="globe-actions">
-          <Link className="btn btn-sm" to={`/investigation?run=${runId}`}>Workspace</Link>
-          <Link className="btn btn-sm" to={`/vessels?mmsi=${o.mmsi}`}>Dossier</Link>
+          <Link className="btn btn-sm" to={url.workspace({ run: runId })}>Workspace</Link>
+          <Link className="btn btn-sm" to={url.vessel(o.mmsi)}>Dossier</Link>
         </div>
       </Panel>
     );

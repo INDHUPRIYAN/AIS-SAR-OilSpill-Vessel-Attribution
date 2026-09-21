@@ -19,6 +19,7 @@ import {
 
 import { Check_, Meter, Primary, Row, Section, Tabs, latlon, num, utc } from "./intel";
 import VesselIdentity, { VesselHistory } from "../vessels/VesselIdentity";
+import { url } from "../../lib/urls";
 import SpillPanel from "./SpillPanel";
 import DriftPanel from "./DriftPanel";
 import SuspectsPanel from "./SuspectsPanel";
@@ -829,7 +830,7 @@ export function AttributionPanel({ ctx }) {
       )}
       <Foot>
         {s && (
-          <Link className="ip-secondary" to={`/vessels?mmsi=${s.mmsi}`} data-testid="view-vessel-details">
+          <Link className="ip-secondary" to={url.vessel(s.mmsi)} data-testid="view-vessel-details">
             View vessel details <ExternalLink size={13} />
           </Link>
         )}
@@ -971,7 +972,26 @@ export function ReportPanel({ ctx }) {
           )}
           {report?.status === "draft" && <button className="ip-secondary" onClick={() => onSubmitReport(report.id)} disabled={!canRun || busy === "report"} data-testid="submit-report">Submit for review</button>}
           {report?.status === "in_review" && <button className="ip-secondary" onClick={() => onPublishReport(report.id)} disabled={!canPublish || busy === "report"} title={!canPublish ? "Publishing needs reviewer, investigator or admin" : ""} data-testid="publish-report">Publish</button>}
-          {runId && <a className="ip-secondary" href={`/report?run=${runId}`} target="_blank" rel="noreferrer" data-testid="open-printable"><Printer size={12} /> Download PDF</a>}
+          {/* There is no server-side PDF (BACKEND_GAPS G5). This opens the
+              printable document, which the browser prints to PDF -- so that is
+              what the control says. It used to say "Download PDF". */}
+          {runId && (
+            <a className="ip-secondary" href={url.reportPrint(runId)} target="_blank" rel="noreferrer" data-testid="open-printable"
+              title="Opens the printable report; use your browser's Print to save it as a PDF">
+              <Printer size={12} /> Printable report
+            </a>
+          )}
+          {/* The machine-readable exports the server does produce. */}
+          {report && (
+            <>
+              <a className="ip-secondary" href={`/api/reports/${report.id}/export.csv`} data-testid="report-csv">
+                <Download size={12} /> CSV
+              </a>
+              <a className="ip-secondary" href={`/api/reports/${report.id}/export.json`} data-testid="report-json">
+                <Download size={12} /> JSON
+              </a>
+            </>
+          )}
         </div>
         <div className="ip-note">Reports are zone-scoped: a zone officer can read reports only for the zones they hold; the server enforces this.</div>
       </Section>
@@ -982,7 +1002,7 @@ export function ReportPanel({ ctx }) {
       </div>
       <Foot>
         <button className="ip-secondary" onClick={() => actions.go("attribution")} data-testid="back-to-analysis">← Back to analysis</button>
-        {runId && <a className="ip-primary ip-primary-accent" href={`/report?run=${runId}`} target="_blank" rel="noreferrer"><span>Open report</span><ExternalLink size={14} /></a>}
+        {runId && <a className="ip-primary ip-primary-accent" href={url.reportPrint(runId)} target="_blank" rel="noreferrer"><span>Open report</span><ExternalLink size={14} /></a>}
       </Foot>
     </div>
   );

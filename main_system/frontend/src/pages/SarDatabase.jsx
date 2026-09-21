@@ -31,6 +31,7 @@ import { api, fmt, useApi } from "../lib/api";
 import { hasRole, useSession } from "../lib/session";
 import { guessPlace } from "../lib/replay";
 import "../sardb.css";
+import { url } from "../lib/urls";
 
 const TONE = { REAL: "ok", REFERENCE: "accent", SYNTHETIC: "mock", UPLOADED: "warn", UNVERIFIED: "neutral" };
 const BASIS_TONE = { measured: "ok", raster: "ok", assigned: "warn", user_supplied: "warn", synthetic: "mock" };
@@ -368,7 +369,7 @@ export default function SarDatabase() {
                   title={!canRun ? "Analysis needs the investigator or analyst role" : !scene.available ? "The raster is not on this host" : "Run the deployed detection and segmentation models on this scene"}>
                   {busy ? <Loader2 size={15} className="ws-spin" /> : <Radar size={15} />} Analyse with OceanTrace AI
                 </button>
-                {scene.latest_run_id && <button className="sd-btn" onClick={() => nav(`/investigation?run=${scene.latest_run_id}`)} data-testid="sar-open-latest">Open the latest investigation of this scene</button>}
+                {scene.latest_run_id && <button className="sd-btn" onClick={() => nav(url.workspace({ run: scene.latest_run_id }))} data-testid="sar-open-latest">Open the latest investigation of this scene</button>}
               </>
             )}
           </aside>

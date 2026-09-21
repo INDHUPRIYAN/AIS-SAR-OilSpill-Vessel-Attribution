@@ -25,6 +25,7 @@ import {
 } from "../components/ui";
 import { fmtLat, fmtLon } from "../components/Globe";
 import { api, fmt, useApi } from "../lib/api";
+import { url } from "../lib/urls";
 
 const num = (v, d = 2) => (v == null || Number.isNaN(Number(v)) ? "—" : Number(v).toFixed(d));
 
@@ -80,7 +81,7 @@ export default function Satellite() {
         actions={<>
           <button className="btn btn-sm" onClick={runsQ.reload}><RefreshCw size={12} /> Refresh</button>
           {runId && (
-            <Link className="btn btn-sm" to={`/investigation?run=${runId}`}>
+            <Link className="btn btn-sm" to={url.workspace({ run: runId })}>
               <Radar size={12} /> Workspace
             </Link>
           )}
@@ -265,11 +266,11 @@ export default function Satellite() {
           {runId && (
             <Panel title="Next" icon={<Film size={12} />}>
               <div className="globe-actions" style={{ marginTop: 0 }}>
-                <Link className="btn btn-primary btn-sm" to={`/investigation?run=${runId}`}>
+                <Link className="btn btn-primary btn-sm" to={url.workspace({ run: runId })}>
                   <Radar size={12} /> Open in workspace
                 </Link>
-                <Link className="btn btn-sm" to={`/incident?run=${runId}`}><Film size={12} /> Replay</Link>
-                <Link className="btn btn-sm" to={`/environment?run=${runId}`}>Drift &amp; forcing</Link>
+                <Link className="btn btn-sm" to={url.replay(runId)}><Film size={12} /> Replay</Link>
+                <Link className="btn btn-sm" to={`/system/environment?run=${runId}`}>Drift &amp; forcing</Link>
               </div>
             </Panel>
           )}

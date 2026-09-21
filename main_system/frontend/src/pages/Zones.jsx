@@ -39,6 +39,7 @@ import { api, fmt, useApi } from "../lib/api";
 import { useSession } from "../lib/session";
 import { useTheme } from "../lib/theme";
 import "../globe.css";
+import { url } from "../lib/urls";
 
 export default function ZonesPage() {
   const { user } = useSession();
@@ -106,7 +107,7 @@ export default function ZonesPage() {
           <button className="btn btn-sm" onClick={() => { zonesQ.reload(); geoQ.reload(); }}>
             <RefreshCw size={12} /> Refresh
           </button>
-          <Link className="btn btn-primary btn-sm" to="/globe">
+          <Link className="btn btn-primary btn-sm" to={url.map()}>
             <Pencil size={12} /> Draw on globe
           </Link>
         </>} />
@@ -313,11 +314,11 @@ function ZoneDetail({ zone }) {
         )}
 
         <div className="globe-actions">
-          <Link className="btn btn-sm" to={`/globe?zone=${zone.id}`}>
+          <Link className="btn btn-sm" to={url.map({ zone: zone.id })}>
             <Globe2 size={12} /> Open on globe
           </Link>
           {zone.can_edit && (
-            <Link className="btn btn-sm" to={`/globe?zone=${zone.id}`}>
+            <Link className="btn btn-sm" to={url.map({ zone: zone.id })}>
               <Pencil size={12} /> Edit boundary
             </Link>
           )}

@@ -31,6 +31,7 @@ import {
 import { fmtLat, fmtLon } from "../components/Globe";
 import { api, fmt, useApi } from "../lib/api";
 import { hasRole, useSession } from "../lib/session";
+import { url } from "../lib/urls";
 
 /* Lifecycle order, so the chips read as progress rather than as a set. */
 const FLOW = ["open", "investigating", "attributed", "closed", "archived"];
@@ -285,7 +286,7 @@ function IncidentDossier({ incident, summary, busy, canConclude, onStatus }) {
 
         <div className="globe-actions">
           {runId ? (
-            <Link className="btn btn-primary btn-sm" to={`/investigation?run=${runId}`}
+            <Link className="btn btn-primary btn-sm" to={url.workspace({ run: runId })}
               data-testid="open-investigation">
               <FolderSearch size={12} /> Open investigation
             </Link>
@@ -295,13 +296,13 @@ function IncidentDossier({ incident, summary, busy, canConclude, onStatus }) {
             </Link>
           )}
           {runId && (
-            <Link className="btn btn-sm" to={`/incident?run=${runId}`}><Film size={12} /> Replay</Link>
+            <Link className="btn btn-sm" to={url.replay(runId)}><Film size={12} /> Replay</Link>
           )}
           {c && (
-            <Link className="btn btn-sm" to={`/globe?incident=${i.id}`}><MapIcon size={12} /> On globe</Link>
+            <Link className="btn btn-sm" to={url.map({ incident: i.id })}><MapIcon size={12} /> On globe</Link>
           )}
           {runId && (
-            <Link className="btn btn-sm" to={`/report?run=${runId}`}><FileText size={12} /> Report</Link>
+            <Link className="btn btn-sm" to={url.reportPrint(runId)}><FileText size={12} /> Report</Link>
           )}
         </div>
       </Panel>
@@ -358,7 +359,7 @@ function IncidentDossier({ incident, summary, busy, canConclude, onStatus }) {
                       {r.stages_mock ? <Badge tone="mock">mock</Badge> : null}
                     </td>
                     <td>
-                      <Link className="btn btn-xs" to={`/investigation?run=${r.id}`}>Open</Link>
+                      <Link className="btn btn-xs" to={url.workspace({ run: r.id })}>Open</Link>
                     </td>
                   </tr>
                 ))}

@@ -408,12 +408,58 @@ export function ForecastPanel({ ctx }) {
             <Row k="Currents" v={fo.currents?.provider || null} mono={false} />
             <Row k="Wind" v={fo.wind?.provider || null} mono={false} />
             <Row k="Issued" v={utc(fc.metadata?.issued_utc)} />
-            <Row k="Weathering" mono={false} v={fc.metadata?.weathering ? (typeof fc.metadata.weathering === "object" ? Object.entries(fc.metadata.weathering).filter(([, v]) => typeof v !== "object").map(([k, v]) => `${k.replace(/_/g, " ")} ${v}`).join(" · ") || "recorded" : String(fc.metadata.weathering)) : null} />
           </Section>
+          <Weathering meta={fc.metadata?.weathering} upTo={upTo} />
         </>
       )}
       <Foot><Primary onClick={() => actions.go("ais")} disabled={judged.ais.state !== "done"} testid="fc-next">Reconstruct AIS traffic</Primary></Foot>
     </div>
+  );
+}
+
+/* What happens to the oil while it drifts, and -- the part that matters --
+ * what this model does NOT account for. The forecast's own metadata carries
+ * both lists and an honesty note; the panel used to flatten the whole block
+ * into one line of `key value · key value`, which dropped exactly the caveats
+ * an analyst needs before acting on a footprint. */
+function Weathering({ meta, upTo }) {
+  const [open, setOpen] = useState(false);
+  if (!meta || typeof meta !== "object") return null;
+  const states = (meta.states || []).filter((st) => st.hours <= upTo + 0.01);
+  const now = states[states.length - 1];
+  const pct = (v) => (v == null ? null : `${(v * 100).toFixed(0)} %`);
+
+  return (
+    <Section title="Weathering" testid="fc-weathering"
+      right={meta.confidence
+        ? <span className={`badge badge-${meta.confidence === "low" ? "warn" : "neutral"}`}>{String(meta.confidence).toUpperCase()} CONFIDENCE</span>
+        : null}>
+      <Row k="Oil type" mono={false} v={meta.oil_type_assumed
+        ? `${String(meta.oil_type_assumed).replace(/_/g, " ")} (assumed)` : null}
+        title="No scene records what was spilled. The assumption dominates the answer." />
+      <Row k="Sea temperature" v={meta.temperature_c_assumed != null ? `${meta.temperature_c_assumed} °C (assumed)` : null} />
+      {now && (
+        <>
+          <Row k="Evaporated" v={pct(now.evaporated_fraction)} testid="fc-evaporated" />
+          <Row k="Water content" v={pct(now.water_fraction)} />
+          <Row k="Viscosity" v={now.viscosity_cst != null ? `${num(now.viscosity_cst, 0)} cSt` : null} />
+        </>
+      )}
+      {meta.honesty_note && <div className="ip-note" data-testid="fc-weathering-note"><AlertTriangle size={12} /> {meta.honesty_note}</div>}
+      {meta.processes_not_modelled?.length > 0 && (
+        <>
+          <button type="button" className="ctl-link" onClick={() => setOpen((o) => !o)} data-testid="fc-not-modelled-toggle">
+            <Info size={12} /> {open ? "Hide" : "Show"} what this model does not account for
+          </button>
+          {open && (
+            <div className="ip-note" data-testid="fc-not-modelled">
+              Not modelled: {meta.processes_not_modelled.join(", ")}.
+              {meta.processes_modelled?.length > 0 && <> Modelled: {meta.processes_modelled.join(", ")}.</>}
+            </div>
+          )}
+        </>
+      )}
+    </Section>
   );
 }
 

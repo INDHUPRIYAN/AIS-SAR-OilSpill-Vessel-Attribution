@@ -31,6 +31,7 @@ import {
 } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
 import { hasRole, useSession } from "../lib/session";
+import { url } from "../lib/urls";
 
 const STATUS_TONE = { draft: "warn", in_review: "accent", published: "ok" };
 const STATUS_LABEL = {
@@ -120,7 +121,7 @@ export default function Reports() {
                             <td className="num mono tiny">v{r.version}</td>
                             <td className="tiny dim">{r.published_utc ? fmt.ago(r.published_utc) : "—"}</td>
                             <td>
-                              <Link className="btn btn-xs" to={`/report?run=${r.run_id}`}
+                              <Link className="btn btn-xs" to={url.reportPrint(r.run_id)}
                                 onClick={(e) => e.stopPropagation()}>Open</Link>
                             </td>
                           </tr>
@@ -211,7 +212,7 @@ function ReportDetail({ report: r, busy, act, canCompose, canPublish }) {
         )}
 
         <div className="globe-actions">
-          <Link className="btn btn-primary btn-sm" to={`/report?run=${r.run_id}`}>
+          <Link className="btn btn-primary btn-sm" to={url.reportPrint(r.run_id)}>
             <FileText size={12} /> Open document
           </Link>
           <a className="btn btn-sm" href={`/api/reports/${r.id}/export.csv`}>

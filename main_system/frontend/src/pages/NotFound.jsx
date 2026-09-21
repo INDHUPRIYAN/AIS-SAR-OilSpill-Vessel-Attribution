@@ -5,6 +5,7 @@
 import { Link, useLocation } from "react-router-dom";
 
 import { useShell } from "../lib/shell";
+import { url } from "../lib/urls";
 
 export default function NotFound() {
   const location = useLocation();
@@ -21,7 +22,7 @@ export default function NotFound() {
         </div>
         <div className="row" style={{ gap: 8 }}>
           <Link className="btn btn-primary" to="/">Dashboard</Link>
-          <Link className="btn" to="/investigations">Investigations</Link>
+          <Link className="btn" to={url.investigations()}>Investigations</Link>
           <button className="btn" onClick={openPalette}>Search</button>
         </div>
       </div>

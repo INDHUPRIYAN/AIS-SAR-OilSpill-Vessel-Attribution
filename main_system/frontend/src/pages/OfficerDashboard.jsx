@@ -32,6 +32,7 @@ import { Card, Empty, Spinner } from "../components/ui";
 import { api, useApi } from "../lib/api";
 import { useSession } from "../lib/session";
 import "../globe.css";
+import { url } from "../lib/urls";
 
 const SEVERITY_TONE = { critical: "danger", warning: "warn", info: "neutral" };
 
@@ -103,16 +104,16 @@ export default function OfficerDashboard() {
             ? `${summaryQ.data.open} open system-wide` : "--"}
           tone={myAlerts.some((a) => a.severity === "critical")
             ? "danger" : undefined}
-          to="/alerts" />
+          to={url.alerts()} />
         <Tile label="My zones"
           value={myZones.length}
           sub={myZones.length
             ? myZones.map((z) => z.id.replace("zone-bob-", "Z")).join(" ")
             : (isOfficer ? "none assigned" : "you supervise, not hold, zones")}
-          to="/zones" />
+          to={url.zones()} />
         <Tile label="My incidents" value={myIncidents.length}
           sub={`${myIncidents.filter((i) => i.status === "open").length} awaiting review`}
-          to="/incidents" />
+          to={url.incidents()} />
         <Tile label="Oldest in my queue"
           value={age(summaryQ.data?.oldest_mine_age_seconds)}
           sub={summaryQ.data?.oldest_age_seconds != null
@@ -134,14 +135,14 @@ export default function OfficerDashboard() {
             outside every declared zone;{" "}
             {unrouted.filter((a) => a.routing === "unassigned").length} landed
             in a zone with no assigned officer. These are not in anybody's
-            queue. <Link to="/zones">Review zones <ArrowRight size={11} /></Link>
+            queue. <Link to={url.zones()}>Review zones <ArrowRight size={11} /></Link>
           </span>
         </div>
       )}
 
       <div className="grid grid-2">
         <Card title={`My alert queue${hasScope ? "" : " (nothing routes to you)"}`}
-          right={<Link className="btn btn-sm" to="/alerts">
+          right={<Link className="btn btn-sm" to={url.alerts()}>
             <BellRing size={12} /> All alerts
           </Link>}
           bodyStyle={{ padding: 0 }}>
@@ -175,7 +176,7 @@ export default function OfficerDashboard() {
                     <td>
                       {a.incident_id && (
                         <Link className="btn btn-sm"
-                          to={`/incidents?focus=${a.incident_id}`}>
+                          to={url.incidents(a.incident_id)}>
                           Open
                         </Link>
                       )}
@@ -188,7 +189,7 @@ export default function OfficerDashboard() {
         </Card>
 
         <Card title="My incidents" right={
-          <Link className="btn btn-sm" to="/incidents">
+          <Link className="btn btn-sm" to={url.incidents()}>
             <FileText size={12} /> Register
           </Link>
         } bodyStyle={{ padding: 0 }}>
@@ -234,7 +235,7 @@ export default function OfficerDashboard() {
 
       <div className="grid grid-2" style={{ marginTop: 15 }}>
         <Card title="Current vessel activity" right={
-          <Link className="btn btn-sm" to="/globe">
+          <Link className="btn btn-sm" to={url.map()}>
             <Globe2 size={12} /> Globe
           </Link>
         }>

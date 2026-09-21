@@ -176,7 +176,11 @@ export const api = {
     const q = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== ""),
     ).toString();
-    return request(`/api/reports${q ? `?${q}` : ""}`);
+    /* One shape for every caller. The endpoint answers with a bare array
+     * today and most callers already guard for `{items}`; one did not, and
+     * would have rendered "compose a report" forever the day it paginates. */
+    return request(`/api/reports${q ? `?${q}` : ""}`)
+      .then((r) => (Array.isArray(r) ? r : r?.items ?? []));
   },
   getReport: (id) => request(`/api/reports/${id}`),
   composeReport: (body) => request("/api/reports", { method: "POST", body }),

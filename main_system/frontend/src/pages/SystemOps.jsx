@@ -28,7 +28,7 @@ import {
   Badge, DataState, KV, Notice, PageHeader, Panel, Segmented, Spinner, Tabs, Tile,
 } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
-import { useUrlTab } from "../lib/urls";
+import { url, useUrlTab } from "../lib/urls";
 import { hasRole, useSession } from "../lib/session";
 
 const LEVEL_TONE = {
@@ -270,7 +270,7 @@ function Jobs({ workersQ }) {
                     <td className="mono tiny">{j.job_id}</td>
                     <td className="mono tiny">
                       {j.run_id
-                        ? <Link to={`/investigation?run=${j.run_id}`}>{j.run_id}</Link>
+                        ? <Link to={url.workspace({ run: j.run_id })}>{j.run_id}</Link>
                         : <span className="dim">—</span>}
                     </td>
                     <td>
