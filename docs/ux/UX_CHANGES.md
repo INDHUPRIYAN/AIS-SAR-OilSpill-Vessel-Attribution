@@ -940,3 +940,21 @@ there is no API to delete an investigation, and the database is not edited by ha
 
 Gate: lint 0 / 80, unit 251, e2e 35/35.
 
+---
+
+## Presentation: the forecast gets time to be seen - 2026-09-21
+
+User: the forecast -> vessels transition is too fast; the forecast should be
+visualised the way the hindcast is.
+
+The hindcast had 6.5 s of travel and then its own 3 s "Estimated origin" beat
+on the result. The forecast had 5 s in total and its clock reached the last
+horizon on the beat's final frame, so the next frame was already AIS: the
+chase camera never got to ease out and the finished forecast was never on
+screen. The forecast beat is now 9.5 s: it travels for the first 68 %
+(`FORECAST_TRAVEL`, ~6.5 s, the hindcast's pace) and holds on the last horizon
+for the rest. Measured in the presentation: camera follows to +12 h at z13.2,
+eases out to z11.0 with slick and every footprint in frame, holds ~3 s, then
+AIS. Unit test updated (travel midpoint, hold). Gate: lint 0 / 80, unit 251,
+e2e 35/35.
+

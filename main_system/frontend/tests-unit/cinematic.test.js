@@ -62,7 +62,10 @@ describe("frameOf", () => {
     expect(frameOf("hindcast", 0, D).timeMs).toBe(D.t0);
     expect(frameOf("hindcast", 1, D).timeMs).toBeCloseTo(D.t0 - 24 * 3.6e6, -3);
     expect(frameOf("forecast", 1, D).timeMs).toBeCloseTo(D.t0 + 24 * 3.6e6, -3);
-    expect(frameOf("forecast", 0.5, D).reveal.forecastUpTo).toBeCloseTo(12, 0);
+    /* the forecast travels for the first 68 % of its beat, then holds on the last horizon */
+    expect(frameOf("forecast", 0.34, D).reveal.forecastUpTo).toBeCloseTo(12, 0);
+    expect(frameOf("forecast", 0.68, D).timeMs).toBeCloseTo(D.t0 + 24 * 3.6e6, -3);
+    expect(frameOf("forecast", 0.9, D).timeMs).toBeCloseTo(D.t0 + 24 * 3.6e6, -3);
     expect(frameOf("ais", 0, D).timeMs).toBe(D.aisStart);
     expect(frameOf("ais", 1, D).timeMs).toBe(D.t0);
   });

@@ -20,6 +20,9 @@
 
 import { clamp01, easeInOut, easeOut, lerp, span } from "./replay";
 
+/** Share of the forecast beat spent travelling; the rest holds on the result. */
+export const FORECAST_TRAVEL = 0.68;
+
 /* ---------------------------------------------------------------- beats --- */
 
 /* `dur` is seconds at 1×. `needs` are the inputs a beat reads (see
@@ -54,7 +57,12 @@ export const BEATS = [
     needs: ["hindcast"] },
   { id: "origin", sub: "hindcast", stage: "drift", chip: "HINDCAST", dur: 3, title: "Estimated origin",
     needs: ["hindcast"] },
-  { id: "forecast", sub: "forecast", stage: "drift", chip: "FORECAST", dur: 5, title: "Forecast",
+  /* Same shape as hindcast + origin (6.5 s of travel, then 3 s on the result):
+   * the forecast travels for the first FORECAST_TRAVEL of its beat and HOLDS on
+   * the last horizon for the rest, so the camera can ease out and the whole
+   * forecast is on screen before the vessels take over. At 5 s with the clock
+   * arriving on the beat's last frame, the next frame was already AIS. */
+  { id: "forecast", sub: "forecast", stage: "drift", chip: "FORECAST", dur: 9.5, title: "Forecast",
     needs: ["forecast"], soft: true },
   { id: "ais", sub: "traffic", stage: "ais", chip: "VESSELS", dur: 6, title: "AIS traffic reconstruction",
     needs: ["vessels"] },
@@ -197,7 +205,7 @@ export function frameOf(id, t, D = {}) {
   let timeMs = t0;
   if (at("hindcast") && t0) timeMs = lerp(t0, t0 - (D.backtrackH ?? 24) * 3.6e6, e);
   else if (at("origin") && t0) timeMs = D.originT ?? t0 - (D.backtrackH ?? 24) * 3.6e6;
-  else if (at("forecast") && t0) timeMs = lerp(t0, t0 + (D.forecastMaxH ?? 24) * 3.6e6, e);
+  else if (at("forecast") && t0) timeMs = lerp(t0, t0 + (D.forecastMaxH ?? 24) * 3.6e6, easeInOut(clamp01(t / FORECAST_TRAVEL)));
   else if (at("ais") && t0) timeMs = lerp(D.aisStart ?? t0 - 24 * 3.6e6, t0, e);
 
   /* what is revealed of each real artefact */
