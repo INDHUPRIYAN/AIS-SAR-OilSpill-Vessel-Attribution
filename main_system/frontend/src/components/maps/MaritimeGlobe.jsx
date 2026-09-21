@@ -151,7 +151,8 @@ const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} *
   const api = useMemo(() => ({
     getMap: () => mapRef.current?.getMap?.() || null,
     getCamera: cameraOf,
-    /** @param {Partial<Camera>} to @param {number} [ms] */
+    /** `ease`: glide linearly (a camera following a moving subject) instead of flying an arc.
+     *  @param {Partial<Camera> & { ease?: boolean }} to @param {number} [ms] */
     flyTo: (to, ms = 1400) => {
       const m = mapRef.current?.getMap?.();
       // `ready` is the load event, not `m.loaded()`: that one also goes false
@@ -161,6 +162,10 @@ const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} *
       const opts = { center: /** @type {[number, number]} */ ([to.longitude ?? m.getCenter().lng, to.latitude ?? m.getCenter().lat]),
         zoom: to.zoom ?? m.getZoom(), bearing: to.bearing ?? m.getBearing(), pitch: to.pitch ?? m.getPitch() };
       if (reduce || ms <= 0) m.jumpTo(opts);
+      // A camera FOLLOWING a moving subject is re-aimed several times a second:
+      // a linear ease joins those into one glide, where flyTo's zoom arc would
+      // make the map breathe in and out on every re-aim.
+      else if (to.ease) m.easeTo({ ...opts, duration: ms, easing: (x) => x, essential: true });
       // `curve` near 1 keeps the flight low: the Earth stays anchored rather
       // than the camera looping out to orbit and back.
       else m.flyTo({ ...opts, duration: ms, curve: 1.1, essential: true });

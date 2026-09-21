@@ -27,6 +27,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWorkspaceParams } from "../lib/urls";
 import { AnimatePresence, motion } from "framer-motion";
 import MapHud from "../components/workspace/MapHud";
+import { buildChase, chaseAt } from "../lib/chase";
 import { FlyToInterpolator } from "@deck.gl/core";
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clapperboard, Info, Loader2, PanelRight } from "lucide-react";
 
@@ -67,7 +68,7 @@ const LAYER_STAGE = {
 const isoDay = (d) => new Date(d).toISOString().slice(0, 10);
 
 /** Strip the map's own report marker, so a derived view reads as a command. */
-const stripEcho = ({ __echo, fitBbox, fitPad, ...v }) => v;
+const stripEcho = ({ __echo, fitBbox, fitPad, ease, ...v }) => v;
 const FLY = { transitionDuration: 900, transitionInterpolator: new FlyToInterpolator() };
 
 /** Fit a bbox in the current viewport size, with an eased flight. */
@@ -156,7 +157,7 @@ function candidateBbox(vessels, suspects, est) {
    * candidates' whole tracks set the scale. */
   const ranked = new Set(suspects.suspects.slice(0, 3).map((s) => s.mmsi));
   const [ox, oy] = est.center;
-  const reach = Math.max(0.16, (est.radiusKm || 0) / 111 * 6);      // degrees: ~18 km, or 6x the uncertainty
+  const reach = Math.max(0.1, (est.radiusKm || 0) / 111 * 6);       // degrees: ~11 km, or 6x the uncertainty
   const pts = [];
   for (const f of vessels?.features || []) {
     if (!ranked.has(f.properties?.mmsi)) continue;
@@ -628,6 +629,7 @@ function InvestigationWorkspace() {
       if (Array.isArray(target) && target.length === 4) return fitView(v, size, target, 70, motion);
       if (Array.isArray(target) && target.length === 2) return { ...stripEcho(v), longitude: target[0], latitude: target[1], zoom: Math.max(v.zoom, 9), ...motion };
       if (target?.bbox) return fitView(v, size, target.bbox, target.pad, motion);
+      if (target?.center) return { ...stripEcho(v), longitude: target.center[0], latitude: target.center[1], zoom: target.zoom ?? v.zoom, pitch: 0, bearing: 0, ...motion };
       return v;
     });
   }, [layers.scene_meta, selectedScene, inv, spatial.bbox, size]);
@@ -690,6 +692,40 @@ function InvestigationWorkspace() {
     }
   }, [stageId, subs, runId, layers.slick, layers.vessels, layers.scene_meta, layers.origin_cloud, layers.forecast, layers.suspects, selectedTile, slickP, flyTo]);
 
+  /* The drift chase camera (lib/chase). While the clock is off the acquisition
+   * on the drift stage, or during the presentation's hindcast and forecast
+   * beats, the camera stays close and keeps the moving cloud centred; when the
+   * hindcast reaches the origin window, or the forecast its last horizon, it
+   * eases out once to put the whole result in frame. Driven by the clock, so
+   * play, scrub and the presentation all get it. */
+  const chase = useMemo(() => buildChase(layers.origin_cloud, layers.forecast, layers.slick, sceneT0, est0),
+    [layers.origin_cloud, layers.forecast, layers.slick, sceneT0, est0]);
+  const chaseState = useRef({ at: 0, framed: null });
+  const beatNow = cine.active ? cine.beat.id : null;
+  useEffect(() => {
+    const on = cine.active ? ["hindcast", "forecast"].includes(beatNow) : stageId === "drift";
+    if (!on || !chase) { chaseState.current.framed = null; return; }
+    const cmd = chaseAt(chase, timeMs);
+    if (!cmd) { chaseState.current.framed = null; return; }
+    if (cmd.kind === "frame") {
+      if (chaseState.current.framed === cmd.key) return;
+      chaseState.current.framed = cmd.key;
+      setView((v) => fitView(v, size, cmd.bbox, HUD_PAD(90), { transitionDuration: 1100 }));
+      return;
+    }
+    chaseState.current.framed = null;
+    const now = performance.now();
+    if (now - chaseState.current.at < 170) return;          // re-aim ~6 times a second
+    chaseState.current.at = now;
+    /* The HUD card owns the map's right side (outside the presentation), so
+     * the camera aims a little east of the subject: what is being followed
+     * sits in the clear part of the map, not under the card. */
+    const viewDeg = 360 * (size?.width || 700) / (512 * 2 ** cmd.zoom);
+    const east = cine.active ? 0 : 0.17 * viewDeg;
+    setView((v) => ({ ...stripEcho(v), longitude: cmd.center[0] + east, latitude: cmd.center[1], zoom: cmd.zoom, pitch: 0, bearing: 0, transitionDuration: 260, ease: true }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeMs, stageId, beatNow, chase, cine.active]);
+
   /* The presentation's camera: one eased flight per beat (two for tiling:
    * the whole grid, then the selected tile). Every target is a real
    * geometry -- scene footprint, tile, slick, origin trail, tracks. */
@@ -714,14 +750,14 @@ function InvestigationWorkspace() {
         if (tile) flyTo({ bbox: tile.bbox, pad: 110 }); else if (c) flyTo(c); break;
       case "validate":
         if (tile) flyTo({ bbox: tile.bbox, pad: 150 }); else if (c) flyTo(c); break;
-      case "hindcast": case "origin": {
-        const b = driftBbox(c, est0, layers.origin_cloud, layers.forecast);
-        if (b) flyTo({ bbox: b, pad: 90 }); else if (c) flyTo(c);
+      case "hindcast": case "forecast":
+        /* close in on the slick; the chase camera follows the motion from here */
+        if (c && chase) flyTo({ center: c, zoom: chase.zoom }); else if (c) flyTo(c);
         break;
-      }
-      case "forecast": {
-        const b = unionBbox([c, ...(layers.forecast?.features || []).map(featureBbox), featureBbox(layers.slick?.features?.[0])], 0.08);
-        if (b) flyTo({ bbox: b, pad: 80 }); else if (c) flyTo(c);
+      case "origin": {
+        /* the hindcast is done: ease out a little, origin and slick in one frame */
+        const b = chase?.originBox || driftBbox(c, est0, layers.origin_cloud, layers.forecast);
+        if (b) flyTo({ bbox: b, pad: 110 }); else if (c) flyTo(c);
         break;
       }
       case "ranking": case "attribution": case "evidence": {

@@ -861,3 +861,38 @@ panel only, across attribution, vessels and drift; replay again = collapsed;
 analysis button = open with the analysis panel. Gate: lint 0 / 80, unit 245,
 e2e 35/35.
 
+---
+
+## Drift chase camera - 2026-09-21
+
+User: during hindcast and forecast the map should zoom in like it does for the
+slick, move WITH the drift and keep it centred, then ease out a little when
+the hindcast is done to show the origin; the same for the forecast. Vessel
+filtering stays as it is; ranking zooms in on the vessels again.
+
+`lib/chase.js` (unit-tested, `tests-unit/chase.test.js`) decides from the
+shared clock, so play, scrub and the presentation all get it:
+
+| Clock | Camera |
+|---|---|
+| within 20 min of the acquisition | untouched (nothing is moving) |
+| before the acquisition, outside the origin window | **follow**: centred on the hindcast, interpolated in time between the run's hourly ellipse centres; zoom from the slick's own size (about six slick-lengths across, clamped 9.5-13.2) |
+| at or before the origin window start | **ease out once**: the whole slick outline, the origin and the in-window hindcast in one frame |
+| after the acquisition, before the last horizon | **follow** the forecast, between the widest envelope's centroid per horizon |
+| at or after the last horizon | **ease out once**: slick + every forecast footprint |
+
+Measured on `inv-837a0cc083-114549`: stage entry z10.9; following z13.2 with
+the centre moving with the cloud (scale bar 2 km); hindcast done z12.3 with
+origin and slick in frame. A following camera is re-aimed about six times a
+second with a linear `easeTo` (new `ease` flag on `MaritimeGlobe.flyTo`);
+`flyTo`'s zoom arc made the map breathe on every re-aim. Outside the
+presentation the aim is offset east so the subject sits clear of the HUD card.
+In the presentation the hindcast and forecast beats open close on the slick
+and hand over to the chase; the origin beat is the ease-out. Ranking and
+attribution frame the top three within ~11 km (was ~18 km).
+
+Gate: lint 0 / 80, maps typecheck clean, unit 250 (+5), e2e 35/35. The
+presentation test (investigation 6) failed once in a first full run while the
+backend was also running an analysis; it then passed 4/4 alone and in a second
+full run.
+
