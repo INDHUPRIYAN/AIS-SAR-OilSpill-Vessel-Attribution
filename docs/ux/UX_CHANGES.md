@@ -299,3 +299,43 @@ being a silent omission.
 
 - The Reports library page itself (a thin document list) is reviewed in P7
   with the other secondary pages.
+
+---
+
+## P7 — Secondary pages
+
+### Before → after
+
+| | Before | After |
+|---|---|---|
+| Dashboard | opened with a globe and four KPI tiles; everything that had happened was in one merged feed | opens with **Needs attention** — open alerts, failed runs, finished analyses, each one click from the thing itself and each saying *why* it is listed — then **New investigation**, then the KPI tiles, then the platform strip. The globe is the mini map |
+| Run outcomes on the dashboard | inferred from the run registry, mixed into the feed | arrive as alerts in their own right (backend exception G3), with the registry still read so runs that failed before that existed are not lost |
+| Data Sources ⇄ API Monitor | two pages answering "is data coming in?", neither pointing at the other | cross-linked both ways |
+
+### Retirement decision (approved condition 2)
+
+`/hindcast` retired in P1 and its parity checklist is complete.
+**`/incident` is deferred, and the route stays alive.** A8 passes inside the
+workspace and both addresses are canonical, but C8 — an incident-driven replay
+with its eleven map-mode presets — is not reproduced by the workspace's stage
+timeline. Dropping it would lose a capability; building it is a phase of its
+own. `docs/ux/RETIREMENT_PARITY.md` records what holds, what does not, and the
+exact next step. The replay is no longer a second map *stack* (one engine, one
+camera, one palette since P3) — it is a second *page*.
+
+### Scope cut, deliberately
+
+The brief's P7 also asks for Detections and Vessels registries and a System
+section rework. Detections (`/detections`), Vessels (`/vessels/:mmsi`) and the
+System pages already exist, are backed by real endpoints, were re-addressed in
+P1 and improved in P5. Merging `/detections/viewer` into `/detections`, and
+`api-monitor` into `data-sources`, is presentation tidying that would have eaten
+the budget protecting P10. Cross-links were added instead; the merges are listed
+as deferred.
+
+### Deferred
+
+- Merge `/detections/viewer` into `/detections`, and `/system/api-monitor`
+  into `/system/data-sources`.
+- Merge `/investigations/registry` into `/investigations`.
+- `/operations/replay` retirement (above).

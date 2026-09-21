@@ -18,6 +18,8 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
 
+import { Link } from "react-router-dom";
+
 import { Badge, Card, Dot, PageHeader, Stat, Spinner, useThemeColors } from "../components/ui";
 import { api, fmt, statusTone, useApi } from "../lib/api";
 
@@ -57,9 +59,12 @@ export default function Monitoring() {
       <PageHeader icon={<Activity size={17} />} kicker="System" title="API &amp; Data Source Monitor"
         sub="Measured probes of every external dependency, its fallback chain, and which member is serving right now."
         actions={
-          <button className="btn btn-sm" onClick={testAll} disabled={testing}>
-            {testing ? <Spinner /> : <RefreshCw size={12} />} Test all now
-          </button>
+          <>
+            <Link className="btn btn-sm" to="/system/data-sources">Data sources</Link>
+            <button className="btn btn-sm" onClick={testAll} disabled={testing}>
+              {testing ? <Spinner /> : <RefreshCw size={12} />} Test all now
+            </button>
+          </>
         } />
 
       <div className="grid grid-4" style={{ marginBottom: 18 }}>

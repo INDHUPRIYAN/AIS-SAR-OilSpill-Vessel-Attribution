@@ -17,6 +17,7 @@
  * fetch failed on authentication is worse than a board showing nothing.
  */
 
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   AlertTriangle, Cpu, Database, HardDrive, Layers, Server, ShieldQuestion,
@@ -70,6 +71,11 @@ export default function Catalog() {
 
   return (
     <div className="page cat-page">
+      <div className="cat-top">
+        <Link className="btn btn-sm" to="/system/api-monitor" data-testid="to-api-monitor">
+          Probe these providers →
+        </Link>
+      </div>
       <div className="cat-tabs">
         {[["providers", "Data catalog"], ["models", "Models"],
           ["health", "Health"]].map(([id, label]) => (

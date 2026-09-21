@@ -23,7 +23,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Activity, AlertTriangle, Bell, ClipboardList, Crosshair, Film, FolderSearch,
+  Activity, AlertTriangle, Bell, CheckCircle2, ClipboardList, Crosshair, Film, FolderSearch,
   Inbox, Layers, Map as MapIcon, Minus, PanelLeftClose, PanelLeftOpen, PanelRightClose,
   PanelRightOpen, Plus, Radar, Radio, Satellite, Server, Ship, Target, X,
 } from "lucide-react";
@@ -118,6 +118,43 @@ export default function Operations() {
     return items.filter((x) => Number.isFinite(x.t)).sort((a, b) => b.t - a.t);
   }, [alerts, incidents, runs]);
 
+  /* What is waiting for a person, newest first. Not a feed: a feed reports
+   * everything that happened, and the question this answers is what has not
+   * been dealt with. Each row is one click from the thing itself.
+   *
+   * Runs that failed and runs that finished now raise alerts of their own
+   * (services/run_alerts), so they arrive here without the dashboard having to
+   * infer them -- but a run that failed before that existed still shows, from
+   * the registry. */
+  const attention = useMemo(() => {
+    const out = [];
+    const seenRun = new Set();
+    for (const a of alerts?.alerts || []) {
+      if (a.status !== "open") continue;
+      if (a.run_id) seenRun.add(a.run_id);
+      out.push({
+        id: `alert:${a.id}`, t: Date.parse(a.created_utc),
+        tone: SEVERITY_TONE[a.severity] || "neutral",
+        title: a.title,
+        why: a.kind === "run_failed" ? "a run failed"
+          : a.kind === "run_complete" ? "a run you started finished"
+            : a.kind === "detection" ? "the detector opened a case"
+              : a.kind === "new_scene" ? "a new scene arrived"
+                : a.kind.replace(/_/g, " "),
+        note: a.routing === "unzoned" ? "routed to nobody" : a.routing === "unassigned" ? "zone has no officer" : null,
+        to: a.run_id ? url.workspace({ run: a.run_id }) : url.alerts(),
+      });
+    }
+    for (const r of runs?.items || []) {
+      if (r.status !== "failed" || seenRun.has(r.run_id)) continue;
+      out.push({ id: `run:${r.run_id}`, t: Date.parse(r.started_utc), tone: "danger",
+        title: `Run failed · ${r.run_id}`, why: "a run failed",
+        note: r.error ? String(r.error).slice(0, 80) : null,
+        to: url.workspace({ run: r.run_id }) });
+    }
+    return out.filter((x) => Number.isFinite(x.t)).sort((a, b) => b.t - a.t);
+  }, [alerts, runs]);
+
   const latestScene = runLayers?.sceneMeta;
   const latestSlick = runLayers?.slick?.features?.[0]?.properties;
 
@@ -154,6 +191,35 @@ export default function Operations() {
       </button>
 
       <aside className={`gv-left ${leftOpen ? "" : "hidden"}`} style={{ paddingTop: 34 }}>
+        <Panel title="Needs attention" icon={<Bell size={12} />}
+          right={attention.length ? <span className="badge badge-warn" data-testid="attention-count">{attention.length}</span> : null}>
+          {attention.length === 0 ? (
+            <div className="ops-clear" data-testid="attention-clear">
+              <CheckCircle2 size={14} /> Nothing is waiting. Alerts, failed runs and finished
+              analyses appear here.
+            </div>
+          ) : (
+            <div className="ops-attn" data-testid="attention-list">
+              {attention.slice(0, 6).map((a) => (
+                <Link key={a.id} className={`ops-attn-row tone-${a.tone}`} to={a.to} data-testid="attention-row">
+                  <span className={`ops-attn-dot tone-${a.tone}`} />
+                  <span className="ops-attn-body">
+                    <span className="ops-attn-title">{a.title}</span>
+                    <span className="ops-attn-why">{a.why}{a.note ? ` · ${a.note}` : ""}</span>
+                  </span>
+                  <span className="tiny mono dim">{fmt.utc(new Date(a.t).toISOString()).slice(11, 16)}</span>
+                </Link>
+              ))}
+              {attention.length > 6 && (
+                <Link className="ops-attn-more" to={url.alerts()}>{attention.length - 6} more in the alert queue →</Link>
+              )}
+            </div>
+          )}
+          <Link className="btn btn-primary ops-cta" to={url.newInvestigation()} data-testid="new-investigation">
+            <Radar size={13} /> New investigation
+          </Link>
+        </Panel>
+
         <Panel title="Real-time overview" icon={<Activity size={12} />} collapsible
           right={<span className="tiny mono dim">{live?.as_of_utc ? fmt.utc(live.as_of_utc).slice(11) : ""}</span>}>
           <div className="ops-tiles">

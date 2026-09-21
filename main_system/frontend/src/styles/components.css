@@ -459,3 +459,6 @@ a.feed-item:hover { background: var(--accent-soft); }
 .pre { font-family: var(--mono); font-size: var(--fs-sm); background: var(--bg-0); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; white-space: pre-wrap; word-break: break-word; margin: 0; color: var(--ink-1); }
 .disclaimer { font-size: var(--fs-sm); color: var(--ink-2); font-style: italic; padding: 6px 9px; border: 1px dashed var(--line-bright); border-radius: var(--r-sm); }
 .avatar { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-line); font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.04em; }
+
+/* Data sources ⇄ API monitor: the two pages that answer "is data coming in?". */
+.cat-top { display: flex; justify-content: flex-end; padding: 0 0 6px; }
