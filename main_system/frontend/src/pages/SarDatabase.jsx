@@ -88,7 +88,17 @@ function Analysis({ scene, invId, runId, onFindVessels }) {
    * only said once the run has finished and the image still will not come. */
   const [imgTry, setImgTry] = useState(0);
   const [imgOk, setImgOk] = useState(false);
-  const imgFail = imgTry >= 6;
+  /* The run's scene_png is a 404 until the run is sealed (measured: every
+   * request during a run), so "failed" is only said once the run is over. */
+  const imgFail = imgTry >= 6 && status != null && status.state !== "running";
+  /* The scene's own thumbnail first: it is the same sigma0 render as the run's
+   * scene_png (identical bytes), but it is cached on disk and does not touch
+   * the run, so it answers in milliseconds even while the pipeline is busy -
+   * which is exactly when this view is open. The run's endpoint is the
+   * fallback for a scene without a thumbnail, and for every retry after an error. */
+  const sceneImg = scene?.thumb_url && imgTry === 0
+    ? `${scene.thumb_url}?size=1024`
+    : `/api/runs/${runId}/scene_png?size=1024${imgTry ? `&retry=${imgTry}` : ""}`;
   const got = useRef({});
   useEffect(() => {
     if (!invId || !runId) return undefined;
@@ -130,9 +140,9 @@ function Analysis({ scene, invId, runId, onFindVessels }) {
         <figure className="sd-big">
           <div className="sd-big-box">
             {imgFail ? <div className="sd-noimg" data-testid="sar-noimg">The scene image could not be rendered after several attempts. The analysis itself does not depend on it.</div>
-              : <img key={imgTry} className={imgOk ? "" : "sd-big-pending"} src={`/api/runs/${runId}/scene_png?size=1024${imgTry ? `&retry=${imgTry}` : ""}`} alt="SAR scene, sigma0 dB"
+              : <img key={imgTry} className={imgOk ? "" : "sd-big-pending"} src={sceneImg} alt="SAR scene, sigma0 dB" data-testid="sar-scene-img"
                   onLoad={() => setImgOk(true)} onError={() => setTimeout(() => setImgTry((n) => n + 1), 5000)} />}
-            {!imgOk && !imgFail && <div className="sd-noimg sd-noimg-over" data-testid="sar-img-loading"><Loader2 size={14} className="ws-spin" /> Rendering the scene image{imgTry ? ` (attempt ${imgTry + 1})` : ""}… large scenes take 15–20 s.</div>}
+            {!imgOk && !imgFail && <div className="sd-noimg sd-noimg-over" data-testid="sar-img-loading"><Loader2 size={14} className="ws-spin" /> Loading the scene image{imgTry ? ` (attempt ${imgTry + 1})` : ""}…{imgTry ? " the server is busy with the analysis." : ""}</div>}
             {dDone && mask && <img className="sd-big-mask" src={`/api/runs/${runId}/mask_png`} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} data-testid="sar-mask" />}
             {!dDone && dRow?.status !== "failed" && <div className="sd-scan"><span /></div>}
           </div>

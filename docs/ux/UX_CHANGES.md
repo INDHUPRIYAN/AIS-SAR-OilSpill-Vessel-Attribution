@@ -910,3 +910,33 @@ the origin beat does the ease-out. Measured after: hindcast beat centre
 on the origin; forecast beat 34.7972,35.5679 -> 34.8284,35.6171. Unit 251
 (+1), e2e 35/35.
 
+---
+
+## Detections: the scene image no longer waits for the run - 2026-09-21
+
+User: the analysis view "still loading for a long time" ("Rendering the scene
+image (attempt 3)") on a small reference scene.
+
+Measured by starting a real analysis of that scene and polling both endpoints
+every few seconds:
+
+| While the run is RUNNING | `/api/runs/{id}/scene_png` | `/api/sar/scenes/{key}/thumb?size=1024` |
+|---|---|---|
+| status, time | **404**, every request | 200 in 0.07-0.6 s |
+| after the run is sealed | 200 in 0.14 s | 200 in 0.07 s |
+
+The run's image is a 404 until the run is sealed, so the view could only ever
+show a spinner for the whole analysis; my earlier retry message blamed scene
+size, which was wrong for this case. The two endpoints return the SAME render
+(identical 629,846 bytes); the thumbnail is cached on disk and does not touch
+the run. The analysis view now loads the scene's thumbnail first and falls back
+to the run's endpoint only for a scene without one, and no longer declares
+failure while the run is still in progress. On the reported page the image is
+up 1.4 s after navigation. Recorded as BACKEND_GAPS G19.
+
+A probe investigation created for this measurement remains in the local
+database ("probe: image timing during a run", run `inv-c9946d36b4-155344`):
+there is no API to delete an investigation, and the database is not edited by hand.
+
+Gate: lint 0 / 80, unit 251, e2e 35/35.
+
