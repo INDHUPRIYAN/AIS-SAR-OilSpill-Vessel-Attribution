@@ -36,22 +36,37 @@ function initials(user) {
   return (parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2)).toUpperCase() || "OT";
 }
 
-/** Derives the LIVE indicator from measured state: every provider working and
- *  the AIS stream functionally working → LIVE; some providers working →
- *  DEGRADED; none → OFFLINE; nothing measured yet → idle. */
+/** Derives the indicator from measured state, over the providers that are
+ *  actually DEPLOYED (an adapter nothing consumes cannot be "down").
+ *
+ *    any provider FAILED / UNCONFIGURED / DEGRADED   -> DEGRADED, naming them
+ *    every one up, all verified, stream working      -> LIVE
+ *    every one up (verified or merely reachable)     -> OPERATIONAL
+ *
+ *  REACHABLE is not a fault: it is the most a no-key provider can ever prove
+ *  from a ping. It used to count against the system, so a host with nothing
+ *  wrong read "DEGRADED 4/12". The tooltip still says how many are verified. */
+export function providerTally(status) {
+  const all = status?.providers || [];
+  const deployed = all.filter((p) => p.status !== "NOT_DEPLOYED");
+  const working = deployed.filter((p) => p.status === "WORKING");
+  const reachable = deployed.filter((p) => p.status === "REACHABLE");
+  const down = deployed.filter((p) => p.status !== "WORKING" && p.status !== "REACHABLE");
+  return { all, deployed, working, reachable, down, notDeployed: all.length - deployed.length };
+}
 export function systemPulse(status, ais) {
-  const providers = status?.providers || [];
-  if (!providers.length) return { tone: "idle", label: "NO PULSE", title: "No provider probe has reported yet." };
-  const working = providers.filter((p) => p.status === "WORKING").length;
+  const t = providerTally(status);
+  if (!t.all.length) return { tone: "idle", label: "NO PULSE", title: "No provider probe has reported yet." };
   const stream = ais?.stream;
   const streamOk = stream?.functionally_working;
-  const title = `${working}/${providers.length} providers WORKING`
+  const title = `${t.deployed.length - t.down.length}/${t.deployed.length} deployed providers up: ${t.working.length} verified by a real request, ${t.reachable.length} reachable`
+    + (t.down.length ? ` · not up: ${t.down.map((p) => `${p.provider || p.name} ${p.status}`).join(", ")}` : "")
+    + (t.notDeployed ? ` · ${t.notDeployed} not deployed` : "")
     + (stream ? ` · AIS stream ${streamOk ? "functionally working" : stream.state}` : "");
-  if (working === 0) return { tone: "danger", label: "OFFLINE", title };
-  if (working === providers.length && (streamOk || !stream || stream.state === "not_configured")) {
-    return { tone: "ok", label: "LIVE", title };
-  }
-  return { tone: "warn", label: "DEGRADED", title };
+  if (t.deployed.length && t.down.length === t.deployed.length) return { tone: "danger", label: "OFFLINE", title };
+  if (t.down.length) return { tone: "warn", label: "DEGRADED", title };
+  if (t.reachable.length === 0 && (streamOk || !stream || stream.state === "not_configured")) return { tone: "ok", label: "LIVE", title };
+  return { tone: "ok", label: "OPERATIONAL", title };
 }
 
 export default function TopHeader({ status, ais, alertsSummary, onToggleNav }) {

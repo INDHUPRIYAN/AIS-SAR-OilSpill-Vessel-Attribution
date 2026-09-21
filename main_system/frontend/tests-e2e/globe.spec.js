@@ -34,7 +34,7 @@ test("G1: the world opens as real Earth — a globe with countries, borders and 
   await page.goto("/map");
   await ready(page);
   await expect(globe(page)).toHaveAttribute("data-projection", "globe");
-  await expect(globe(page)).toHaveAttribute("data-basemap", "geopolitical");
+  await expect(globe(page)).toHaveAttribute("data-basemap", /satellite|geopolitical/);   // satellite when configured
   const drawn = await ask(page, (g, m) => ({
     countries: m.querySourceFeatures("countries").length,
     india: m.querySourceFeatures("countries").some((f) => f.properties.a3 === "IND"),

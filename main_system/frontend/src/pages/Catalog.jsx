@@ -17,10 +17,11 @@
  * fetch failed on authentication is worse than a board showing nothing.
  */
 
+import { Fragment, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  AlertTriangle, Cpu, Database, HardDrive, Layers, Server, ShieldQuestion,
+  AlertTriangle, ArrowRight, Cpu, Database, ExternalLink, HardDrive, KeyRound, Layers, Server, ShieldQuestion,
 } from "lucide-react";
 
 import { Badge, Card, DataState, Spinner } from "../components/ui";
@@ -43,6 +44,92 @@ const CRED_LABEL = {
   n_a: "n/a",
 };
 
+/* Where an operator goes to get (or replace) access to each provider. These
+ * are the providers' own public pages, not data: the button opens the real
+ * site, the operator registers there and pastes what they are given into the
+ * form below it. Providers that run on this host have no site to visit. */
+const PROVIDER_SITE = {
+  CDSE: { url: "https://dataspace.copernicus.eu/", how: "Register, then Dashboard > OAuth clients for a client id and secret." },
+  ASF: { url: "https://urs.earthdata.nasa.gov/users/new", how: "A free NASA Earthdata login serves ASF downloads." },
+  CMEMS: { url: "https://data.marine.copernicus.eu/register", how: "A free Copernicus Marine account; the username and password are the credential." },
+  ERA5: { url: "https://cds.climate.copernicus.eu/how-to-api", how: "Sign in to the Climate Data Store, accept the ERA5 licence, copy the API key from your profile." },
+  OpenMeteo: { url: "https://open-meteo.com/en/docs", how: "No key is needed for the free tier." },
+  HYCOM: { url: "https://www.hycom.org/dataserver", how: "Open OPeNDAP server; no key." },
+  DMA: { url: "https://dma.dk/safety-at-sea/navigational-information/ais-data", how: "Open daily AIS archive for Danish waters; no key." },
+  MarineCadastre: { url: "https://hub.marinecadastre.gov/pages/vesseltraffic", how: "Open AIS archive for US waters; no key." },
+  AISStream: { url: "https://aisstream.io/authenticate", how: "Sign in with GitHub and create an API key." },
+  Sentinel2: { url: "https://dataspace.copernicus.eu/", how: "Served by the same Copernicus Data Space account as Sentinel-1." },
+};
+
+/** The fallback ladder a provider belongs to, with the rung in use marked. */
+function Chain({ chain, name, byName }) {
+  if (!chain?.length) return <span className="cat-dim">—</span>;
+  return (
+    <div className="cat-chain" data-testid={`chain-${name}`}>
+      {chain.map((c, i) => (
+        <Fragment key={c}>
+          {i > 0 && <ArrowRight size={10} className="cat-chain-a" />}
+          <span className={`cat-chain-i ${c === name ? "me" : ""}`} title={byName[c]?.status || "bundled on this host"}>{c}</span>
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+/** Get a key from the provider, enter it here, test it for real. The form
+ *  writes through the existing admin key store (PUT /api/keys, encrypted at
+ *  rest, audited) and the test is the backend's authenticated probe. */
+function KeyForm({ provider, fields, onDone }) {
+  const [values, setValues] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const site = PROVIDER_SITE[provider];
+  async function save() {
+    setBusy(true); setMsg(null);
+    try {
+      const filled = fields.filter((f) => (values[f.field] || "").trim());
+      if (!filled.length) { setMsg({ tone: "warn", text: "Nothing entered." }); return; }
+      for (const f of filled) await api.setKey({ provider, field: f.field, value: values[f.field].trim() });
+      const t = await api.testKey(provider);
+      setMsg(t.ok ? { tone: "ok", text: `Saved and verified: ${provider} answered an authenticated request.` }
+        : { tone: "danger", text: `Saved, but the provider refused it: ${t.error_class || "failed"}${t.detail ? ` - ${t.detail}` : ""}` });
+      setValues({}); onDone?.();
+    } catch (e) {
+      setMsg({ tone: "danger", text: /403|forbid|401/i.test(e.message) ? "Only a signed-in administrator can change credentials. The public evaluator view is read-only here - use Login, top right." : e.message });
+    } finally { setBusy(false); }
+  }
+  async function test() {
+    setBusy(true); setMsg(null);
+    try {
+      const t = await api.testKey(provider);
+      setMsg(t.ok ? { tone: "ok", text: `${provider} answered an authenticated request${t.latency_ms ? ` in ${t.latency_ms} ms` : ""}.` }
+        : { tone: "danger", text: `${t.error_class || "failed"}${t.detail ? ` - ${t.detail}` : ""}` });
+      onDone?.();
+    } catch (e) { setMsg({ tone: "danger", text: e.message }); } finally { setBusy(false); }
+  }
+  return (
+    <div className="cat-keyform" data-testid={`keyform-${provider}`}>
+      {site && <p className="cat-dim">{site.how}</p>}
+      {fields.length === 0 && <p className="cat-dim">This provider takes no credentials: there is nothing to enter.</p>}
+      <div className="cat-keygrid">
+        {fields.map((f) => (
+          <label key={f.field}>
+            <span className="mono">{f.field}</span>
+            <input type="password" autoComplete="off" placeholder={f.configured ? `set (${f.masked}) - type to replace` : "not set"}
+              value={values[f.field] || ""} onChange={(e) => setValues((v) => ({ ...v, [f.field]: e.target.value }))} data-testid={`key-${f.field}`} />
+            <i className="cat-dim">{f.configured ? `from ${f.source}` : "missing"}</i>
+          </label>
+        ))}
+      </div>
+      <div className="cat-keyacts">
+        {fields.length > 0 && <button className="btn btn-sm btn-primary" onClick={save} disabled={busy} data-testid={`key-save-${provider}`}>Save and test</button>}
+        <button className="btn btn-sm" onClick={test} disabled={busy} data-testid={`key-test-${provider}`}>Test now</button>
+        {msg && <span className={`cat-keymsg cat-keymsg-${msg.tone}`} data-testid={`key-msg-${provider}`}>{msg.text}</span>}
+      </div>
+    </div>
+  );
+}
+
 function Coverage({ coverage }) {
   if (!coverage) return <span className="cat-dim">—</span>;
   return (
@@ -61,6 +148,10 @@ export default function Catalog() {
   const [tab, setTab] = useUrlTab(["providers", "models", "health"]);
   const { data: catalog, loading: l1, error: catalogError, reload: reloadCatalog } = useApi(() => api.catalog(), []);
   const { data: models } = useApi(() => api.models(), []);
+  const { data: keys, reload: reloadKeys } = useApi(() => api.listKeys().catch(() => ({ keys: [] })), []);
+  const [openKey, setOpenKey] = useState(null);
+  const byName = Object.fromEntries((catalog?.providers ?? []).map((x) => [x.name, x]));
+  const fieldsOf = (name) => (keys?.keys || []).filter((k) => k.provider === name);
   const { data: sys } = useApi(() => api.systemHealth(), [],
     { interval: 20000 });
 
@@ -112,12 +203,13 @@ export default function Catalog() {
               <thead>
                 <tr>
                   <th>provider</th><th>purpose</th><th>status</th>
-                  <th>probe</th><th>credentials</th><th>coverage</th>
+                  <th>falls back to</th><th>probe</th><th>credentials</th><th>coverage</th><th>access</th>
                 </tr>
               </thead>
               <tbody>
                 {(catalog?.providers ?? []).map((p) => (
-                  <tr key={p.name}
+                  <Fragment key={p.name}>
+                  <tr
                     className={p.deployment === "NOT_DEPLOYED" ? "cat-off" : ""}>
                     <td>
                       <div className="mono">{p.name}</div>
@@ -137,6 +229,7 @@ export default function Catalog() {
                         {p.status}
                       </Badge>
                     </td>
+                    <td><Chain chain={p.chain} name={p.name} byName={byName} /></td>
                     <td className="cat-dim" title={p.probe_proves || ""}>
                       {p.probe}
                       {p.probe === "functional" && p.probe_proves && (
@@ -150,7 +243,24 @@ export default function Catalog() {
                       </span>
                     </td>
                     <td><Coverage coverage={p.coverage} /></td>
+                    <td className="cat-access">
+                      {PROVIDER_SITE[p.name]
+                        ? <a className="btn btn-sm" href={PROVIDER_SITE[p.name].url} target="_blank" rel="noreferrer noopener" data-testid={`site-${p.name}`}
+                            title={PROVIDER_SITE[p.name].url}><ExternalLink size={11} /> {fieldsOf(p.name).length ? "Get a key" : "Provider site"}</a>
+                        : <span className="cat-dim">on this host</span>}
+                      {(fieldsOf(p.name).length > 0 || p.credentials !== "n_a") && (
+                        <button className="btn btn-sm" onClick={() => setOpenKey(openKey === p.name ? null : p.name)} data-testid={`enter-key-${p.name}`}>
+                          <KeyRound size={11} /> {p.credentials === "configured" ? "Change key" : "Enter key"}
+                        </button>
+                      )}
+                    </td>
                   </tr>
+                  {openKey === p.name && (
+                    <tr className="cat-keyrow"><td colSpan={8}>
+                      <KeyForm provider={p.name} fields={fieldsOf(p.name)} onDone={() => { reloadKeys(); reloadCatalog(); }} />
+                    </td></tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

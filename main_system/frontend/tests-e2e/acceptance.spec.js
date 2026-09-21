@@ -38,7 +38,7 @@ test("ACC-1: from the real Earth to a report, through every stage, on one map", 
   // 1. real Earth, on the Dashboard
   await page.goto("/");
   const globe = page.getByTestId("globe").first();
-  await expect(globe).toHaveAttribute("data-basemap", "geopolitical");
+  await expect(globe).toHaveAttribute("data-basemap", /satellite|geopolitical/);   // satellite when a provider is configured
   await page.waitForFunction(() => {
     const m = document.querySelector('[data-testid="globe"]')?.__globe?.getMap();
     return Boolean(m?.isStyleLoaded() && m.getSource("countries") && m.isSourceLoaded("countries"));

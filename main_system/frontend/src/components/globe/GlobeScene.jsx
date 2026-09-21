@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import MaritimeGlobe from "../maps/MaritimeGlobe";
+import { DEFAULT_BASEMAP } from "../maps/basemaps";
 import { decodeCamera, encodeCamera } from "../maps/camera";
 
 /* The bundled coastline geometry, for callers that test points against land
@@ -122,7 +123,7 @@ const LEGACY_BASEMAP = { canvas: "geopolitical", relief: "geopolitical", none: "
  * @param {function} props.getCursor
  */
 export default function GlobeScene({
-  viewState, onViewStateChange, basemap = "geopolitical", theme = "dark", layers = [],
+  viewState, onViewStateChange, basemap = DEFAULT_BASEMAP, theme = "dark", layers = [],
   graticule = true, onHover, onClick, getCursor, children, controller = true, testid = "globe",
   sar = null,
 }) {

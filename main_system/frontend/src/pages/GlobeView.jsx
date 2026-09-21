@@ -18,7 +18,7 @@
  * receiver coverage" for a live layer the provider cannot see.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle, Check, ClipboardList, Crosshair, Eye, Layers, Lock, Map as MapIcon,
@@ -29,6 +29,7 @@ import {
 import Globe, { CoordinateReadout, GLOBE_INITIAL_VIEW, fmtLat, fmtLon, parseCoordinate,
   useBoundaryEditor } from "../components/Globe";
 import { useGlobeCamera } from "../components/globe/GlobeScene";
+import { DEFAULT_BASEMAP } from "../components/maps/basemaps";
 import { BasemapSwitch } from "../components/maps/MapControls";
 import { Badge, DataState, KV, Notice, Panel, Spinner, Switch } from "../components/ui";
 import { api, fmt } from "../lib/api";
@@ -61,7 +62,7 @@ export default function GlobeViewPage() {
   const { theme } = useTheme();
   const [params] = useSearchParams();
   const [mode, setMode] = useState(MODES.NORMAL);
-  const [basemap, setBasemap] = useState("geopolitical");
+  const [basemap, setBasemap] = useState(DEFAULT_BASEMAP);
   const [railOpen, setRailOpen] = useState(true);
   const [layersOn, setLayersOn] = useState({
     zones: true, zoneLabels: true, incidents: true, vessels: true, graticule: true,
@@ -170,14 +171,24 @@ export default function GlobeViewPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [editorActive, editor]);
 
-  const startNewZone = () => {
+  const startNewZone = (parentId) => {
     setEditTarget(null);
     editor.reset([]);
-    setNewZone({ id: "", name: "", parent_id: selectedZone?.id || rootZoneId || "", officer: "" });
+    setNewZone({ id: "", name: "", parent_id: (typeof parentId === "string" && parentId) || selectedZone?.id || rootZoneId || "", officer: "" });
     setMode(MODES.SPLITTING);
     setSaveState(null);
     setRailOpen(true);
   };
+
+  /* /map?new=1[&zone=<parent>]: the Zones page's "New zone" and "Split" land
+   * here already in draw mode, with the parent chosen. Once per visit. */
+  const autoNew = useRef(false);
+  useEffect(() => {
+    if (autoNew.current || params.get("new") !== "1" || !zoneList.length) return;
+    autoNew.current = true;
+    startNewZone(params.get("zone") || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, zoneList.length]);
 
   const startReshape = (zone) => {
     if (!zone?.id) return;
@@ -286,7 +297,7 @@ export default function GlobeViewPage() {
             data-testid="mode-normal">
             <Eye size={12} /> View
           </button>
-          <button className={`btn btn-sm ${editorActive ? "btn-on" : ""}`} onClick={startNewZone}
+          <button className={`btn btn-sm ${editorActive ? "btn-on" : ""}`} onClick={() => startNewZone()}
             disabled={!canDraw}
             title={canDraw ? "Draw a new operational zone on the globe"
                            : `Your role (${user?.role}) may not edit zones`}

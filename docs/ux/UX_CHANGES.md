@@ -711,3 +711,27 @@ traffic is simulated and why.
 
 Gate: lint 0 errors / 80 warnings, unit 245, e2e 35/35, ais_service tests green.
 
+---
+
+## Operator pass: scanning box, satellite default, keys in the UI, zone CRUD, upload on the Dashboard - 2026-09-21
+
+| Asked | Found | Done |
+|---|---|---|
+| "scanning in one small bar" on Detections | two faults: the image box had no height until an image loaded, and ANY failed image request printed "The run records no scene raster to render" for good. The raster existed (200 in 17 s afterwards); the request failed once while detection held the file | box has a fixed minimum shape; a failed image retries every 5 s (6 attempts) under "Rendering the scene image... large scenes take 15-20 s"; "could not be rendered" only after that, and it says the analysis does not depend on it |
+| Satellite as the default globe | four places each defaulted to geopolitical | one `DEFAULT_BASEMAP` (satellite when a provider is configured, geopolitical on an offline host) used by all four; two e2e assertions widened |
+| "all APIs should be UP; if not, how is detection happening" | nothing was down. WORKING = an authenticated request succeeded; REACHABLE = the host answered. The header counted REACHABLE (the most a no-key provider can prove) and the two NOT_DEPLOYED adapters as failures: "DEGRADED 4/12". Detection needs no API at all: it is the local ONNX models on a raster already on disk; providers feed scene download, currents, wind and AIS | header is OPERATIONAL when every deployed provider is up, DEGRADED only when one is FAILED / UNCONFIGURED / DEGRADED (named in the tooltip), LIVE when all are verified; status bar "10/10 PROVIDERS UP - 4 VERIFIED" |
+| Data Sources: every API with its fallbacks, a button to the real site, enter the key in the UI | the backend already had an encrypted, audited key store with a real authenticated test (`/api/keys`); the page showed none of it | per provider: its fallback ladder with the current rung marked, "Get a key" opening the provider's own registration page, "Enter / Change key" opening the key fields in place, "Save and test" (stores, then runs the backend's authenticated probe and prints its verdict). The public evaluator view is refused key writes by design; the form says so and points at Login |
+| Zone CRUD, split and assign | create / reshape lived on the Live Map, assign on the Officers page, rename / deactivate / delete nowhere | Zones page: "New zone"; per zone a manage panel - rename, notes, set inactive / reactivate, edit boundary, "Split: add a sub-zone" (opens the Live Map already drawing, parent chosen), assign / remove officer, delete with confirm. Server refusals (zone has incidents, evaluator may not delete) are shown verbatim |
+| Upload on the Dashboard | the upload + metadata form sat at the bottom of the Detections filter column | extracted to `components/sar/UploadPanel`, mounted in the Dashboard's left column as a collapsible panel; after validation "Analyse this scene" files the investigation, starts the run and lands on that run's detection view, where FIND VESSELS continues into the workspace |
+| Fewer vessels, closer views | attribution drew every vessel and framed every candidate's whole track; characterisation framed the tile, not the slick | attribution / evidence / report draw only ranked candidates unless the analyst switches traffic on (the AIS stage, whose subject is the traffic, keeps it all); candidate frame tightened (~5 km); characterisation frames the slick's own bbox |
+| Validate the reports | figures checked against the run's artefacts for `inv-837a0cc083-114549`: area, origin, window, forecast, funnel (30 considered, 4 ranked, 26 filtered) all match. One misleading pair: "proximity 0.00" beside "Distance 0.0 km" | not a scoring bug. `closest_approach_km` is the engine's distance to the 90 % origin REGION (0 = entered it); proximity is cloud density along the path in the window. The top vessel went dark for 50 min inside the region, the straight line across the gap misses the ~500 m cloud, and the AIS-gap factor (1.00) is what scores it. Column renamed "Distance to origin region" in the report and the panel; the report explains the pair when it occurs |
+
+**Backend / service changes (own commit).** `scene_service/satellite/cdse_adapter.py`:
+downloading by scene name built `Products(<name>)/$value`; CDSE serves
+products by UUID only, so every by-name download was a 422, and the branch
+invented its metadata (time = now, bbox = 0,0,1,1). It now resolves the name
+in the catalogue first and takes the real start time and footprint from the
+same record. Scene-service tests green.
+
+Gate: lint 0 errors / 80 warnings, unit 245, e2e 35/35.
+

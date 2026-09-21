@@ -17,7 +17,7 @@ import { AttributionControl, Map as MapGL, useControl } from "react-map-gl/mapli
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-import { LABELS_ANCHOR, MAP_CONFIG, buildStyle, resolveBasemap } from "./basemaps";
+import { DEFAULT_BASEMAP, LABELS_ANCHOR, MAP_CONFIG, buildStyle, resolveBasemap } from "./basemaps";
 import { WORLD_VIEW, zoomForBbox } from "./camera";
 import "./maps.css";
 
@@ -111,7 +111,7 @@ function DeckOverlay({ layers, onReady }) {
 
 const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} */ props, ref) {
   const {
-    basemap = "geopolitical", theme = "dark", layers = [], sar = null, initialCamera = WORLD_VIEW,
+    basemap = DEFAULT_BASEMAP, theme = "dark", layers = [], sar = null, initialCamera = WORLD_VIEW,
     onCameraChange, onClick, onHover, graticule = true, show, interactive = true, cursor,
     testid = "maritime-globe", children,
   } = props;

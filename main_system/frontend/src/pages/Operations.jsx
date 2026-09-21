@@ -21,15 +21,16 @@
  * their boundary from the next zone is worse at the job, not more secure. */
 
 import { useCallback, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Activity, AlertTriangle, Bell, CheckCircle2, ClipboardList, Crosshair, Film, FolderSearch,
   Inbox, Layers, Map as MapIcon, Minus, PanelLeftClose, PanelLeftOpen, PanelRightClose,
-  PanelRightOpen, Plus, Radar, Radio, Satellite, Server, Ship, Target, X,
+  PanelRightOpen, Plus, Radar, Radio, Satellite, Server, Ship, Target, UploadCloud, X,
 } from "lucide-react";
 
 import Globe, { GLOBE_INITIAL_VIEW, fmtLat, fmtLon } from "../components/Globe";
 import { useGlobeCamera } from "../components/globe/GlobeScene";
+import { DEFAULT_BASEMAP } from "../components/maps/basemaps";
 import { BasemapSwitch } from "../components/maps/MapControls";
 import {
   CameraReadout, Compass, ScaleBar, ToolRail,
@@ -43,6 +44,7 @@ import "../globe.css";
 import { url } from "../lib/urls";
 import { DEMO_RUN_ID, useDemoRun } from "../lib/demo";
 import { sceneFact } from "../lib/sceneName";
+import UploadPanel from "../components/sar/UploadPanel";
 
 const LAYER_ROWS = [
   { key: "vessels", label: "Vessels (live AIS)", swatch: "var(--c-vessel)" },
@@ -65,6 +67,33 @@ const SEVERITY_TONE = {
 
 /* One click to a complete, real case: the canonical acceptance run, played
  * from scene to report. Labelled as the demo case everywhere it appears. */
+/** Upload -> metadata -> analyse, from the front door. The upload and its
+ *  validation are the SAR database's own; "Analyse" files an investigation on
+ *  the registered scene, starts the run and lands on the detection view of
+ *  exactly that run, where FIND VESSELS carries it into the workspace. */
+function UploadAndAnalyse() {
+  const { user } = useSession();
+  const nav = useNavigate();
+  const canRun = hasRole(user, "investigator", "analyst");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  async function analyse(s) {
+    setBusy(true); setError(null);
+    try {
+      const inv = await api.createInvestigation({ name: `Upload · ${String(s.scene_id || s.key).slice(0, 48)}`, scene_meta_path: s.scene_meta_path });
+      const started = await api.startRun(inv.id, { engine: "auto" });
+      nav(`/detections?scene=${encodeURIComponent(s.key)}&inv=${encodeURIComponent(inv.id)}&run=${encodeURIComponent(started.run_id)}`);
+    } catch (e) { setError(e.message); } finally { setBusy(false); }
+  }
+  return (
+    <Panel title="Upload a SAR scene" icon={<UploadCloud size={12} />} collapsible defaultOpen={false} testid="dash-upload">
+      <UploadPanel canUpload={canRun} onAnalyse={analyse} analysing={busy} />
+      {error && <Notice tone="danger" testid="dash-upload-error">{error}</Notice>}
+      <Link className="tiny" to={url.detections()}>All scenes held on this host →</Link>
+    </Panel>
+  );
+}
+
 function DemoCase() {
   const demo = useDemoRun();
   if (demo.state === "checking") return null;
@@ -102,7 +131,7 @@ export default function Operations() {
   const data = useGlobeData({ liveInterval: 15000 });
   const { zones, incidents, vessels, live, stream, aisBadge, runLayers, runId } = data;
 
-  const [basemap, setBasemap] = useState("geopolitical");
+  const [basemap, setBasemap] = useState(DEFAULT_BASEMAP);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [cursor, setCursor] = useState(null);
@@ -253,6 +282,8 @@ export default function Operations() {
             <Radar size={13} /> New investigation
           </Link>
         </Panel>
+
+        <UploadAndAnalyse />
 
         <DemoCase />
 

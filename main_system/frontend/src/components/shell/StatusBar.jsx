@@ -85,8 +85,8 @@ export default function StatusBar({ status, ais, health, workers }) {
       </div>
       <div className="sbar-right">
         {providers.length > 0 && (
-          <span title="Providers whose authenticated functional probe succeeded">
-            {working}/{providers.length} PROVIDERS WORKING
+          <span title={`${working} verified by an authenticated or functional request; the rest of the deployed providers answered a reachability probe. Adapters that are not deployed are not counted.`}>
+            {providers.filter((p) => p.status === "WORKING" || p.status === "REACHABLE").length}/{providers.filter((p) => p.status !== "NOT_DEPLOYED").length} PROVIDERS UP · {working} VERIFIED
           </span>
         )}
         <span className="sbar-tagline">Maritime intelligence platform</span>

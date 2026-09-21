@@ -23,7 +23,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  AlertTriangle, CheckCircle2, Database, Info, Loader2, MapPin, Radar, Search, Ship, Upload, X,
+  AlertTriangle, CheckCircle2, Database, Info, Loader2, MapPin, Radar, Search, Ship, X,
 } from "lucide-react";
 
 import { Badge, DataState, Notice, PageHeader } from "../components/ui";
@@ -31,6 +31,7 @@ import { api, fmt, useApi } from "../lib/api";
 import { hasRole, useSession } from "../lib/session";
 import { guessPlace } from "../lib/replay";
 import "../sardb.css";
+import UploadPanel from "../components/sar/UploadPanel";
 import { url } from "../lib/urls";
 
 const TONE = { REAL: "ok", REFERENCE: "accent", SYNTHETIC: "mock", UPLOADED: "warn", UNVERIFIED: "neutral" };
@@ -73,85 +74,6 @@ function SceneCard({ r, on, onPick }) {
 
 /* ---------------------------------------------------------------- upload -- */
 
-function UploadPanel({ canUpload, onReady }) {
-  const [file, setFile] = useState(null);
-  const [f, setF] = useState({ scene_id: "", acquired_utc: "", bbox: "", polarisation: "", product_type: "", orbit_direction: "", notes: "" });
-  const [state, setState] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
-
-  async function send() {
-    if (!file) return;
-    setBusy(true); setError(null);
-    try {
-      const form = new FormData();
-      form.append("raster", file);
-      for (const [k, v] of Object.entries(f)) if (v) form.append(k, v);
-      const s = await api.sarUpload(form);
-      setState(s); if (s.status === "ready") onReady(s);
-    } catch (e) { setError(e.message); } finally { setBusy(false); }
-  }
-  async function complete() {
-    setBusy(true); setError(null);
-    try {
-      const body = Object.fromEntries(Object.entries(f).filter(([k, v]) => v && ["acquired_utc", "bbox", "polarisation", "product_type", "orbit_direction", "notes"].includes(k)));
-      const s = await api.sarCompleteUpload(state.upload_id, body);
-      setState(s); if (s.status === "ready") onReady(s);
-    } catch (e) { setError(e.message); } finally { setBusy(false); }
-  }
-  const missing = state?.missing || [];
-  const need = (k) => missing.includes(k);
-  return (
-    <div className="sd-upload" data-testid="sar-upload">
-      <div className="sd-h">Upload SAR data</div>
-      <p className="sd-p">A calibrated sigma0 GeoTIFF (dB). A georeferenced raster supplies its own footprint; anything the file does not carry must be entered. Nothing is assumed.</p>
-      {!canUpload && <Notice tone="info">Uploading needs the investigator or analyst role.</Notice>}
-      <label className="sd-file">
-        <input type="file" accept=".tif,.tiff,.png,.jpg,.jpeg" disabled={!canUpload} data-testid="sar-upload-file"
-          onChange={(e) => { setFile(e.target.files?.[0] || null); setState(null); setError(null); }} />
-        <Upload size={14} /> {file ? file.name : "Choose a raster…"}
-      </label>
-
-      {state?.status === "unsupported" && (
-        <Notice tone="warn" testid="sar-upload-unsupported"><b>NOT ANALYSABLE.</b> {state.caveats?.[0]}</Notice>
-      )}
-      {state?.status === "metadata_required" && (
-        <Notice tone="warn" testid="sar-metadata-required"><b>METADATA REQUIRED:</b> {missing.join(", ")}. The file does not carry {missing.length === 1 ? "it" : "them"} and OceanTrace will not guess.</Notice>
-      )}
-      {state?.raster_facts?.width && (
-        <div className="sd-facts">
-          <Fact k="Raster" v={`${state.raster_facts.width} × ${state.raster_facts.height} px · ${state.raster_facts.bands} band · ${state.raster_facts.dtype}`} />
-          <Fact k="Georeferenced" v={state.raster_facts.georeferenced_raster ? `yes (${state.raster_facts.raster_crs})` : "no"} />
-          <Fact k="Values p1–p99" v={state.raster_facts.value_p01_p99?.join(" … ")} />
-        </div>
-      )}
-      {state?.caveats?.filter((_, i) => state.status !== "unsupported" || i > 0).map((c) => <Notice key={c} tone="warn">{c}</Notice>)}
-
-      <div className="sd-form">
-        <label>Scene ID<input value={f.scene_id} onChange={set("scene_id")} placeholder="defaults to the file name" disabled={Boolean(state)} /></label>
-        <label className={need("acquired_utc") ? "need" : ""}>Acquisition time (UTC){need("acquired_utc") && <em>required</em>}
-          <input value={f.acquired_utc} onChange={set("acquired_utc")} placeholder="2023-01-08T00:10:08Z" data-testid="sar-up-time" /></label>
-        <label className={need("bbox") ? "need" : ""}>Footprint bbox{need("bbox") && <em>required</em>}
-          <input value={f.bbox} onChange={set("bbox")} placeholder="min_lon, min_lat, max_lon, max_lat" data-testid="sar-up-bbox"
-            disabled={state?.metadata_basis?.bbox === "raster"} title={state?.metadata_basis?.bbox === "raster" ? "Read from the raster; not overridable" : ""} /></label>
-        <label className={need("polarisation") ? "need" : ""}>Polarisation{need("polarisation") && <em>required</em>}
-          <select value={f.polarisation} onChange={set("polarisation")} data-testid="sar-up-pol"><option value="">—</option>{["VV", "VH", "HH", "HV"].map((p) => <option key={p}>{p}</option>)}</select></label>
-        <label>Product type<input value={f.product_type} onChange={set("product_type")} placeholder="GRD" /></label>
-        <label>Orbit direction<select value={f.orbit_direction} onChange={set("orbit_direction")}><option value="">—</option><option>ASCENDING</option><option>DESCENDING</option></select></label>
-      </div>
-      {error && <Notice tone="danger" testid="sar-upload-error">{error}</Notice>}
-      {state?.status === "ready" ? (
-        <Notice tone="ok" testid="sar-upload-ready"><CheckCircle2 size={13} /> Scene registered. Footprint {state.metadata_basis?.bbox === "raster" ? "read from the raster" : "as entered"}; time {state.metadata_basis?.acquired_utc === "product_identifier" ? "read from the product identifier" : "as entered"}.</Notice>
-      ) : (
-        <button className="sd-btn primary" disabled={!canUpload || !file || busy || state?.status === "unsupported"} onClick={state?.status === "metadata_required" ? complete : send} data-testid="sar-upload-send">
-          {busy ? <Loader2 size={14} className="ws-spin" /> : <Upload size={14} />} {state?.status === "metadata_required" ? "Validate metadata" : "Upload and validate"}
-        </button>
-      )}
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------ analysis ---- */
 
 const STEPS = [["upload", "Scene"], ["validate", "Metadata"], ["preprocess", "Pre-process"], ["detect", "Detection"], ["segment", "Segmentation"], ["characterise", "Characterisation"], ["result", "Result"]];
@@ -161,11 +83,16 @@ function Analysis({ scene, invId, runId, onFindVessels }) {
   const [detect, setDetect] = useState(null);
   const [slick, setSlick] = useState(null);
   const [mask, setMask] = useState(true);
-  const [imgFail, setImgFail] = useState(false);
+  /* The quicklook of a large scene takes 15-20 s and can fail outright while
+   * detection holds the raster. A failed request is retried; "no raster" is
+   * only said once the run has finished and the image still will not come. */
+  const [imgTry, setImgTry] = useState(0);
+  const [imgOk, setImgOk] = useState(false);
+  const imgFail = imgTry >= 6;
   const got = useRef({});
   useEffect(() => {
     if (!invId || !runId) return undefined;
-    let alive = true; got.current = {}; setStatus(null); setDetect(null); setSlick(null); setImgFail(false);
+    let alive = true; got.current = {}; setStatus(null); setDetect(null); setSlick(null); setImgTry(0); setImgOk(false);
     const tick = async () => {
       try {
         const st = await api.invStatus(invId, runId);
@@ -202,8 +129,10 @@ function Analysis({ scene, invId, runId, onFindVessels }) {
       <div className="sd-result">
         <figure className="sd-big">
           <div className="sd-big-box">
-            {imgFail ? <div className="sd-noimg">The run records no scene raster to render.</div>
-              : <img src={`/api/runs/${runId}/scene_png?size=1024`} alt="SAR scene, sigma0 dB" onError={() => setImgFail(true)} />}
+            {imgFail ? <div className="sd-noimg" data-testid="sar-noimg">The scene image could not be rendered after several attempts. The analysis itself does not depend on it.</div>
+              : <img key={imgTry} className={imgOk ? "" : "sd-big-pending"} src={`/api/runs/${runId}/scene_png?size=1024${imgTry ? `&retry=${imgTry}` : ""}`} alt="SAR scene, sigma0 dB"
+                  onLoad={() => setImgOk(true)} onError={() => setTimeout(() => setImgTry((n) => n + 1), 5000)} />}
+            {!imgOk && !imgFail && <div className="sd-noimg sd-noimg-over" data-testid="sar-img-loading"><Loader2 size={14} className="ws-spin" /> Rendering the scene image{imgTry ? ` (attempt ${imgTry + 1})` : ""}… large scenes take 15–20 s.</div>}
             {dDone && mask && <img className="sd-big-mask" src={`/api/runs/${runId}/mask_png`} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} data-testid="sar-mask" />}
             {!dDone && dRow?.status !== "failed" && <div className="sd-scan"><span /></div>}
           </div>

@@ -133,11 +133,22 @@ function driftBbox(c, est, origin, forecast) {
 
 /** The ranked candidates where they matter: each one's AIS fixes within
  *  reach of the estimated origin, plus the origin itself. */
+/** Bounding box of every slick polygon in the run's own slick layer. */
+function slickBbox(slick) {
+  const pts = [];
+  for (const f of slick?.features || []) {
+    const g = f.geometry;
+    const polys = g?.type === "Polygon" ? [g.coordinates] : g?.type === "MultiPolygon" ? g.coordinates : [];
+    for (const poly of polys) for (const q of poly[0] || []) pts.push(q);
+  }
+  return pts.length ? unionBbox(pts, 0.002) : null;
+}
+
 function candidateBbox(vessels, suspects, est) {
   if (!est?.center || !suspects?.suspects?.length) return null;
   const ranked = new Set(suspects.suspects.map((s) => s.mmsi));
   const [ox, oy] = est.center;
-  const reach = Math.max(0.065, (est.radiusKm || 0) / 111 * 8);     // degrees: ~7 km, or 8x the uncertainty
+  const reach = Math.max(0.045, (est.radiusKm || 0) / 111 * 6);     // degrees: ~5 km, or 6x the uncertainty
   const pts = [];
   for (const f of vessels?.features || []) {
     if (!ranked.has(f.properties?.mmsi)) continue;
@@ -528,7 +539,15 @@ function InvestigationWorkspace() {
   }, [cine.active]);
 
   const basemap = basemapOverride || (cineFrame ? "satellite" : stage.basemap);
-  const show = useMemo(() => (cineFrame ? cineFrame.show : { ...stageLayers(stageId), ...showOverride }), [stageId, showOverride, cineFrame]);
+  /* Attribution, evidence and report ask "which vessel": only the ranked
+   * candidates are drawn unless the analyst switches the rest on. The AIS
+   * stage, whose subject IS the whole traffic picture and its filtering,
+   * keeps everything. A switch the analyst has touched always wins. */
+  const show = useMemo(() => {
+    if (cineFrame) return cineFrame.show;
+    const focus = ["attribution", "evidence", "report"].includes(stageId) ? { background: false, excluded: false } : {};
+    return { ...stageLayers(stageId), ...focus, ...showOverride };
+  }, [stageId, showOverride, cineFrame]);
   const onShow = useCallback((k, v) => setShowOverride((s) => ({ ...s, [k]: v })), []);
 
 
@@ -602,8 +621,14 @@ function InvestigationWorkspace() {
         if (selectedTile) flyTo({ bbox: selectedTile.bbox, pad: 220 }); else if (bbox) flyTo(bbox); break;
       case "detection":
         if (selectedTile) flyTo({ bbox: selectedTile.bbox, pad: 120 }); else if (slickP?.centroid) flyTo(slickP.centroid); break;
-      case "validation": case "geometry":
+      case "validation":
         if (selectedTile) flyTo({ bbox: selectedTile.bbox, pad: 160 }); else if (slickP?.centroid) flyTo(slickP.centroid); break;
+      case "geometry": {
+        /* the subject is the slick's shape: fill the view with it */
+        const sb = slickBbox(layers.slick);
+        if (sb) flyTo({ bbox: sb, pad: 100 }); else if (selectedTile) flyTo({ bbox: selectedTile.bbox, pad: 160 }); else if (slickP?.centroid) flyTo(slickP.centroid);
+        break;
+      }
       case "drift": {
         /* frame the whole story: the slick, every hour of the backward trail
          * and every forecast footprint -- not just the two end points */

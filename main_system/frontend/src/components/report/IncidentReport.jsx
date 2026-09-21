@@ -390,7 +390,7 @@ export default function IncidentReport({
                 <th>#</th><th>MMSI</th><th>Vessel type</th>
                 <th className="ir-num">Similarity score</th>
                 <th className="ir-num">Time difference</th>
-                <th className="ir-num">Distance</th>
+                <th className="ir-num" title="The attribution engine's distance_to_region_km: how far the track stays from the 90% origin REGION. 0.0 km means it entered the region, not that it touched the origin point.">Distance to origin region</th>
               </tr>
             </thead>
             {ranked.map((s) => (
@@ -425,7 +425,16 @@ export default function IncidentReport({
               </tbody>
             ))}
           </table>
-        ) : (
+        ) : null}
+        {ranked.length > 0 && ranked.some((s) => s.sub_scores?.proximity === 0 && s.evidence?.closest_approach_km === 0) && (
+          <p className="ir-note" data-testid="ir-proximity-note">
+            Reading "proximity 0.00" beside "0.0 km": the distance is to the 90% origin region, which these tracks entered.
+            Proximity is the density of the origin cloud along the vessel's path during the origin window, and the cloud is
+            far smaller than the region. A vessel that went dark while inside the region is joined by a straight line across
+            the silence, which can miss the cloud entirely; that behaviour is scored by the AIS-gap factor instead.
+          </p>
+        )}
+        {ranked.length > 0 ? null : (
           <p className="ir-note">
             {suspects ? "No vessel passed the spatial, temporal and trajectory gates for this origin window."
                       : "Attribution was not produced for this run."}

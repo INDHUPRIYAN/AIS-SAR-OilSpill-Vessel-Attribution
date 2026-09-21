@@ -26,7 +26,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle, ArrowRight, Clock, Crosshair, Globe2, Layers, Lock, Map as MapIcon,
-  Pencil, RefreshCw, Shield, Ship, UserX, Users,
+  Pencil, Plus, RefreshCw, Scissors, Shield, Ship, Trash2, UserX, Users,
 } from "lucide-react";
 
 import Globe, { GLOBE_INITIAL_VIEW } from "../components/Globe";
@@ -107,6 +107,10 @@ export default function ZonesPage() {
           <button className="btn btn-sm" onClick={() => { zonesQ.reload(); geoQ.reload(); }}>
             <RefreshCw size={12} /> Refresh
           </button>
+          <Link className="btn btn-sm" to={url.map({ new: 1 })} data-testid="zone-new"
+            title="Draw a new zone on the Live Map. It is saved as a sub-zone of the one you pick there.">
+            <Plus size={12} /> New zone
+          </Link>
           <Link className="btn btn-primary btn-sm" to={url.map()}>
             <Pencil size={12} /> Draw on globe
           </Link>
@@ -247,7 +251,7 @@ export default function ZonesPage() {
                       </tr>
                       {on && (
                         <tr key={`${z.id}-detail`} className="tr-expand">
-                          <td colSpan={10}><ZoneDetail zone={z} /></td>
+                          <td colSpan={10}><ZoneDetail zone={z} onChanged={() => { zonesQ.reload(); geoQ.reload(); }} onDeleted={() => { select(null); zonesQ.reload(); geoQ.reload(); }} /></td>
                         </tr>
                       )}
                     </>
@@ -263,6 +267,15 @@ export default function ZonesPage() {
         .zone-map { position: relative; height: 42vh; min-height: 300px; border: 1px solid var(--line);
           border-radius: var(--r-md); overflow: hidden; background: var(--bg-0); }
         .zone-compass { position: absolute; top: 12px; right: 12px; z-index: 4; }
+        .zone-manage { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+        .zone-manage-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin: 6px 0 8px; }
+        .zone-manage-grid label { display: grid; gap: 3px; font-size: 11px; color: var(--ink-2); }
+        .zone-manage input, .zone-manage select { padding: 6px 8px; background: var(--bg-0); border: 1px solid var(--line-bright); border-radius: var(--r-sm); color: var(--ink-0); font: inherit; font-size: 12px; }
+        .zone-manage-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+        .zone-danger { color: var(--danger, #f87171); border-color: rgba(248,113,113,.45); }
+        .zone-msg { font-size: 11.5px; }
+        .zone-msg-ok { color: var(--ok, #34d399); }
+        .zone-msg-danger { color: var(--danger, #f87171); }
         .zone-scale { position: absolute; bottom: 10px; left: 12px; z-index: 4; }
         .zone-map-legend { position: absolute; bottom: 10px; right: 12px; z-index: 4; padding: 8px 10px; }
       `}</style>
@@ -270,7 +283,78 @@ export default function ZonesPage() {
   );
 }
 
-function ZoneDetail({ zone }) {
+/** Everything an administrator can change about one zone, in one place:
+ *  name, notes, active/inactive, who answers for it, split it, delete it.
+ *  Every write is the existing zones API; a refusal (the public evaluator view
+ *  may not assign or delete; a zone with incidents cannot be deleted) is shown
+ *  in the server's own words. */
+function ZoneManage({ zone, onChanged, onDeleted }) {
+  const usersQ = useApi(() => api.listUsers({ active: true }).catch(() => null), []);
+  const officers = (usersQ.data?.users || usersQ.data || []).filter?.((u) => u.is_active !== false) || [];
+  const [name, setName] = useState(zone.name || "");
+  const [notes, setNotes] = useState(zone.notes || "");
+  const [pick, setPick] = useState("");
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const run = async (fn, ok, after = onChanged) => {
+    setBusy(true); setMsg(null);
+    try { await fn(); setMsg({ tone: "ok", text: ok }); after?.(); }
+    catch (e) { setMsg({ tone: "danger", text: e.message }); }
+    finally { setBusy(false); }
+  };
+  const dirty = name.trim() !== (zone.name || "") || notes !== (zone.notes || "");
+  const inactive = zone.status !== "active";
+  return (
+    <div className="zone-manage" data-testid={`zone-manage-${zone.id}`}>
+      <div className="section-label"><Pencil size={11} /> Manage this zone</div>
+      <div className="zone-manage-grid">
+        <label>Name<input value={name} onChange={(e) => setName(e.target.value)} data-testid="zone-name" /></label>
+        <label>Notes<input value={notes} onChange={(e) => setNotes(e.target.value)} data-testid="zone-notes" /></label>
+      </div>
+      <div className="zone-manage-row">
+        <button className="btn btn-sm btn-primary" disabled={busy || !dirty || !name.trim()} data-testid="zone-save"
+          onClick={() => run(() => api.updateZone(zone.id, { name: name.trim(), notes }), "Saved.")}>Save</button>
+        <button className="btn btn-sm" disabled={busy} data-testid="zone-toggle"
+          onClick={() => run(() => api.updateZone(zone.id, { status: inactive ? "active" : "inactive" }), inactive ? "Zone is active again." : "Zone set inactive: it keeps its history and stops receiving detections.")}>
+          {inactive ? "Reactivate" : "Set inactive"}</button>
+        <Link className="btn btn-sm" to={url.map({ zone: zone.id })}><Pencil size={12} /> Edit boundary</Link>
+        <Link className="btn btn-sm" to={url.map({ zone: zone.id, new: 1 })} data-testid="zone-split"
+          title="Draw a sub-zone inside this one on the Live Map"><Scissors size={12} /> Split: add a sub-zone</Link>
+      </div>
+      <div className="zone-manage-row">
+        {usersQ.data == null && !usersQ.loading
+          ? <span className="tiny dim">The officer list is visible to administrators only.</span>
+          : <>
+            <select value={pick} onChange={(e) => setPick(e.target.value)} data-testid="zone-officer-pick">
+              <option value="">Assign an officer…</option>
+              {officers.map((u) => <option key={u.id} value={u.id}>{u.display_name || u.email} · {u.role}</option>)}
+            </select>
+            <button className="btn btn-sm" disabled={busy || !pick} data-testid="zone-assign"
+              onClick={() => run(() => api.assignZoneOfficer(zone.id, Number(pick), true), "Officer assigned as primary.")}>Assign as primary</button>
+          </>}
+        {(zone.officers || []).map((o) => (
+          <button key={o.user_id} className="btn btn-sm" disabled={busy} data-testid={`zone-unassign-${o.user_id}`}
+            onClick={() => run(() => api.unassignZoneOfficer(zone.id, o.user_id), "Officer removed from this zone.")}>
+            <UserX size={12} /> Remove {o.display_name || o.email}</button>
+        ))}
+      </div>
+      <div className="zone-manage-row">
+        {!confirmDel
+          ? <button className="btn btn-sm zone-danger" disabled={busy} onClick={() => setConfirmDel(true)} data-testid="zone-delete"><Trash2 size={12} /> Delete zone</button>
+          : <>
+            <span className="tiny">Delete <b>{zone.name}</b> permanently?</span>
+            <button className="btn btn-sm zone-danger" disabled={busy} data-testid="zone-delete-confirm"
+              onClick={() => run(() => api.deleteZone(zone.id), "Zone deleted.", onDeleted)}>Yes, delete</button>
+            <button className="btn btn-sm" onClick={() => setConfirmDel(false)}>Cancel</button>
+          </>}
+        {msg && <span className={`zone-msg zone-msg-${msg.tone}`} data-testid="zone-msg">{msg.text}</span>}
+      </div>
+    </div>
+  );
+}
+
+function ZoneDetail({ zone, onChanged, onDeleted }) {
   const revisionsQ = useApi(() => api.zoneRevisions(zone.id, 20), [zone.id]);
   const revisions = revisionsQ.data?.revisions || [];
 
@@ -327,7 +411,8 @@ function ZoneDetail({ zone }) {
       </div>
 
       <div>
-        <div className="section-label"><Clock size={11} /> Boundary history</div>
+        <ZoneManage key={zone.id} zone={zone} onChanged={() => { revisionsQ.reload?.(); onChanged?.(); }} onDeleted={onDeleted} />
+        <div className="section-label" style={{ marginTop: 14 }}><Clock size={11} /> Boundary history</div>
         {revisionsQ.loading ? <Spinner />
           : revisions.length === 0 ? <div className="tiny dim">No recorded changes.</div>
             : revisions.map((r) => (

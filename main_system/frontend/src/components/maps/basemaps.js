@@ -37,6 +37,12 @@ export function readMapConfig(env = VITE_ENV) {
 
 export const MAP_CONFIG = readMapConfig();
 
+/** What every map opens on: satellite imagery when a provider is configured,
+ *  the bundled geopolitical chart when none is (an offline host still gets a
+ *  real Earth). One constant so no page can disagree about it.
+ *  @type {BasemapId} */
+export const DEFAULT_BASEMAP = MAP_CONFIG.satelliteUrl ? "satellite" : "geopolitical";
+
 /** The basemap choices, with whether each can actually be shown.
  *  @param {ReturnType<typeof readMapConfig>} [config] */
 export function basemapOptions(config = MAP_CONFIG) {

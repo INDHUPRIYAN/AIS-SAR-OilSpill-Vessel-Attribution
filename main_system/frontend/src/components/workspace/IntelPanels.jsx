@@ -812,7 +812,7 @@ export function AttributionPanel({ ctx }) {
             <VesselIdentity dossier={d} mmsi={s.mmsi} name={s.vessel_name} type={s.vessel_type} linkOut />
             <div className="ip-grid2">
               <div><span className="ip-gk">Speed (at origin time)</span><span className="ip-gv mono">{stateAt?.sog != null ? `${stateAt.sog.toFixed(1)} kn` : "—"}</span></div>
-              <div><span className="ip-gk">Distance from slick</span><span className="ip-gv mono">{s.evidence?.closest_approach_km != null ? `${num(s.evidence.closest_approach_km, 1)} km` : "—"}</span></div>
+              <div><span className="ip-gk" title="Distance from the vessel's track to the 90% origin region. 0.0 km means it entered the region.">Distance to origin region</span><span className="ip-gv mono">{s.evidence?.closest_approach_km != null ? `${num(s.evidence.closest_approach_km, 1)} km` : "—"}</span></div>
               <div><span className="ip-gk">Course (at origin time)</span><span className="ip-gv mono">{stateAt?.heading != null ? `${Math.round(stateAt.heading)}°` : "—"}</span></div>
               <div><span className="ip-gk">Time in origin window</span><span className="ip-gv mono">{s.evidence?.time_in_origin_window_min != null ? `${Math.round(s.evidence.time_in_origin_window_min)} min` : "—"}</span></div>
             </div>
