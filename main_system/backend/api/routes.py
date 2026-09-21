@@ -335,14 +335,22 @@ _pipeline_gate = threading.BoundedSemaphore(
 
 
 def _execute_run(run_id: str, investigation_id: Optional[str],
-                 scene: Optional[str], scene_meta: Optional[str], engine: str):
-    """Run the pipeline in a worker thread and record the outcome."""
+                 scene: Optional[str], scene_meta: Optional[str], engine: str,
+                 started_by_person: bool = True):
+    """Run the pipeline in a worker thread and record the outcome.
+
+    `started_by_person` decides whether a clean completion is worth an alert:
+    somebody pressed Run and has probably navigated away, whereas the AOI
+    watcher already raises `new_scene` for what it starts (services/run_alerts).
+    """
     with _pipeline_gate:
-        _execute_run_now(run_id, investigation_id, scene, scene_meta, engine)
+        _execute_run_now(run_id, investigation_id, scene, scene_meta, engine,
+                         started_by_person=started_by_person)
 
 
 def _execute_run_now(run_id: str, investigation_id: Optional[str],
-                     scene: Optional[str], scene_meta: Optional[str], engine: str):
+                     scene: Optional[str], scene_meta: Optional[str], engine: str,
+                     started_by_person: bool = True):
     from backend.models.db import SessionLocal
     from backend.services.pipeline.run import MOCKS, run_pipeline
 
@@ -413,6 +421,7 @@ def _execute_run_now(run_id: str, investigation_id: Optional[str],
             # while a lost run is not. The refusal reason is printed either
             # way, because "the pipeline found oil and nobody was told" is the
             # exact failure this feature exists to prevent.
+            outcome: dict = {}
             try:
                 from backend.services import incident_auto
 
@@ -428,6 +437,20 @@ def _execute_run_now(run_id: str, investigation_id: Optional[str],
                         print(f"[incident]   {reason}")
             except Exception as exc:               # noqa: BLE001
                 print(f"[incident] {run_id}: {type(exc).__name__}: {exc}")
+
+            # The run is over and whoever started it is probably on another
+            # screen. An alert is the only thing that reaches them; a row
+            # appearing in a list is not a notification. Never fails the run.
+            try:
+                from backend.services import run_alerts
+
+                alert = run_alerts.alert_run_outcome(
+                    db, run_id, started_by_person=started_by_person,
+                    opened_incident=bool((outcome or {}).get("created")))
+                if alert is not None:
+                    db.commit()
+            except Exception as exc:               # noqa: BLE001
+                print(f"[run_alerts] {run_id}: {type(exc).__name__}: {exc}")
 
             jobs_service.sync_progress(db, db.get(Job, job_id))                 if db.get(Job, job_id) else None
             jobs_service.finish(db, job_id, "complete")
@@ -452,6 +475,15 @@ def _execute_run_now(run_id: str, investigation_id: Optional[str],
             db.commit()
             jobs_service.finish(db, job_id, "failed",
                                 f"{type(exc).__name__}: {exc}")
+            # A failure is raised whoever started it: a scheduled run dying at
+            # 03:00 is precisely what nobody is watching for.
+            try:
+                from backend.services import run_alerts
+
+                if run_alerts.alert_run_outcome(db, run_id) is not None:
+                    db.commit()
+            except Exception as alert_exc:         # noqa: BLE001
+                print(f"[run_alerts] {run_id}: {type(alert_exc).__name__}: {alert_exc}")
     finally:
         clear_cancel_check(run_id)
         with _run_lock:

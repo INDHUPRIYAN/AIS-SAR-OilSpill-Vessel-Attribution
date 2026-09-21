@@ -84,6 +84,9 @@ def _start_run_for_investigation(investigation_id: str, aoi, scene) -> Optional[
     threading.Thread(
         target=_execute_run,
         args=(run_id, investigation_id, scene_path, None, "auto"),
+        # The watcher already raised `new_scene` for this; a completion alert
+        # per polled scene would bury the queue it is trying to fill.
+        kwargs={"started_by_person": False},
         daemon=True).start()
     return run_id
 
