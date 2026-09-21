@@ -26,7 +26,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWorkspaceParams } from "../lib/urls";
 import { AnimatePresence, motion } from "framer-motion";
-import { FlyToInterpolator, WebMercatorViewport } from "@deck.gl/core";
+import { FlyToInterpolator } from "@deck.gl/core";
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2 } from "lucide-react";
 
 import WorkspaceMap from "../components/workspace/WorkspaceMap";
