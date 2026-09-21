@@ -42,6 +42,7 @@ import { landShare, validateSlick } from "../lib/geovalidate";
 import { sourceBadge } from "../components/workspace/palette";
 import { api, useApi, fmt } from "../lib/api";
 import { useRunEvents } from "../lib/useRunEvents";
+import { isDemoRun } from "../lib/demo";
 import { TimeProvider, useTime } from "../components/maps/TimeContext";
 import { hasRole, useSession } from "../lib/session";
 import { useRegisterCommands, useRunInContext } from "../lib/shell";
@@ -1015,6 +1016,7 @@ function InvestigationWorkspace() {
               </span>
             )}
             {runId && <span className={`badge ${overall === "COMPLETE" ? "badge-ok" : overall === "RUNNING" ? "badge-warn" : overall === "FAILED-PARTIAL" ? "badge-danger" : overall === "CANCELLED" ? "badge-warn" : "badge-neutral"}`} data-testid="overall-status">{overall}</span>}
+            {isDemoRun(runId) && <span className="badge badge-accent" data-testid="demo-badge" title="The canonical acceptance run, chosen for the walkthrough. Every figure is the pipeline's own.">DEMO CASE</span>}
             {runRow && !runRow.investigation_id && <span className="badge badge-neutral" data-testid="unfiled-run" title="Produced outside the API and reconciled from its sealed manifest">UNFILED RUN</span>}
             {layers.scene_meta?.source && <span className={`badge badge-${sourceBadge(layers.scene_meta.source).tone}`} data-testid="scene-source-badge">scene {sourceBadge(layers.scene_meta.source).label}</span>}
           </div>

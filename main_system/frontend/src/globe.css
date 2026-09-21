@@ -271,3 +271,7 @@ a.ops-tile:hover { border-color: var(--accent-line); }
 .ops-clear { display: flex; gap: 8px; align-items: flex-start; padding: 8px 7px; font-size: 11.5px; line-height: 1.5; color: var(--ink-2); }
 .ops-clear svg { color: var(--ok); flex-shrink: 0; margin-top: 1px; }
 .ops-cta { width: 100%; justify-content: center; margin-top: 10px; }
+.ops-demo { padding: 2px 2px 4px; }
+.ops-demo-title { font-size: 13px; font-weight: 700; color: var(--ink-0); }
+.ops-demo-sub { font-size: 10.5px; color: var(--ink-3); margin: 2px 0 6px; }
+.ops-demo-note { font-size: 11.5px; line-height: 1.5; color: var(--ink-2); }

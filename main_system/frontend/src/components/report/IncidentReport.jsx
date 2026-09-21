@@ -133,7 +133,10 @@ export default function IncidentReport({
   // states them; a corpus scene's were assigned and the report must say so.
   const basis = sceneMeta?.basis || null;
   const measured = !basis || basis.geo_basis === "measured";
-  const sensorText = basis?.label === "REAL" || !basis ? "Sentinel-1 SAR (GRD)"
+  // A synthetic or uploaded raster says so; a real one says what the record
+  // or the ESA product name says it is -- never a fixed "Sentinel-1 (GRD)".
+  const sensorText = basis?.label === "REAL" || !basis
+    ? `${sceneFact(sceneMeta, "mission")} SAR (${sceneFact(sceneMeta, "product")})`
     : basis.label === "SYNTHETIC" ? "Synthetic test raster"
     : basis.label === "UPLOADED" ? "Uploaded SAR raster" : "SAR research-corpus scene";
   const sceneSrc = sourceBadge(sceneMeta?.source);

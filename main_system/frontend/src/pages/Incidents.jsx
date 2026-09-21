@@ -32,6 +32,7 @@ import { fmtLat, fmtLon } from "../components/Globe";
 import { api, fmt, useApi } from "../lib/api";
 import { hasRole, useSession } from "../lib/session";
 import { url } from "../lib/urls";
+import { sceneFact } from "../lib/sceneName";
 
 /* Lifecycle order, so the chips read as progress rather than as a set. */
 const FLOW = ["open", "investigating", "attributed", "closed", "archived"];
@@ -270,7 +271,7 @@ function IncidentDossier({ incident, summary, busy, canConclude, onStatus }) {
           <KV k="Zone" v={i.zone_id || "outside all zones"} tone={i.zone_id ? "" : "danger"} />
           {i.zone_path && <KV k="Zone path" v={i.zone_path} wrap />}
           <KV k="Region" v={i.region || "—"} />
-          <KV k="Satellite source" v={i.scene_id ? "Sentinel-1 (SAR)" : "—"} />
+          <KV k="Satellite source" v={i.scene_id ? `${sceneFact({ scene_id: i.scene_id }, "mission")} (SAR)` : "—"} />
           {i.scene_id && <KV k="Scene" v={i.scene_id} wrap />}
           <KV k="Spill area" v={i.area_km2 != null ? `${Number(i.area_km2).toFixed(2)} km²` : "not characterised"} />
           <KV k="Detection confidence"

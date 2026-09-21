@@ -23,6 +23,7 @@ import { sourceBadge } from "./palette";
 import { fmt } from "../../lib/api";
 import { provenanceOf } from "../ui";
 import { url } from "../../lib/urls";
+import { sceneFact } from "../../lib/sceneName";
 
 const MISSIONS = [
   { id: "S1", label: "Sentinel-1" },
@@ -251,7 +252,7 @@ export function AnalysisPanel({
 
       <Label>Satellite data</Label>
       <div className="ctl-static">
-        <span>Sentinel-1 SAR</span>
+        <span>{sceneFact(sm, "mission")} SAR</span>
         {prov && <span className={`badge badge-${prov.tone}`} data-testid="scene-source">{prov.label}</span>}
       </div>
 
@@ -279,13 +280,13 @@ export function AnalysisPanel({
       <div className="ctl-sep" />
       <Head title="Scene Parameters" />
       <div className="ctl-grid ro">
-        <span>Mission</span><div className="ctl-ro">Sentinel-1</div>
-        <span>Product</span><div className="ctl-ro">SAR (GRD)</div>
+        <span>Mission</span><div className="ctl-ro">{sceneFact(sm, "mission")}</div>
+        <span>Product</span><div className="ctl-ro">{sceneFact(sm, "product")}</div>
         <span>Polarization</span><div className="ctl-ro mono">{sm.polarisation || "—"}</div>
         <span>Acquisition</span><div className="ctl-ro mono">{sm.acquired_utc ? fmt.utc(sm.acquired_utc) : "—"}</div>
         <span>Resolution</span><div className="ctl-ro mono">{sm.pixel_spacing_m ? `${sm.pixel_spacing_m} m` : "—"}</div>
       </div>
-      <Link className="ctl-link" to="/models"><ChevronRight size={13} /> Detector &amp; references</Link>
+      <Link className="ctl-link" to="/system/models"><ChevronRight size={13} /> Detector &amp; references</Link>
 
       <div className="ctl-sep" />
       <Head title="Spatial Analysis" />

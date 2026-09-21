@@ -110,12 +110,12 @@ export function ScenePanel({ ctx }) {
   const s = sm ? {
     id: sm.scene_id, acquired: sm.acquired_utc, bbox: sm.bbox, pol: sm.polarisation,
     res: sm.pixel_spacing_m, provider: sm.provider_used, source: sm.source, product: sceneFact(sm, "product"),
-    orbit: null, size: null, status: "loaded", crs: sm.crs || "EPSG:4326", platform: "Sentinel-1",
+    orbit: null, size: null, status: "loaded", crs: sm.crs || "not recorded", platform: sceneFact(sm, "mission"),
   } : sel ? {
     id: sel.product_id || sel.scene_id, acquired: sel.acquired_utc, bbox: sel.bbox,
     pol: sel.polarisation, res: sel.pixel_spacing_m, provider: sel.provider_used || sel.provider,
     source: sel.kind === "local" ? sel.source : null, product: sel.product_type || "not recorded",
-    orbit: sel.orbit_direction, size: sel.size_bytes, platform: sel.platform || "Sentinel-1",
+    orbit: sel.orbit_direction, size: sel.size_bytes, platform: sel.platform || sceneFact(sel, "mission"),
     status: sel.kind === "local" ? (sel.available ? "available" : sel.unavailable_reason)
       : sel.cached_path ? "cached" : "not downloaded", crs: "EPSG:4326",
     caveats: sel.caveats, provenance: sel.provenance,
@@ -145,7 +145,7 @@ export function ScenePanel({ ctx }) {
       ]} />
       {tab === "scene" && (
         <>
-          <Section title={`${s.platform || "Sentinel-1"} ${s.product}`} testid="scene-grd">
+          <Section title={`${s.platform} ${s.product}`} testid="scene-grd">
             {runId && <QuickLook runId={runId} caption={s.id?.slice(0, 34)} />}
             <Row k="Acquisition" v={utc(s.acquired)} testid="scene-acquired" />
             <Row k="Orbit direction" v={s.orbit ? s.orbit[0] + s.orbit.slice(1).toLowerCase() : null}
@@ -277,7 +277,7 @@ export function ProcessingPanel({ ctx }) {
       <Tabs value={tab} onChange={setTab} items={[{ id: "scene", label: "Scene" }, { id: "lineage", label: "Lineage" }]} />
       {tab === "scene" ? (
         <>
-          <Section title="Sentinel-1 GRD">
+          <Section title={sceneTitle(ctx.layers?.scene_meta)}>
             <Row k="Polarization" v={sm.polarisation} />
             <Row k="Orbit direction" v={null} title="Not recorded in scene_meta" />
             <Row k="Acquisition time" v={utc(sm.acquired_utc)} />
@@ -340,7 +340,7 @@ export function TilingPanel({ ctx }) {
     <div className="ip" data-testid="intel-tiling">
       <PanelHead title="Scene Analysis" />
       <Tabs value={tab} onChange={setTab} items={[{ id: "scene", label: "Scene" }, { id: "details", label: "Details" }]} />
-      <Section title="Sentinel-1 GRD">
+      <Section title={sceneTitle(ctx.layers?.scene_meta)}>
         <Row k="Data source" v={sm.provider_used ? `${sm.provider_used}` : null} mono={false} />
         <Row k="Resolution" v={sm.pixel_spacing_m ? `${sm.pixel_spacing_m} m` : null} />
         <Row k="Acquisition time" v={utc(sm.acquired_utc)} />
@@ -409,7 +409,7 @@ export function DetectionPanel({ ctx }) {
       <Tabs value={tab} onChange={setTab} items={[{ id: "scene", label: "Scene" }, { id: "evidence", label: "Evidence" }]} />
       {tab === "scene" ? (
         <>
-          <Section title="Sentinel-1 GRD">
+          <Section title={sceneTitle(ctx.layers?.scene_meta)}>
             <div className="ip-seg">
               <button className={sub === "overview" ? "on" : ""} onClick={() => setSub("overview")}>Overview</button>
               <button className={sub === "details" ? "on" : ""} onClick={() => setSub("details")}>Details</button>
@@ -949,6 +949,9 @@ export function EvidencePanel({ ctx }) {
 }
 
 /* ------------------------------------------------------------------ report */
+
+/** "Sentinel-1A GRD", read from the record or the product name. */
+const sceneTitle = (sm) => `${sceneFact(sm, "mission")} ${sceneFact(sm, "product")}`.replace(/not recorded not recorded/, "Scene");
 
 export function ReportPanel({ ctx }) {
   const { layers, runRow, runId, funnel, incident, reports, onComposeReport, onSubmitReport, onPublishReport, canRun, canPublish, busy, reportError, actions } = ctx;

@@ -9,6 +9,13 @@ here was photographed against the live registry during acceptance — see
 `fd42e078f8366110`.** Not `-final`, not `-v2`. Those are sibling runs of the
 same scene; only `-2day` is the frozen acceptance evidence.
 
+**One-click walkthrough (added 2026-09-21).** The Dashboard's **Demo case**
+panel opens this run in the workspace and plays it from orbit to the report,
+labelled **DEMO CASE** throughout. Every figure is read from the run's own
+artefacts. Point a deployment at another showcase run with `VITE_DEMO_RUN_ID`;
+a host without the run shows "not installed on this host" instead of a dead
+link. Guarded by `main_system/frontend/tests-e2e/demo.spec.js`.
+
 ---
 
 ## 0. Before the day (once)

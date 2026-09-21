@@ -41,6 +41,7 @@ import { useTheme } from "../lib/theme";
 import { useGlobeData } from "../lib/useGlobeData";
 import "../globe.css";
 import { url } from "../lib/urls";
+import { DEMO_RUN_ID, useDemoRun } from "../lib/demo";
 import { sceneFact } from "../lib/sceneName";
 
 const LAYER_ROWS = [
@@ -61,6 +62,38 @@ const SEVERITY_TONE = {
   info: "neutral", low: "neutral",
 };
 
+
+/* One click to a complete, real case: the canonical acceptance run, played
+ * from scene to report. Labelled as the demo case everywhere it appears. */
+function DemoCase() {
+  const demo = useDemoRun();
+  if (demo.state === "checking") return null;
+  return (
+    <Panel title="Demo case" icon={<Film size={12} />}
+      right={<span className="badge badge-accent">DEMO</span>}>
+      {demo.state === "ready" ? (
+        <>
+          <div className="ops-demo" data-testid="demo-case">
+            <div className="ops-demo-title">Gulf of Mexico · 8 Jan 2023</div>
+            <div className="ops-demo-sub mono">{DEMO_RUN_ID}</div>
+            <div className="ops-demo-note">
+              A sealed pipeline run with real Sentinel-1, CMEMS, ERA5 and AIS inputs. Walk it from
+              detection to report in about five minutes; every figure is the run's own.
+            </div>
+          </div>
+          <Link className="btn btn-sm ops-cta" data-testid="demo-open"
+            to={`${url.workspace({ run: DEMO_RUN_ID, stage: "scene" })}?present=1`}>
+            <Film size={12} /> Walk the demo case
+          </Link>
+        </>
+      ) : (
+        <div className="ops-clear" data-testid="demo-missing">
+          The demo case is not installed on this host ({DEMO_RUN_ID}). See DEMO_RUNBOOK.md.
+        </div>
+      )}
+    </Panel>
+  );
+}
 
 export default function Operations() {
   const { user } = useSession();
@@ -220,6 +253,8 @@ export default function Operations() {
             <Radar size={13} /> New investigation
           </Link>
         </Panel>
+
+        <DemoCase />
 
         <Panel title="Real-time overview" icon={<Activity size={12} />} collapsible
           right={<span className="tiny mono dim">{live?.as_of_utc ? fmt.utc(live.as_of_utc).slice(11) : ""}</span>}>
@@ -522,7 +557,7 @@ function SelectedObject({ selected, runId, onClose, onCentre }) {
           <KV k="Detected" v={fmt.utc(o.detected_utc)} />
           {o.area_km2 != null && <KV k="Area" v={`${Number(o.area_km2).toFixed(2)} km²`} />}
           {o.detection_confidence != null && <KV k="Confidence" v={`${(o.detection_confidence * 100).toFixed(1)}%`} />}
-          {o.scene_id && <KV k="Source" v="Sentinel-1 (SAR)" />}
+          {o.scene_id && <KV k="Source" v={`${sceneFact({ scene_id: o.scene_id }, "mission")} (SAR)`} />}
           <KV k="Runs" v={o.runs ?? 0} />
         </div>
         <div className="globe-actions">

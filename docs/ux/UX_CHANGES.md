@@ -406,3 +406,45 @@ as deferred.
   in pages not otherwise touched.
 - The decorative radar/scanline animation in `CommandMap` leaves with
   `/operations/replay` (see RETIREMENT_PARITY.md).
+
+---
+
+## P10 — Demo mode
+
+### What shipped
+
+- **Demo case** panel on the Dashboard: the canonical acceptance run
+  (`inv-gulf-flagship-20230108-2day`, digest `fd42e078f8366110` —
+  DEMO_RUNBOOK.md) one click away. It opens the run in the workspace and plays
+  the analysis from orbit through detection, characterisation, hindcast,
+  origin, forecast, AIS and attribution to the report; the analyst can stop
+  and step through the six-step stepper at any point. About five minutes.
+- **DEMO CASE** badge in the workspace header whenever that run is on screen.
+- The run's existence is asked of the server: a host without it shows "The demo
+  case is not installed on this host" rather than a link to a 404.
+- `VITE_DEMO_RUN_ID` points a deployment at a different showcase run.
+- E2E `demo.spec.js`: one click from the dashboard, badge, presentation walks
+  forward, the case strip's spill area equals the run's `slick.geojson`, the
+  `present` flag is consumed so a reload does not replay.
+
+### Honesty
+
+"Demo" means *chosen for the walkthrough*, not *made up*. Nothing in the demo
+case is a fixture: it is a sealed pipeline run over a real Sentinel-1 scene
+with CMEMS currents, ERA5 wind and real AIS. G11 (the run is unfiled —
+produced by the CLI, reconciled from its manifest) is shown as it is: the
+header also carries **UNFILED RUN**.
+
+### Found while walking the demo, and fixed
+
+Two more constants presented as facts about the loaded scene: the analysis
+panel's `Mission: Sentinel-1` / `Product: SAR (GRD)`, and section titles
+reading `Sentinel-1 GRD` on every scene. Both now come from the record or the
+ESA product name (`lib/sceneName`), like the rest of P9.
+
+### Autonomous decisions
+
+12. **The demo case is an existing run, not a seeded investigation.** Creating
+    an investigation row would have needed either a backend write the rules do
+    not allow or a script the evaluator must run. The run is already sealed and
+    registered; linking to it by its canonical address needs neither.
