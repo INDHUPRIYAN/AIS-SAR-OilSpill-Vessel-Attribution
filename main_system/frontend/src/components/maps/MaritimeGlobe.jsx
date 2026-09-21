@@ -28,6 +28,12 @@ import "./maps.css";
 maplibregl.config.MAX_PARALLEL_IMAGE_REQUESTS = 4;
 export const SAR_TILE_MIN_ZOOM = 10;
 
+/** The run's quicklook. One URL for the whole app: the map and the analysis
+ *  panels show the same image, so it is fetched once and served from cache
+ *  rather than rendered three times from a 600 Mpx raster (BACKEND_GAPS G15). */
+export const quicklookUrl = (/** @type {string} */ runId) =>
+  `/api/runs/${encodeURIComponent(runId)}/scene_png?size=1024`;
+
 /** @typedef {import("./camera").Camera} Camera */
 /** @typedef {{runId: string, bbox: number[], opacity?: number, visible?: boolean}} SarSpec */
 
@@ -49,7 +55,7 @@ export function withSar(style, sar, origin) {
     ...style,
     sources: {
       ...style.sources,
-      "sar-quick": { type: "image", url: `${origin}/api/runs/${encodeURIComponent(sar.runId)}/scene_png`,
+      "sar-quick": { type: "image", url: `${origin}${quicklookUrl(sar.runId)}`,
         coordinates: [[w, n], [e, n], [e, s], [w, s]] },
       "sar-tiles": { type: "raster", tileSize: 256, bounds: sar.bbox, minzoom: SAR_TILE_MIN_ZOOM, maxzoom: 16,
         tiles: [`${origin}/api/tiles/${encodeURIComponent(sar.runId)}/{z}/{x}/{y}.png`] },
@@ -157,8 +163,26 @@ const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} *
   }), []);
   useImperativeHandle(ref, () => api, [api]);
 
+  /* Track the container every frame it changes size. The workspace collapses
+   * its panels over a 260 ms grid transition, and a map that only resizes when
+   * the transition ends leaves a band of stale pixels beside the canvas for a
+   * quarter of a second. */
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(() => mapRef.current?.getMap?.()?.resize());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // Reachable from the element, so a browser test can ask the map what it drew.
   useEffect(() => { if (wrapRef.current) /** @type {any} */ (wrapRef.current).__globe = api; }, [api]);
+
+  /* deck delivers a pick to the LAYER's own onClick/onHover; picking by hand
+   * here would silently retire every handler the layers already carry, so the
+   * dispatch is reproduced. A layer returning true has handled the event. */
+  const toLayer = (/** @type {string} */ kind, /** @type {any} */ info) =>
+    Boolean(info.layer?.props?.[kind]?.(info));
 
   /** @param {any} e */
   const infoAt = (e) => {
@@ -175,7 +199,7 @@ const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} *
       hoverFrame.current = 0;
       const info = infoAt(e);
       setHovering(Boolean(info.object));
-      onHover?.(info);
+      if (!toLayer("onHover", info)) onHover?.(info);
     });
   };
   useEffect(() => () => cancelAnimationFrame(hoverFrame.current), []);
@@ -222,7 +246,7 @@ const MaritimeGlobe = forwardRef(function MaritimeGlobe(/** @type {GlobeProps} *
         onMove={() => { const now = performance.now(); if (now - lastMove.current > 120) { lastMove.current = now; report(false); } }}
         onMoveEnd={() => report(true)}
         onLoad={() => { ready.current = true; const p = pending.current; pending.current = null; if (p) api.flyTo(p[0], Math.min(p[1], 900)); report(true); }}
-        onClick={(e) => onClick?.(infoAt(e))}
+        onClick={(e) => { const info = infoAt(e); if (!toLayer("onClick", info)) onClick?.(info); }}
         onMouseMove={handleMove}
         onMouseOut={() => { setHovering(false); onHover?.({ object: null, layer: null, coordinate: undefined }); }}
       >

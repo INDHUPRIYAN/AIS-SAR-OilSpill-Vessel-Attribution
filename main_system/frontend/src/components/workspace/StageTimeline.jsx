@@ -14,7 +14,7 @@
 import { useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, Clapperboard, Loader2, Pause, Play, SkipBack, SkipForward, Square, StepForward } from "lucide-react";
 
-import { CHIPS, STAGES, STAGE_INDEX } from "../../lib/stages";
+import { CHIPS, CHIP_STEPS, STAGES, STAGE_INDEX } from "../../lib/stages";
 import { BEATS, BEAT_CHIPS } from "../../lib/cinematic";
 import { fmtUtc, fmtRel } from "../../lib/replay";
 
@@ -165,14 +165,15 @@ export default function StageTimeline({
       <div className="tl-top">
         <span className="tl-title">{cine?.active ? "Investigation timeline" : title}</span>
         <div className="tl-chips" data-testid="stage-chips">
-          {CHIPS.map((chip) => {
+          {CHIP_STEPS.map(({ id: chip, label }, i) => {
             const st = chipState(chip);
             const t = chipClock(chip);
             return (
               <button key={chip} className={`tl-chip tl-chip-${st} ${activeChip === chip ? "on" : ""} ${activeChip === chip && cine?.active ? "live" : ""}`}
                 onClick={() => onStage(chipStage(chip))} data-testid={`chip-${chip.toLowerCase()}`}
+                aria-current={activeChip === chip ? "step" : undefined}
                 title={t ? `completed ${fmtUtc(t)}` : st === "pending" ? "not reached" : st}>
-                {chip}
+                <span className="tl-chip-n mono">{i + 1}</span>{label}
               </button>
             );
           })}

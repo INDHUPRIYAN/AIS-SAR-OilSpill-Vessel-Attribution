@@ -15,7 +15,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Calendar, ChevronRight, Download, FileText, Filter, Loader2, Menu, Pencil,
+  Calendar, ChevronRight, Download, FileText, Loader2, Menu, Pencil,
   Play, RotateCcw, Search, Square, Upload,
 } from "lucide-react";
 
@@ -66,7 +66,7 @@ function CheckRow({ on, onChange, label, disabled, title, testid }) {
 /* ------------------------------------------------------- acquisition ---- */
 
 export function AcquisitionPanel({
-  q, onQ, params, onParams, aisOn, onAisOn, spatial, onSpatial, zones, aois,
+  q, onQ, params, onParams, spatial, onSpatial, zones, aois,
   onSearch, searching, onClear, results, catalogue, selected, onSelect, searchError,
   onUploadGeojson, drawActive, canCreate,
 }) {
@@ -105,27 +105,6 @@ export function AcquisitionPanel({
         <span className="ctl-date"><input type="date" value={p.start} onChange={(e) => set("start", e.target.value)} data-testid="param-start" /><Calendar size={13} /></span>
         <span className="ctl-date"><input type="date" value={p.end} onChange={(e) => set("end", e.target.value)} data-testid="param-end" /><Calendar size={13} /></span>
       </div>
-
-      <div className="ctl-sep" />
-      <div className="ctl-row-title">
-        <span className="ctl-title sm">AIS Trajectories</span>
-        <span className={`switch-track ${aisOn.tracks ? "on" : ""}`} onClick={() => onAisOn({ ...aisOn, tracks: !aisOn.tracks })}><span className="switch-knob" /></span>
-      </div>
-      <select value={aisOn.window} onChange={(e) => onAisOn({ ...aisOn, window: e.target.value })}
-        title="Historical AIS is read per run from the archive that covers the origin window; live AIS depends on receiver coverage.">
-        <option value="run">Show AIS (run window)</option>
-        <option value="live">Show live AIS (coverage permitting)</option>
-      </select>
-      <button className="ctl-link" onClick={() => onAisOn({ ...aisOn, filterOpen: !aisOn.filterOpen })}>
-        <Filter size={13} /> Filter vessels
-      </button>
-      {aisOn.filterOpen && (
-        <div className="ctl-sub">
-          <CheckRow on={aisOn.ranked} onChange={(v) => onAisOn({ ...aisOn, ranked: v })} label="Ranked candidates" />
-          <CheckRow on={aisOn.background} onChange={(v) => onAisOn({ ...aisOn, background: v })} label="Background traffic" />
-          <CheckRow on={aisOn.excluded} onChange={(v) => onAisOn({ ...aisOn, excluded: v })} label="Excluded vessels (dimmed)" />
-        </div>
-      )}
 
       <div className="ctl-sep" />
       <Head title="Scene Parameters" />
@@ -260,11 +239,6 @@ export function AnalysisPanel({
   return (
     <div className="ctl" data-testid="control-panel" data-mode="analysis">
       <Head title="Scene Analysis" />
-      <Label>Search</Label>
-      <div className="ctl-search">
-        <input value={sm.scene_id ? "Sentinel-1" : ""} readOnly placeholder="Search scenes…" />
-        <Search size={15} />
-      </div>
       {(invs?.length > 1 || !runId) && (
         <>
           <Label>Investigation</Label>

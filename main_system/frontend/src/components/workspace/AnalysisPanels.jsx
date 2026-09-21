@@ -22,6 +22,7 @@ import { sourceBadge } from "./palette";
 import { fmtTile } from "../../lib/stages";
 import { originEstimate } from "../../lib/drift";
 import { bearingDeg, haversineKm, sampleField } from "../../lib/replay";
+import { quicklookUrl } from "../maps/MaritimeGlobe";
 
 /* --------------------------------------------------------------- shared -- */
 
@@ -56,12 +57,17 @@ function ProvBadge({ source }) {
 
 /** A run image that says so when the run holds no such raster. */
 function RunImage({ src, alt, overlay, caption, testid }) {
-  const [failed, setFailed] = useState(false);
+  // A quicklook of a 600 Mpx scene takes tens of seconds and can lose a race
+  // with the map asking for the same thing. One retry separates "slow" from
+  // "this run has no raster", which is what the caption then claims.
+  const [attempt, setAttempt] = useState(0);
+  const failed = attempt > 1;
   return (
     <figure className="ap-img" data-testid={testid}>
       {failed ? <div className="ap-img-none">Not available for this run</div> : (
         <div className="ap-img-box">
-          <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />
+          <img key={attempt} src={attempt ? `${src}${src.includes("?") ? "&" : "?"}retry=${attempt}` : src}
+            alt={alt} loading="lazy" onError={() => setAttempt((a) => a + 1)} />
           {overlay && <img className="ap-img-over" src={overlay} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} />}
         </div>
       )}
@@ -85,8 +91,8 @@ export function SegmentationPanel({ ctx }) {
       <Head title="Oil-Slick Segmentation" badge={<ProvBadge source={p?.source} />} />
       {runId && (
         <div className="ap-imgrow">
-          <RunImage src={`/api/runs/${runId}/scene_png?size=512`} alt="SAR scene" caption="SAR · σ⁰ dB (model input)" testid="seg-sar" />
-          <RunImage src={`/api/runs/${runId}/scene_png?size=512`} overlay={`/api/runs/${runId}/mask_png`} alt="Segmentation mask"
+          <RunImage src={quicklookUrl(runId)} alt="SAR scene" caption="SAR · σ⁰ dB (model input)" testid="seg-sar" />
+          <RunImage src={quicklookUrl(runId)} overlay={`/api/runs/${runId}/mask_png`} alt="Segmentation mask"
             caption="Segmentation mask (raw_mask.tif)" testid="seg-mask" />
         </div>
       )}

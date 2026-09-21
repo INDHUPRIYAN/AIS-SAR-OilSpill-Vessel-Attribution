@@ -141,3 +141,54 @@ works with every external host blocked). Lint ratchet 88 → 83.
   unit-tested but first mounted in P3.
 - Camera in the URL for the workspace (P3).
 - Route-level code splitting: bundle is one 4.07 MB chunk (P9).
+
+---
+
+## P3 — Investigation workspace: one surface, the case in view, honest progress
+
+### Before → after
+
+| | Before | After |
+|---|---|---|
+| Map surfaces in the workspace | two: a deck `_GlobeView` stage and a deck+MapLibre mercator map, opacity-crossfaded, two WebGL contexts, two cameras | **one** `MaritimeGlobe`. "Globe" and "Map" are the same camera at different zooms |
+| The globe beat | warm a second canvas, fly it, cross-fade, hand the camera over with a hardcoded ±3°/±2° box | two flights of one camera: out to orbit, then down to the scene |
+| SAR raster | deck `TileLayer`, `minZoom: 0` — asking the tile server for z0–z9 tiles that take 30–120 s each | the engine's two-source layer: run quicklook below z10, tiles above, one shared URL with the analysis panels |
+| Case summary | title + scene id | sticky fact strip — spill area, age ± confidence, origin ± km, top candidate — each present only if the run produced it, plus a **Case brief** button |
+| `CaseBrief.jsx` | 245 lines, fully unit-tested, mounted nowhere | the **Brief** context, offered on every stage of the right panel |
+| Stepper | `SCENE DETECTION GEOMETRY DRIFT VESSELS ATTRIBUTION` | numbered: Scene · Detection · Characterise · Hindcast → Origin · AIS · Attribution → Report |
+| Run progress | `SCANNING SAR SCENE · 73%` — the presentation's animation clock, read as detector progress | `stage 3 of 5`, from `/api/jobs/{id}`; the sweep says only `SCANNING SAR SCENE` |
+| Stage updates | poll every 2 s (a 4 s stage looked instantaneous) | SSE via `lib/useRunEvents` — written, tested and unused since it was added — with the poll as its stated fallback |
+
+### Fixed from the functionality matrix
+
+Rows 8, 9, 12, 13, 14, 16, 21, 22: the five AIS acquisition controls that wrote
+to a state nothing read, the read-only "Search" box, the fake percentage, the
+discarded globe clicks, the dead `sarStretch` prop, orphaned `CaseBrief`,
+orphaned `useRunEvents`.
+
+### Autonomous decisions
+
+1. **Stepper labels, not ids.** The brief's six steps are `Detection →
+   Characterize → Hindcast → Origin → AIS → Report`. Hindcast and Origin are
+   one pipeline stage (the hindcast is *how* the origin is found), as are
+   attribution and report. The six chips keep their stage ids (and so their
+   test ids) and read `Scene · Detection · Characterise · Hindcast → Origin ·
+   AIS · Attribution → Report`.
+2. **`GlobeStage.jsx` deleted** rather than kept as a second surface: with one
+   engine there is nothing for it to do.
+3. **One quicklook URL** (`scene_png?size=1024`) for the map and the analysis
+   panels. Three concurrent renders of a 600 Mpx raster made the panel images
+   fail; e2e W2 caught it. `RunImage` now retries once, so "not available for
+   this run" means absent rather than slow.
+4. **`ResizeObserver` → `map.resize()`** in the engine: the workspace collapses
+   its panels over a 260 ms grid transition and MapLibre's own resize left a
+   band of stale pixels for a quarter of a second (e2e W1 caught it).
+
+### Deferred
+
+- `LayerControl` / `TimeController` still coexist with the workspace's own
+  `LayerPanel` and time rail; binding the workspace to `TimeContext` is P4,
+  where the hindcast animation needs it.
+- `CommandMap` (the `/incident` replay map) is still a second mercator mount —
+  it retires with that route in P7.
+- Workspace camera in the URL (P4, with the time position).

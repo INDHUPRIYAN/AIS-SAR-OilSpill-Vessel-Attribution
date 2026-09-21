@@ -50,7 +50,21 @@ export const STAGES = [
 ];
 
 export const STAGE_INDEX = Object.fromEntries(STAGES.map((s, i) => [s.id, i]));
-export const CHIPS = ["SCENE", "DETECTION", "GEOMETRY", "DRIFT", "VESSELS", "ATTRIBUTION"];
+/* The six steps of the workflow, in order. `id` is what a stage carries and
+ * what the tests address; `label` is what the analyst reads. Two steps cover
+ * a pair each -- a hindcast IS how the origin is found, and the report is
+ * composed from the attribution -- so the six chips are the six decisions,
+ * not the twelve pipeline stages behind them. */
+export const CHIP_STEPS = [
+  { id: "SCENE", label: "Scene" },
+  { id: "DETECTION", label: "Detection" },
+  { id: "GEOMETRY", label: "Characterise" },
+  { id: "DRIFT", label: "Hindcast → Origin" },
+  { id: "VESSELS", label: "AIS" },
+  { id: "ATTRIBUTION", label: "Attribution → Report" },
+];
+
+export const CHIPS = CHIP_STEPS.map((c) => c.id);
 
 export function stageById(id) {
   return STAGES[STAGE_INDEX[id]] || STAGES[0];

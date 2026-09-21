@@ -18,17 +18,12 @@
  * the SAR raster becomes the de-facto basemap, which is the offline rule.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import DeckGL from "@deck.gl/react";
-import { WebMercatorViewport } from "@deck.gl/core";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  GeoJsonLayer, ScatterplotLayer, PathLayer, PolygonLayer, BitmapLayer,
+  GeoJsonLayer, ScatterplotLayer, PathLayer, PolygonLayer,
   TextLayer,
 } from "@deck.gl/layers";
-import { TileLayer } from "@deck.gl/geo-layers";
 import { PathStyleExtension } from "@deck.gl/extensions";
-import { Map as MapGL } from "react-map-gl/maplibre";
-import "maplibre-gl/dist/maplibre-gl.css";
 
 import { WS } from "./palette";
 import {
@@ -37,35 +32,25 @@ import {
 import { segments as measureSegments } from "../../lib/geodesy";
 import { originEstimate, vectorArrows } from "../../lib/drift";
 import { gateOf } from "../../lib/cinematic";
+import MaritimeGlobe from "../maps/MaritimeGlobe";
 
 const span = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
 
 const dashExt = [new PathStyleExtension({ dash: true })];
 const CHARSET = "auto";
 
-const TILES = {
-  satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  geographic: "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+/* The workspace names a basemap after the ANALYSIS it belongs to -- the drift
+ * stage wants satellite, the tiling stage wants a plain chart. Those names map
+ * onto the three real basemaps the one engine offers (components/maps/basemaps);
+ * "sar" and "environmental" are the dark chart with the run's own raster or
+ * forcing vectors over it, which is what made them distinct in the first place. */
+export const BASEMAP_FOR = {
+  satellite: "satellite",
+  geographic: "geopolitical",
+  maritime: "dark",
+  sar: "dark",
+  environmental: "dark",
 };
-
-/** MapLibre style for a basemap kind. */
-export function basemapStyle(kind) {
-  if (kind === "maritime") return "https://tiles.openfreemap.org/styles/dark";
-  const raster = TILES[kind];
-  return {
-    version: 8,
-    sources: raster ? { base: { type: "raster", tileSize: 256, tiles: [raster] } } : {},
-    layers: [
-      { id: "bg", type: "background", paint: { "background-color": "#070c16" } },
-      ...(raster ? [{
-        id: "base", type: "raster", source: "base",
-        paint: kind === "satellite"
-          ? { "raster-opacity": 0.95, "raster-saturation": -0.2, "raster-brightness-max": 0.9 }
-          : { "raster-opacity": 0.75, "raster-saturation": -0.55, "raster-brightness-max": 0.8 },
-      }] : []),
-    ],
-  };
-}
 
 export const BASEMAPS = [
   { id: "satellite", label: "Satellite" },
@@ -140,7 +125,7 @@ function partialRing(ring, frac) {
  *   dimOthers    attribution: everything but the selected track subdued
  */
 export default function WorkspaceMap({
-  view, onViewChange, show, layers, timeMs, sceneT0, runId, sarStretch,
+  view, onViewChange, show, layers, timeMs, sceneT0, runId,
   selectedMmsi, onSelect, onHover, maxStep, measure, forcing,
   basemap = "satellite", onCursor, onViewport, tiles, aoi, footprints,
   draw, candidateLabels = false, dimOthers = false, onClickMap, reveal = null,
@@ -148,7 +133,33 @@ export default function WorkspaceMap({
   const { sceneMeta, slick, origin, forecast, vessels, suspects, detect } = layers;
   const [pinned, setPinned] = useState(null);
   const hover = (info) => onHover?.(info ?? pinned);
-  const box = useRef(null);
+  const globe = useRef(null);
+
+  /* The map owns its camera; `view` is a COMMAND channel. A view the parent
+   * built (a stage flight, a zoom button) is flown; a view that is only the
+   * map's own report coming back is tagged `__echo` and ignored, so a report
+   * from the middle of a flight cannot cancel the flight. */
+  const initialCamera = useRef({
+    longitude: view?.longitude ?? 80.32, latitude: view?.latitude ?? 13.05, zoom: view?.zoom ?? 5.5,
+  });
+  useEffect(() => {
+    if (!view || view.__echo) return;
+    globe.current?.flyTo(view, view.transitionDuration ?? 0);
+  }, [view]);
+
+  const handleCamera = useCallback((camera, info) => {
+    onViewChange?.({ viewState: { ...camera, __echo: true } });
+    const map = globe.current?.getMap?.();
+    if (!map || !info?.end) return;
+    const el = map.getContainer();
+    // What the parent needs to anchor HTML callouts to map points. A plain
+    // object rather than a WebMercatorViewport: the projection is the map's
+    // now, and on the globe there is no mercator viewport to hand out.
+    onViewport?.({
+      width: el.clientWidth, height: el.clientHeight,
+      project: (lonlat) => globe.current?.project(lonlat) || null,
+    });
+  }, [onViewChange, onViewport]);
   const rv = reveal || {};
   const slickP = slick?.features?.[0]?.properties;
   const slickC = slickP?.centroid || null;
@@ -160,25 +171,6 @@ export default function WorkspaceMap({
     return m;
   }, [suspects]);
 
-  /* Projection for HTML callouts: the parent anchors boxes to map points. */
-  useEffect(() => {
-    if (!onViewport || !box.current) return undefined;
-    const el = box.current;
-    const emit = () => {
-      const { width, height } = el.getBoundingClientRect();
-      if (!width || !height) return;
-      try {
-        onViewport(new WebMercatorViewport({ ...view, width, height }));
-      } catch { /* a transient view state without zoom; skip this frame */ }
-    };
-    emit();
-    const ro = new ResizeObserver(emit);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [view, onViewport]);
-
-  const style = useMemo(
-    () => basemapStyle(basemap === "environmental" ? "geographic" : basemap), [basemap]);
 
   /* vessels_geojson features -> track objects with per-fix epoch times */
   const tracks = useMemo(() => (vessels?.features ?? []).map((f) => {
@@ -228,28 +220,11 @@ export default function WorkspaceMap({
    * Tiled, not a single stretched preview, so the map reaches native 10 m
    * resolution. `sarStretch` is passed through to the server so what is drawn
    * is what the segmenter saw. */
-  if (show.sar && runId) {
-    const stretch = sarStretch
-      ? `?db_min=${sarStretch[0]}&db_max=${sarStretch[1]}` : "";
-    deck.push(new TileLayer({
-      id: "ws-sar-tiles",
-      data: `/api/tiles/${runId}/{z}/{x}/{y}.png${stretch}`,
-      tileSize: 256,
-      minZoom: 0,
-      maxZoom: 16,
-      opacity: (basemap === "sar" ? 1 : 0.9) * (rv.sar ?? 1),
-      loadOptions: { fetch: { credentials: "include" } },
-      renderSubLayers: (props) => {
-        const { boundingBox } = props.tile;
-        return new BitmapLayer(props, {
-          data: null,
-          image: props.data,
-          bounds: [boundingBox[0][0], boundingBox[0][1],
-                   boundingBox[1][0], boundingBox[1][1]],
-        });
-      },
-    }));
-  }
+  /* The SAR raster is not a deck layer any more: the tile server reads the
+   * full-resolution scene for every tile and has no overviews (~30 s a tile at
+   * z8, measured -- BACKEND_GAPS G15), so a deck TileLayer at minZoom 0 asks
+   * for tiles that will not arrive. MaritimeGlobe draws the run quicklook
+   * below z10 and the tile pyramid above it, with a loading state. */
 
   /* --------------------------------------------------------- tile grid --
    * The grid the detector actually walked (raster shape / model tile size),
@@ -1091,37 +1066,43 @@ export default function WorkspaceMap({
     }));
   }
 
+  const crosshair = Boolean(measure?.active || draw?.active);
+
   return (
-    <div ref={box} style={{ position: "absolute", inset: 0 }}>
-      <DeckGL
-        viewState={view}
-        onViewStateChange={onViewChange}
-        controller={{ dragRotate: true, doubleClickZoom: !(measure?.active || draw?.active) }}
-        layers={deck}
-        style={{ position: "absolute", inset: 0 }}
-        getCursor={({ isHovering }) => (measure?.active || draw?.active ? "crosshair"
-          : isHovering ? "pointer" : "grab")}
-        onHover={(i) => {
-          if (i.coordinate) onCursor?.({ lon: i.coordinate[0], lat: i.coordinate[1] });
-          if (draw?.active && i.coordinate) draw.onCursor?.(i.coordinate);
-        }}
-        onClick={(i) => {
-          // While measuring or drawing, a click is a vertex -- including a
-          // click that lands on a vessel. Silently selecting the vessel
-          // instead would drop the point the analyst just placed.
-          if (measure?.active) {
-            if (i.coordinate) measure.onAddPoint(i.coordinate);
-            return;
-          }
-          if (draw?.active) {
-            if (i.coordinate) draw.onAddPoint(i.coordinate);
-            return;
-          }
-          if (!i.object) { setPinned(null); onClickMap?.({ coordinate: i.coordinate }); }
-        }}
-      >
-        <MapGL mapStyle={style} attributionControl={false} />
-      </DeckGL>
-    </div>
+    <MaritimeGlobe
+      ref={globe}
+      testid="globe"
+      basemap={BASEMAP_FOR[basemap] || "satellite"}
+      layers={deck}
+      sar={show.sar && runId && bbox
+        ? { runId, bbox, opacity: (basemap === "sar" ? 1 : 0.9) * (rv.sar ?? 1) }
+        : null}
+      initialCamera={initialCamera.current}
+      onCameraChange={handleCamera}
+      cursor={crosshair ? "crosshair" : undefined}
+      onHover={(i) => {
+        if (i.coordinate) onCursor?.({ lon: i.coordinate[0], lat: i.coordinate[1] });
+        if (draw?.active && i.coordinate) draw.onCursor?.(i.coordinate);
+        if (!i.object) hover(null);
+      }}
+      onClick={(i) => {
+        // While measuring or drawing, a click is a vertex -- including a
+        // click that lands on a vessel. Silently selecting the vessel
+        // instead would drop the point the analyst just placed.
+        if (measure?.active) {
+          if (i.coordinate) measure.onAddPoint(i.coordinate);
+          return;
+        }
+        if (draw?.active) {
+          if (i.coordinate) draw.onAddPoint(i.coordinate);
+          return;
+        }
+        // A pick reached its own layer's handler already; this is the
+        // "clicked open water" case.
+        if (i.object) return;
+        setPinned(null);
+        onClickMap?.({ coordinate: i.coordinate });
+      }}
+    />
   );
 }

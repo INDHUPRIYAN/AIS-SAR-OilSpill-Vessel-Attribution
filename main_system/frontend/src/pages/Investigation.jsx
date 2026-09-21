@@ -31,7 +31,6 @@ import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2 }
 
 import WorkspaceMap from "../components/workspace/WorkspaceMap";
 import MapChrome from "../components/workspace/MapChrome";
-import GlobeStage from "../components/workspace/GlobeStage";
 import { AcquisitionPanel, AnalysisPanel } from "../components/workspace/ControlPanel";
 import RightPanel from "../components/workspace/RightPanel";
 import StageTimeline from "../components/workspace/StageTimeline";
@@ -42,6 +41,7 @@ import { useLandGeometry } from "../components/globe/GlobeScene";
 import { landShare, validateSlick } from "../lib/geovalidate";
 import { sourceBadge } from "../components/workspace/palette";
 import { api, useApi, fmt } from "../lib/api";
+import { useRunEvents } from "../lib/useRunEvents";
 import { hasRole, useSession } from "../lib/session";
 import { useRegisterCommands, useRunInContext } from "../lib/shell";
 import { fmtUtc } from "../lib/replay";
@@ -61,12 +61,17 @@ const LAYER_STAGE = {
 };
 
 const isoDay = (d) => new Date(d).toISOString().slice(0, 10);
+
+/** Strip the map's own report marker, so a derived view reads as a command. */
+const stripEcho = ({ __echo, ...v }) => v;
 const FLY = { transitionDuration: 900, transitionInterpolator: new FlyToInterpolator() };
 
 /** Fit a bbox in the current viewport size, with an eased flight. */
 const CUT = { transitionDuration: 0, transitionInterpolator: undefined };
 
-function fitView(view, size, bbox, pad = 70, motion = FLY) {
+function fitView(viewIn, size, bbox, pad = 70, motion = FLY) {
+  // A camera the map reported is tagged; a camera built here is a command.
+  const { __echo, ...view } = viewIn;
   if (!bbox || !size?.width) return { ...view, longitude: (bbox?.[0] + bbox?.[2]) / 2 || view.longitude, latitude: (bbox?.[1] + bbox?.[3]) / 2 || view.latitude, ...motion };
   try {
     const vp = new WebMercatorViewport({ ...view, width: size.width, height: size.height });
@@ -187,8 +192,6 @@ export default function Investigation() {
    * polling -- so the next flight from orbit starts without the second WebGL
    * context compiling its shaders again on the click. It is never mounted
    * ahead of use: a second context is not free on every workspace visit. */
-  const [globeWarm, setGlobeWarm] = useState(params.get("new") === "1");
-  const [globeReset, setGlobeReset] = useState(null);
   /* The two workspace sidebars collapse independently of each other and of
    * the app's navigation rail; the map takes the freed width. Remembered per
    * browser, because it is a preference about the desk, not about a run. */
@@ -205,7 +208,6 @@ export default function Investigation() {
   const [q, setQ] = useState("");
   const [acq, setAcq] = useState({ mission: "S1", product: "GRD", polarisation: "", orbit: "",
     start: isoDay(Date.now() - 30 * 86400e3), end: isoDay(Date.now()) });
-  const [aisOn, setAisOn] = useState({ tracks: true, window: "run", filterOpen: false, ranked: true, background: true, excluded: true });
   const [spatial, setSpatial] = useState({ mode: "draw", bbox: null, zoneId: "", aoiId: "" });
   const [drawPoints, setDrawPoints] = useState([]);
   const [drawCursor, setDrawCursor] = useState(null);
@@ -213,8 +215,6 @@ export default function Investigation() {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
   const [selectedScene, setSelectedScene] = useState(null);
-  const [globeFocus, setGlobeFocus] = useState(null);
-  const returnToMap = useRef(false);
 
   /* Precedence: a run the page itself produced (replay / just started) wins,
    * then the deep-linked run, then the investigation's latest. */
@@ -254,6 +254,30 @@ export default function Investigation() {
     }
   }, [invId, runId, toast]);
 
+  /* Stage transitions over SSE (lib/useRunEvents), with the status poll below
+   * as the fallback it was written to replace. At a 2 s poll a 4 s stage looks
+   * instantaneous; the stream reports the transition when it happens and says
+   * which transport it is using. */
+  const runEvents = useRunEvents(running ? runId : null,
+    { onEnd: () => setRunning(false) });
+  const eventBeat = runEvents.stages.length
+    ? `${runEvents.stages.length}:${runEvents.stages[runEvents.stages.length - 1]?.status}` : "";
+
+  /* The pipeline's own progress. `/api/jobs/{id}` counts stages the server has
+   * finished; nothing reports progress WITHIN a stage, so nothing claims it. */
+  const [progress, setProgress] = useState({ done: 0, total: 5, current: null });
+  useEffect(() => {
+    if (!running || !runId) return undefined;
+    let alive = true;
+    const read = () => api.getJob(`job-${runId}`)
+      .then((j) => { if (alive && j) setProgress({
+        done: j.stages_done ?? 0, total: j.stages_total || 5, current: j.current_stage || null }); })
+      .catch(() => {});
+    read();
+    const id = setInterval(read, 3000);
+    return () => { alive = false; clearInterval(id); };
+  }, [running, runId, eventBeat]);
+
   const statusSeq = useRef(0);
   useEffect(() => {
     if (!invId && !runId) return undefined;
@@ -279,9 +303,10 @@ export default function Investigation() {
       } catch { /* backend briefly away; keep polling */ }
     };
     tick();
-    const id = setInterval(tick, running ? 2000 : 10000);
+    // The stream is the trigger while it is up; the interval is the floor.
+    const id = setInterval(tick, running ? (runEvents.transport === "sse" ? 8000 : 2000) : 10000);
     return () => { alive = false; clearInterval(id); };
-  }, [invId, running, fetchLayer, runId]);
+  }, [invId, running, fetchLayer, runId, eventBeat, runEvents.transport]);
 
   useEffect(() => {
     if (!runId || loadedFor.current === runId) return;
@@ -502,7 +527,7 @@ export default function Investigation() {
         return b ? fitView(v, size, b, 70, motion) : v;
       }
       if (Array.isArray(target) && target.length === 4) return fitView(v, size, target, 70, motion);
-      if (Array.isArray(target) && target.length === 2) return { ...v, longitude: target[0], latitude: target[1], zoom: Math.max(v.zoom, 9), ...motion };
+      if (Array.isArray(target) && target.length === 2) return { ...stripEcho(v), longitude: target[0], latitude: target[1], zoom: Math.max(v.zoom, 9), ...motion };
       if (target?.bbox) return fitView(v, size, target.bbox, target.pad, motion);
       return v;
     });
@@ -607,20 +632,24 @@ export default function Investigation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cineCamKey]);
 
-  /* The globe beat: from orbit, fly to the area of interest, then crossfade
-   * into the 2D map at that spot (GlobeStage reports the landing). */
+  /* The globe beat: out to orbit, then down to the area of interest. One
+   * surface, so this is two flights of the same camera rather than a
+   * crossfade between two engines -- the Earth never jumps. */
   useEffect(() => {
     if (beatId !== "globe") return undefined;
     if (!sceneBbox) { setSurface("map"); setFlightDone(true); return undefined; }
-    setGlobeWarm(true);
-    setGlobeReset(Date.now());
+    const lon = (sceneBbox[0] + sceneBbox[2]) / 2;
+    const lat = (sceneBbox[1] + sceneBbox[3]) / 2;
     setSurface("globe");
     setFlightDone(false);
-    returnToMap.current = true;
-    const id = setTimeout(() => setGlobeFocus({
-      lon: (sceneBbox[0] + sceneBbox[2]) / 2, lat: (sceneBbox[1] + sceneBbox[3]) / 2, zoom: 5.5, ms: 1700, nonce: Date.now(),
-    }), 900);
-    return () => clearTimeout(id);
+    setView((v) => ({ ...stripEcho(v), longitude: lon, latitude: lat, zoom: 2.4, bearing: 0, pitch: 0,
+                      transitionDuration: 900 }));
+    const descend = setTimeout(() => {
+      setSurface("map");
+      setView((v) => ({ ...stripEcho(v), longitude: lon, latitude: lat, zoom: 5.5, transitionDuration: 1700 }));
+    }, 1100);
+    const landed = setTimeout(() => setFlightDone(true), 2900);
+    return () => { clearTimeout(descend); clearTimeout(landed); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [beatId]);
 
@@ -720,7 +749,6 @@ export default function Investigation() {
       setParams({ inv: created.id });
       touched.current = true;
       setStageId("scene");
-      setGlobeFocus(null);
       toast(`investigation ${created.id} created`, "ok");
     } catch (e) { toast(e.message || "could not create the investigation"); }
     finally { setBusy(null); }
@@ -739,7 +767,7 @@ export default function Investigation() {
   function selectScene(s) {
     setSelectedScene(s);
     if (s.bbox) {
-      if (surface === "globe") { returnToMap.current = true; setGlobeFocus({ lon: (s.bbox[0] + s.bbox[2]) / 2, lat: (s.bbox[1] + s.bbox[3]) / 2, zoom: 5.5 }); }
+      if (surface === "globe") setSurface("map");
       else flyTo(s.bbox);
     }
   }
@@ -853,15 +881,46 @@ export default function Investigation() {
   const scanPx = tilePx?.nw && tilePx?.se ? tilePx : scenePx?.nw && scenePx?.se ? scenePx : null;
   const timeShown = cineFrame?.timeMs ?? timeMs;
   const canPlay = Boolean(runId) && Boolean(layers.scene_meta || hasScene);
-  useEffect(() => { if (surface === "globe") setGlobeWarm(true); }, [surface]);
+
   const cineCtx = cine.active ? { active: true, beat: cine.beat, t: cine.t, reveal: cineFrame.reveal, hold: cine.hold, timeMs: cineFrame.timeMs } : { active: false };
+
+  /* The case in one line: only facts the run has actually produced. */
+  const caseFacts = useMemo(() => {
+    const out = [];
+    const sp = slickForMap?.features?.[0]?.properties;
+    const areas = (slickForMap?.features || []).map((f) => f.properties?.area_km2).filter((v) => v != null);
+    if (areas.length) {
+      const total = areas.reduce((a, b) => a + b, 0);
+      out.push({ id: "area", k: "Spill area", v: `${total.toFixed(1)} km²`,
+        title: areas.length > 1 ? `${areas.length} segmented regions, largest ${Math.max(...areas).toFixed(1)} km²` : undefined });
+    }
+    if (sp?.age_hours_estimate != null) {
+      out.push({ id: "age", k: "Age", v: `≈ ${Math.round(sp.age_hours_estimate)} h`,
+        title: `Confidence: ${(sp.age_confidence_label || "low").toUpperCase()} — ${sp.age_method || "damping heuristic"}` });
+    }
+    const est = originEstimate(layers.origin_cloud);
+    if (est?.center) {
+      out.push({ id: "origin", k: "Origin", mono: true,
+        v: `${est.center[1].toFixed(3)}°, ${est.center[0].toFixed(3)}°${est.radiusKm ? ` ± ${est.radiusKm.toFixed(2)} km` : ""}`,
+        title: est.radiusBasis || undefined });
+    } else if (judged.drift?.state === "done") {
+      out.push({ id: "origin", k: "Origin", v: "not localised" });
+    }
+    const top = (layers.suspects?.suspects || [])[0];
+    if (top) {
+      out.push({ id: "candidate", k: "Top candidate", mono: true,
+        v: `${top.name || top.mmsi}${top.score != null ? ` · ${Number(top.score).toFixed(2)}` : ""}`,
+        title: "Highest-ranked candidate, not a confirmed culprit" });
+    }
+    return out;
+  }, [slickForMap, layers.origin_cloud, layers.suspects, judged.drift?.state]);
 
   const ctx = {
     stage: stageId, panel: stage.panel, judged, layers, runRow, status, runId, inv, tilesInfo, tileGrid: grid, selectedTile,
     funnel, forcing, models, autoPreview, incident, decisions, reports, verify, aisStatus, selectedScene, sceneT0,
     selectedMmsi, onSelectMmsi: setSelectedMmsi, dossier, errors: layerErr, loaded: !runId, show, onShow,
     canRun, canPublish, busy, zones, users, incidentError, reportError, cine: cineCtx,
-    sub: subs[stageId] || null, forcingState, geo, onLand,
+    sub: subs[stageId] || null, forcingState, geo, onLand, runState,
     onCreateIncident, onDecision, onComposeReport, onSubmitReport, onPublishReport,
     actions: { loadScene, run: () => run({ present: true }), go, flyTo, play,
       sub: (st, id) => { cine.stop(); if (st !== stageId) gotoStage(st); setSubs((m) => ({ ...m, [st]: id })); } },
@@ -878,7 +937,7 @@ export default function Investigation() {
         </button>
         <div className="ws-side-body" hidden={leftOff}>
         {mode === "acquisition" ? (
-          <AcquisitionPanel q={q} onQ={setQ} params={acq} onParams={setAcq} aisOn={aisOn} onAisOn={setAisOn}
+          <AcquisitionPanel q={q} onQ={setQ} params={acq} onParams={setAcq}
             spatial={spatial} onSpatial={setSpatial} zones={zones} aois={aoisQ || []}
             onSearch={searchScenes} searching={searching} onClear={clearSearch} results={results}
             catalogue={catalogue} selected={selectedScene} onSelect={selectScene} searchError={searchError}
@@ -902,29 +961,42 @@ export default function Investigation() {
             <h1 className="ws-title" data-testid="ws-title">{headline.title}</h1>
             {headline.live && <span className="ws-ok running" data-testid="ws-live"><i className="ws-livedot" /> {cine.hold && cine.hold.need !== "flight" ? "Waiting on the pipeline" : "Analysing"}</span>}
             {headline.ok && <span className="ws-ok"><CheckCircle2 size={16} /> {headline.ok}</span>}
-            {runState === "running" && <span className="ws-ok running"><Loader2 size={14} className="ws-spin" /> Pipeline running · {stageRows.filter((s) => ["ok", "fallback", "mock"].includes(s.status)).length}/5 stages</span>}
+            {runState === "running" && (
+              <span className="ws-ok running" data-testid="run-progress">
+                <Loader2 size={14} className="ws-spin" />
+                {progress.current ? `${progress.current} · ` : ""}stage {progress.done + 1} of {progress.total}
+              </span>
+            )}
             {runId && <span className={`badge ${overall === "COMPLETE" ? "badge-ok" : overall === "RUNNING" ? "badge-warn" : overall === "FAILED-PARTIAL" ? "badge-danger" : overall === "CANCELLED" ? "badge-warn" : "badge-neutral"}`} data-testid="overall-status">{overall}</span>}
             {runRow && !runRow.investigation_id && <span className="badge badge-neutral" data-testid="unfiled-run" title="Produced outside the API and reconciled from its sealed manifest">UNFILED RUN</span>}
             {layers.scene_meta?.source && <span className={`badge badge-${sourceBadge(layers.scene_meta.source).tone}`} data-testid="scene-source-badge">scene {sourceBadge(layers.scene_meta.source).label}</span>}
           </div>
           {headline.sub && <div className="ws-sub">{headline.sub}</div>}
           {!headline.sub && runId && <div className="ws-sub mono" data-testid="scene-line">{layers.scene_meta?.scene_id ?? inv?.scene_id ?? runId}{layers.scene_meta?.acquired_utc && ` · ${fmtUtc(Date.parse(layers.scene_meta.acquired_utc))}`}</div>}
+          {runId && caseFacts.length > 0 && (
+            /* The case in one line, from whichever artefacts have landed. A
+               fact the run has not produced is absent rather than dashed in:
+               the analyst reads this strip to know where the case stands. */
+            <dl className="ws-facts" data-testid="case-facts">
+              {caseFacts.map((f) => (
+                <div key={f.k} className="ws-fact" title={f.title} data-testid={`fact-${f.id}`}>
+                  <dt>{f.k}</dt><dd className={f.mono ? "mono" : ""}>{f.v}</dd>
+                </div>
+              ))}
+              <button type="button" className="ws-fact-more" data-testid="open-brief"
+                onClick={() => { setRightOff(false); setSubs((m) => ({ ...m, [stageId]: "brief" })); }}>
+                Case brief
+              </button>
+            </dl>
+          )}
         </header>
 
         <div className="ws-map" data-testid="ws-map">
-          <AnimatePresence initial={false}>
-            {(surface === "globe" || globeWarm) && (
-              <motion.div key="globe" className="ws-surface" initial={{ opacity: 0 }} animate={{ opacity: surface === "globe" ? 1 : 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.6 }}
-                style={{ pointerEvents: surface === "globe" ? "auto" : "none" }} data-testid="globe-surface" data-shown={surface === "globe" ? "true" : "false"}>
-                <GlobeStage focus={globeFocus} footprint={selectedScene?.bbox || layers.scene_meta?.bbox || spatial.bbox}
-                  hidden={surface !== "globe"} resetNonce={globeReset}
-                  onCursor={setCursor} onFlown={() => { setFlightDone(true); if (!returnToMap.current) return; returnToMap.current = false; setSurface("map"); if (globeFocus) flyTo([globeFocus.lon - 3, globeFocus.lat - 2, globeFocus.lon + 3, globeFocus.lat + 2]); }}
-                  onPick={(ll) => { if (spatial.mode === "draw" && stageId === "acquisition") addDrawPoint([ll.lon, ll.lat]); }} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <motion.div className="ws-surface" animate={{ opacity: surface === "map" ? 1 : 0 }} transition={{ duration: 0.6 }}
-            style={{ pointerEvents: surface === "map" ? "auto" : "none" }}>
+          {/* One map. "Globe" and "Map" are the same surface at different
+              zooms -- MapLibre morphs the globe into a flat chart as the view
+              closes in -- so there is no second canvas to cross-fade to and
+              no camera to keep in sync. */}
+          <div className="ws-surface" data-testid="globe-surface" data-shown="true">
             <WorkspaceMap
               view={view} onViewChange={(e) => setView(e.viewState)}
               show={show} layers={{ sceneMeta: layers.scene_meta, slick: slickForMap, origin: layers.origin_cloud,
@@ -940,16 +1012,27 @@ export default function Investigation() {
               candidateLabels={cineFrame ? BEAT_INDEX[beatId] >= BEAT_INDEX.ais : ["ais", "attribution", "evidence"].includes(stageId)}
               dimOthers={cineFrame ? cineFrame.reveal.dimOthers : stageId === "attribution"}
               reveal={cineFrame?.reveal || null}
-              onClickMap={(i) => { if (i?.footprint) { const f = footprints.find((x) => x.id === i.footprint.id); const src = (results?.scenes || []).find((h) => h.product_id === f?.id); const loc = catalogue.find((c) => c.id === f?.id); if (src) selectScene({ key: `hit:${src.product_id}`, kind: "hit", ...src }); else if (loc) selectScene({ key: `local:${loc.id}`, kind: "local", ...loc }); } }}
+              onClickMap={(i) => {
+                if (spatial.mode === "draw" && stageId === "acquisition" && i?.coordinate) { addDrawPoint(i.coordinate); return; }
+                if (i?.footprint) { const f = footprints.find((x) => x.id === i.footprint.id); const src = (results?.scenes || []).find((h) => h.product_id === f?.id); const loc = catalogue.find((c) => c.id === f?.id); if (src) selectScene({ key: `hit:${src.product_id}`, kind: "hit", ...src }); else if (loc) selectScene({ key: `local:${loc.id}`, kind: "local", ...loc }); }
+              }}
             />
-          </motion.div>
+          </div>
 
-          <MapChrome view={view} onZoom={(d) => setView((v) => ({ ...v, zoom: Math.max(0.5, Math.min(18, (v.zoom || 5) + d)), transitionDuration: 250 }))}
-            onReset={() => { setView((v) => ({ ...v, bearing: 0, pitch: 0 })); flyTo("scene"); }}
+          <MapChrome view={view} onZoom={(d) => setView((v) => ({ ...stripEcho(v), zoom: Math.max(0.5, Math.min(18, (v.zoom || 5) + d)), transitionDuration: 250 }))}
+            onReset={() => { setView((v) => ({ ...stripEcho(v), bearing: 0, pitch: 0, transitionDuration: 400 })); flyTo("scene"); }}
             fullscreen={fullscreen} onFullscreen={() => setFullscreen((f) => !f)}
             basemap={basemap} onBasemap={(b) => { setBasemapOverride(b); if (b === "environmental") { onShow("wind", true); onShow("currents", true); } }}
-            surface={surface} onSurface={(s) => { returnToMap.current = false; setSurface(s); if (s === "globe") { const b = layers.scene_meta?.bbox || selectedScene?.bbox || spatial.bbox; if (b) setGlobeFocus({ lon: (b[0] + b[2]) / 2, lat: (b[1] + b[3]) / 2, zoom: 4.5 }); } }}
-            cursor={cursor} layersOpen={layersOpen} onLayers={() => setLayersOpen((o) => !o)} showBasemap={surface === "map"} />
+            surface={surface} onSurface={(s) => {
+              setSurface(s);
+              // The same map, pulled out until MapLibre draws it as a globe,
+              // or brought back down to the scene.
+              const b = layers.scene_meta?.bbox || selectedScene?.bbox || spatial.bbox;
+              const c = b ? [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2] : null;
+              if (s === "globe") setView((v) => ({ ...stripEcho(v), ...(c ? { longitude: c[0], latitude: c[1] } : {}), zoom: 2.6, ...FLY }));
+              else flyTo("scene");
+            }}
+            cursor={cursor} layersOpen={layersOpen} onLayers={() => setLayersOpen((o) => !o)} showBasemap />
 
           {/* the presentation's narration: what the system is doing, on the map */}
           {cineFrame && (
@@ -971,7 +1054,10 @@ export default function Investigation() {
             <div className="ws-scan" data-testid="scan-overlay"
               style={{ left: scanPx.nw[0], top: scanPx.nw[1], width: Math.max(40, scanPx.se[0] - scanPx.nw[0]), height: Math.max(40, scanPx.se[1] - scanPx.nw[1]) }}>
               <div className="ws-scan-band" style={{ top: `${4 + cine.t * 92}%` }} />
-              <div className="ws-scan-label mono">SCANNING SAR SCENE · {Math.round(cine.t * 100)}%</div>
+              {/* The sweep is the presentation's own clock, so it says what it
+                  is. It used to render that clock as "SCANNING · 73%", which
+                  read as detector progress the backend never reports. */}
+              <div className="ws-scan-label mono">SCANNING SAR SCENE</div>
             </div>
           )}
 
