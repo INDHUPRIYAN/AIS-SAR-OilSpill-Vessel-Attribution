@@ -836,3 +836,28 @@ Gate: lint 0 / 80, unit 245, e2e 35/35 (D1 timed out on `page.goto` once in the
 full run while the backend was busy with the preceding analysis test; passes
 alone in 28 s).
 
+---
+
+## Two right sidebars, a button each - 2026-09-21
+
+User correction to the entry above: the replay-style cards were stacked on top
+of the existing panels and read as "nothing changed". What was asked for is
+two separate sidebars and a button for each.
+
+- The right rail has two buttons. **Analysis** (`ws-right-collapse`, same test
+  id and behaviour as before) shows the panel the workspace always had,
+  restored to exactly that: no story cards above it, no summary under it.
+  **Replay view** (`ws-right-replay`) shows `ReplaySidebar`: the stage header
+  with an animated progress bar, the stage's animated card(s), the fixed
+  incident summary at the foot - Incident Replay's panel, in its accents (top
+  rank and evidence score in the alarm colour).
+- Pressing the button of the sidebar already showing collapses it; pressing
+  the other swaps, and opens if collapsed. The choice is remembered per browser.
+- Both read the same `ctx`: same run, same layers, same funnel, same selected
+  vessel (clicking a ranking row selects it on the map), same clock.
+
+Checked in a browser: default = analysis panel only; replay button = replay
+panel only, across attribution, vessels and drift; replay again = collapsed;
+analysis button = open with the analysis panel. Gate: lint 0 / 80, unit 245,
+e2e 35/35.
+

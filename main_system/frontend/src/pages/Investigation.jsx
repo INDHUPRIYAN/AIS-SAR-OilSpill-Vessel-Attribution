@@ -28,7 +28,7 @@ import { useWorkspaceParams } from "../lib/urls";
 import { AnimatePresence, motion } from "framer-motion";
 import MapHud from "../components/workspace/MapHud";
 import { FlyToInterpolator } from "@deck.gl/core";
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clapperboard, Info, Loader2, PanelRight } from "lucide-react";
 
 import WorkspaceMap from "../components/workspace/WorkspaceMap";
 import MapChrome from "../components/workspace/MapChrome";
@@ -232,6 +232,16 @@ function InvestigationWorkspace() {
   const stored = (k) => { try { return localStorage.getItem(k) === "1"; } catch { return false; } };
   const [leftOff, setLeftOff] = useState(() => stored("ot.ws.leftOff"));
   const [rightOff, setRightOff] = useState(() => stored("ot.ws.rightOff"));
+  /* Two right sidebars, one at a time: "analysis" is the panel the workspace
+   * always had; "replay" is Incident Replay's intelligence panel on the same
+   * live data. Each has its own button; pressing the one already showing
+   * collapses the sidebar, pressing the other swaps (and opens if collapsed). */
+  const [rightMode, setRightMode] = useState(() => { try { return localStorage.getItem("ot.ws.rightMode") === "replay" ? "replay" : "analysis"; } catch { return "analysis"; } });
+  const pickRight = (mode) => {
+    if (!rightOff && rightMode === mode) { setRightOff(true); return; }
+    setRightMode(mode); setRightOff(false);
+    try { localStorage.setItem("ot.ws.rightMode", mode); } catch { /* private mode */ }
+  };
   useEffect(() => { try { localStorage.setItem("ot.ws.leftOff", leftOff ? "1" : "0"); localStorage.setItem("ot.ws.rightOff", rightOff ? "1" : "0"); } catch { /* private mode */ } }, [leftOff, rightOff]);
   /* The analytical context shown on the right within each stage. */
   const [subs, setSubs] = useState({});
@@ -1023,7 +1033,7 @@ function InvestigationWorkspace() {
     funnel, forcing, models, autoPreview, incident, decisions, reports, verify, aisStatus, selectedScene, sceneT0,
     selectedMmsi, onSelectMmsi: setSelectedMmsi, dossier, errors: layerErr, loaded: !runId, show, onShow,
     canRun, canPublish, busy, zones, users, incidentError, reportError, cine: cineCtx,
-    sub: subs[stageId] || null, forcingState, geo, onLand, runState,
+    sub: subs[stageId] || null, forcingState, geo, onLand, runState, sidebarMode: rightMode,
     onCreateIncident, onDecision, onComposeReport, onSubmitReport, onPublishReport,
     actions: { loadScene, run: () => run({ present: true }), go, flyTo, play,
       sub: (st, id) => { cine.stop(); if (st !== stageId) gotoStage(st); setSubs((m) => ({ ...m, [st]: id })); } },
@@ -1314,9 +1324,14 @@ function InvestigationWorkspace() {
 
       {/* ------------------------------------------------- right panel ---- */}
       <aside className={`ws-right ${rightOff ? "off" : ""}`} data-testid="ws-right" data-collapsed={rightOff ? "true" : "false"}>
-        <button className="ws-collapse ws-collapse-r" onClick={() => setRightOff((v) => !v)} data-testid="ws-right-collapse"
-          aria-expanded={!rightOff} title={rightOff ? "Show the analysis panel" : "Hide the analysis panel: the map takes the space"}>
-          {rightOff ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
+        <button className={`ws-collapse ws-collapse-r ws-collapse-b ${!rightOff && rightMode === "replay" ? "on" : ""}`} onClick={() => pickRight("replay")} data-testid="ws-right-replay"
+          aria-pressed={!rightOff && rightMode === "replay"} title={!rightOff && rightMode === "replay" ? "Hide the replay-style panel" : "Replay-style panel: the step, its headline and rankings, animated"}>
+          <Clapperboard size={14} />
+        </button>
+        <button className={`ws-collapse ws-collapse-r ws-collapse-a ${!rightOff && rightMode === "analysis" ? "on" : ""}`} onClick={() => pickRight("analysis")} data-testid="ws-right-collapse"
+          aria-expanded={!rightOff} aria-pressed={!rightOff && rightMode === "analysis"}
+          title={!rightOff && rightMode === "analysis" ? "Hide the analysis panel: the map takes the space" : "Analysis panel: the full detail for this stage"}>
+          {rightOff ? <ChevronLeft size={15} /> : rightMode === "analysis" ? <ChevronRight size={15} /> : <PanelRight size={14} />}
         </button>
         {rightOff && <span className="ws-side-label">{stage.label}</span>}
         <div className="ws-side-body" hidden={rightOff}><RightPanel ctx={ctx} /></div>

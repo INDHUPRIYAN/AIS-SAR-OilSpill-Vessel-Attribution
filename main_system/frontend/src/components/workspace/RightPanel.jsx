@@ -39,7 +39,21 @@ export const defaultContext = (stage) => PER_STAGE[stage]?.[0]?.[0] ?? null;
 
 import { StoryHead, StorySummary } from "./StoryPanel";
 
+/** The second sidebar: Incident Replay's intelligence panel, on the
+ *  workspace's live context. Stage header, one animated card for the stage,
+ *  the fixed incident summary at the foot. Same backend, same selection, same
+ *  clock as the analysis sidebar; only the presentation differs. */
+export function ReplaySidebar({ ctx }) {
+  return (
+    <div className="rp rp-replay" data-testid="replay-sidebar" data-stage={ctx.stage}>
+      <StoryHead ctx={ctx} />
+      <StorySummary ctx={ctx} />
+    </div>
+  );
+}
+
 export default function RightPanel({ ctx }) {
+  if (ctx.sidebarMode === "replay") return <ReplaySidebar ctx={ctx} />;
   /* A stage with contexts of its own gains "Brief" at the end of its strip. A
    * stage without any keeps the panel it always had, with no strip -- until
    * the brief is opened (the header's "Case brief"), when a two-tab strip is
@@ -71,12 +85,6 @@ export default function RightPanel({ ctx }) {
   }
   return (
     <div className="rp" data-testid="right-panel" data-context={sub || ctx.panel}>
-      {/* Incident Replay's sidebar shape: where you are and what this step
-          does, one focused card, then (below the divider) the full analysis
-          panels, then the fixed summary. The presentation narrates itself, so
-          the story stands down while it plays. */}
-      {!ctx.cine?.active && sub !== "brief" && <StoryHead ctx={ctx} />}
-      {!ctx.cine?.active && sub !== "brief" && <div className="sp-divider" data-testid="story-divider"><span>Analysis detail</span></div>}
       {options && (
         <div className="rp-strip" role="tablist" data-testid="context-strip">
           {options.map(([id, label]) => (
@@ -86,7 +94,6 @@ export default function RightPanel({ ctx }) {
         </div>
       )}
       <div className="rp-body" key={sub || ctx.panel}>{body}</div>
-      {!ctx.cine?.active && sub !== "brief" && <StorySummary ctx={ctx} />}
     </div>
   );
 }

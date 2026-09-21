@@ -243,3 +243,21 @@
 .sp-step { padding-right: 46px; }            /* clear of the collapse button */
 .sp-summary { margin: 12px 10px 14px; }
 .sp-divider { padding: 0 10px; }
+
+/* ---- two right sidebars: a button each ------------------------------------ */
+.ws-collapse-b { right: 38px; }
+.ws-collapse.on { color: var(--accent); border-color: var(--accent-line); background: rgba(34, 211, 238, .1); }
+.ws-right.off .ws-collapse-b { top: 40px; left: 3px; right: auto; }
+.rp-strip { padding-right: 74px; }
+.sp-step { padding-right: 76px; }
+/* the replay-style sidebar: header, the stage's card(s), summary at the foot */
+.rp-replay { gap: 0; }
+.rp-replay .sp { flex: 1 0 auto; align-content: start; }
+.rp-replay .sp-summary { margin-top: auto; }
+/* Incident Replay's own accents: the top-ranked row and the evidence score in the alarm colour */
+.rp-replay .sp-rankrow.top { border-color: rgba(244, 63, 94, .45); background: rgba(244, 63, 94, .07); }
+.rp-replay .sp-rankrow.top .sp-rank-fill, .rp-replay .sp-rank-fill { background: var(--danger, #f43f5e); }
+.rp-replay .sp-rankrow.sel { box-shadow: inset 0 0 0 1px rgba(244, 63, 94, .7); }
+.sp-hero-big.danger { color: var(--danger, #f43f5e); }
+.rp-replay .sp-topline { color: var(--danger, #f43f5e); }
+.rp-replay .sp-v.accent { color: var(--danger, #f43f5e); }

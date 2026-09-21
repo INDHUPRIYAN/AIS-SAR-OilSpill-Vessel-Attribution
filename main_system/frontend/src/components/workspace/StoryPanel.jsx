@@ -78,7 +78,7 @@ function Evidence({ s, synthetic }) {
   return (
     <div className="panel sp-card" data-testid="sp-evidence">
       <div className="sp-topline"><Anchor size={13} /> <span>RANK #{s.rank} · WEIGHTED EVIDENCE SCORE</span></div>
-      <Hero big={sc(s.total_score)} name={s.vessel_name || `MMSI ${s.mmsi}`} sub="a score, not a probability" tone="accent" />
+      <Hero big={sc(s.total_score)} name={s.vessel_name || `MMSI ${s.mmsi}`} sub="a score, not a probability" tone="danger" />
       <Row k="MMSI" v={s.mmsi} />
       <Row k="Type" v={s.vessel_type} />
       <Row k="To origin region" v={s.evidence?.closest_approach_km != null ? `${n2(s.evidence.closest_approach_km, 1)} km` : null} />
@@ -91,7 +91,7 @@ function Evidence({ s, synthetic }) {
         <div key={k} className="sp-factor">
           <span className="sp-factor-n">{k.replace(/_/g, " ")}</span>
           <span className="sp-factor-t"><motion.span className="sp-factor-f" initial={{ width: 0 }} animate={{ width: `${Math.max(0, Math.min(1, v)) * 100}%` }}
-            transition={{ delay: 0.15 + i * 0.08, duration: 0.5 }} style={{ background: v > 0.65 ? "var(--accent)" : v > 0.35 ? "#d1a054" : "var(--ink-3, #55657c)" }} /></span>
+            transition={{ delay: 0.15 + i * 0.08, duration: 0.5 }} style={{ background: v > 0.65 ? "var(--danger, #f43f5e)" : v > 0.35 ? "var(--warn, #d1a054)" : "var(--ink-3, #55657c)" }} /></span>
           <span className="sp-factor-v mono">{sc(v)}</span>
         </div>
       ))}
@@ -287,7 +287,8 @@ export function StoryHead({ ctx }) {
           </div>
         </div>
         <div className="sp-step-blurb">{blurb(stageId, c)}</div>
-        <div className="sp-progress"><div className={`sp-progress-f ${state === "failed" ? "bad" : ""}`} style={{ width: `${progress * 100}%` }} /></div>
+        <div className="sp-progress"><motion.div key={stageId} className={`sp-progress-f ${state === "failed" ? "bad" : ""}`}
+          initial={{ width: 0 }} animate={{ width: `${progress * 100}%` }} transition={{ duration: 1.1, ease: "easeOut" }} /></div>
       </div>
       <AnimatePresence mode="wait">
         <motion.div key={`${stageId}:${ctx.sub || ""}`} {...fade} className="sp-body">
