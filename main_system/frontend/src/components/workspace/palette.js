@@ -6,11 +6,11 @@
  */
 
 export const WS = {
-  slick: [249, 115, 22],       // orange — detected slick mask (frames 10-15)
-  slickEdge: [255, 170, 80],   // bright orange outline of the mask
+  slick: [201, 98, 52],        // orange — detected slick mask (frames 10-15)
+  slickEdge: [232, 146, 96],   // bright orange outline of the mask
   geometry: [251, 191, 36],    // amber outline — ellipse/centroid/orientation
-  forecast: [245, 158, 11],    // amber — opacity by horizon
-  hindcast: [192, 38, 211],    // magenta/purple — particle cloud + ellipses
+  forecast: [209, 160, 84],    // amber — opacity by horizon
+  hindcast: [139, 128, 200],   // magenta/purple — particle cloud + ellipses
   origin: [226, 232, 240],     // white dashed — origin uncertainty ring (frames 12-15)
   vessel: [200, 214, 232],     // pale — background AIS track (frame 12: white/grey)
   candidate: [255, 255, 255],  // white, brighter — scored candidate

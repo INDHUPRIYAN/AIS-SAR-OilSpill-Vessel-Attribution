@@ -684,3 +684,30 @@ between the run's fixes (as the dots were), the 6 h wake length is a drawing
 choice and is named in the legend.
 
 Gate: lint 0 errors / 80 warnings, unit 245, e2e 35/35.
+
+---
+
+## Map story pass: no circling, chart colours, honest AIS - 2026-09-21
+
+User review of the attribution map: vessels circling, origin/forecast drawn in
+"toy cartoon" colours, square-cornered slick, no account of why real AIS was
+not used, and the picture did not tell the story.
+
+| Complaint | Cause (measured) | What was done |
+|---|---|---|
+| vessels circling on the spot | the synthetic generator's fishing track took distance `% total` over 5-8 waypoints, so each boat retraced one small closed polygon for the whole 36 h window | **generator fixed** (`ais_service/ais/generator.py`, own commit, own test): a tow with heading held within +/-70 deg of its course, which can bend but cannot close. Decoys were already straight lanes. Sealed runs keep the fleet they were made with; run `inv-837a0cc083-114549` is the same scene regenerated |
+| cartoon colours | every label was a solid block of saturated colour (yellow->red forecast ramp, magenta hindcast, orange slick), with glow paths and 17 px outlined arrowheads | one label style (light ink, dark plate, hairline border in the subject's colour), sentence case, 11.5 px; one muted hue per concept - rust slick, sand forecast, slate-violet hindcast; later horizons fade instead of turning red; glows removed; markers halved |
+| square slick borders | detector patch gate, not drawing - BACKEND_GAPS G17 | drawn outline corner-cut; numbers untouched |
+| why not real AIS | the run already records the decision and every archive it checked (`manifest.ais.detail`, `.considered`); nothing showed it | "Why real AIS was not used" in the vessel panel, from that record: the reason, each real archive and that it holds no vessel in this origin area and window |
+| labels stacked at the origin | slick, origin and window edge are 1-2 km apart | each label owns one side: origin upper-left, window edge lower-left, slick lower-right, forecast right |
+
+**Does the story read?** Checked on screenshots of the regenerated run, stage
+by stage. Drift: backtrack -> origin window opens T-6 h -> estimated origin ->
+detected slick at acquisition -> forecast +6 h, +12 h, one line of travel, no
+label touching another. Attribution: the #1 track runs through the origin ring
+with its closest-approach tie, other candidates are badged, the rest of the
+traffic is faint ships with wakes, and both the legend and the panel say the
+traffic is simulated and why.
+
+Gate: lint 0 errors / 80 warnings, unit 245, e2e 35/35, ais_service tests green.
+

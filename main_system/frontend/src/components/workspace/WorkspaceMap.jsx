@@ -50,6 +50,50 @@ const SHIP_ICON = {
     + '<path d="M12 1 C17 7 19 12 19 18 L19 33 Q19 35 17 35 L7 35 Q5 35 5 33 L5 18 C5 12 7 7 12 1 Z" fill="white"/></svg>')}`,
   width: 24, height: 36, anchorY: 18, mask: true,
 };
+/* One label style for every annotation on the map: light ink on a dark plate,
+ * a hairline border in the colour of the thing it names. The old labels were
+ * each a solid block of saturated colour, which is what made the map read as
+ * a poster rather than a chart. */
+const INK = [226, 232, 240, 255];
+const PLATE = [9, 14, 24, 230];
+const plate = (col, a = 1) => ({
+  fontFamily: "Inter, sans-serif", fontWeight: 600, characterSet: CHARSET,
+  getColor: [INK[0], INK[1], INK[2], Math.round(255 * a)],
+  background: true, getBackgroundColor: [PLATE[0], PLATE[1], PLATE[2], Math.round(PLATE[3] * a)],
+  getBorderColor: [...col, Math.round(190 * a)], getBorderWidth: 1, backgroundPadding: [7, 4, 7, 4],
+});
+
+/* Corner-cutting (Chaikin) on the DRAWN outline only. The detector gates its
+ * mask on a 32 px patch grid, so a slick that crosses a rejected patch comes
+ * back with a dead-straight edge and a square corner along the patch border
+ * (BACKEND_GAPS G17). Oil does not have corners; two passes round them by a
+ * few tens of metres. Area, length and every other number shown are still the
+ * backend's, measured on the unsmoothed mask. */
+function smoothRing(ring, passes = 2) {
+  let r = ring;
+  if (!r || r.length < 5) return r;
+  for (let k = 0; k < passes; k++) {
+    const out = [];
+    for (let i = 0; i < r.length - 1; i++) {
+      const [x1, y1] = r[i], [x2, y2] = r[i + 1];
+      out.push([0.75 * x1 + 0.25 * x2, 0.75 * y1 + 0.25 * y2], [0.25 * x1 + 0.75 * x2, 0.25 * y1 + 0.75 * y2]);
+    }
+    out.push(out[0]);
+    r = out;
+  }
+  return r;
+}
+function smoothSlick(fc) {
+  if (!fc?.features?.length) return fc;
+  const poly = (rings) => rings.map((r) => smoothRing(r));
+  return { ...fc, features: fc.features.map((f) => {
+    const g = f.geometry;
+    if (g?.type === "Polygon") return { ...f, geometry: { ...g, coordinates: poly(g.coordinates) } };
+    if (g?.type === "MultiPolygon") return { ...f, geometry: { ...g, coordinates: g.coordinates.map(poly) } };
+    return f;
+  }) };
+}
+
 /* How much of a background vessel's past is drawn behind it once candidates
  * are on the map. The fixes are the run's own; only the length is a choice. */
 const WAKE_MS = 6 * 3600 * 1000;
@@ -154,7 +198,8 @@ export default function WorkspaceMap({
   basemap = "satellite", onCursor, onViewport, tiles, aoi, footprints,
   draw, candidateLabels = false, dimOthers = false, onClickMap, reveal = null,
 }) {
-  const { sceneMeta, slick, origin, forecast, vessels, suspects, detect } = layers;
+  const { sceneMeta, slick: slickRaw, origin, forecast, vessels, suspects, detect } = layers;
+  const slick = useMemo(() => smoothSlick(slickRaw), [slickRaw]);
   const [pinned, setPinned] = useState(null);
   const hover = (info) => onHover?.(info ?? pinned);
   const globe = useRef(null);
@@ -390,10 +435,9 @@ export default function WorkspaceMap({
       deck.push(new TextLayer({
         id: "ws-hindcast-beyond-label", data: [{ pos: end }],
         getPosition: (d) => d.pos,
-        getText: () => `BACKTRACK LIMIT  T−${stepsOut[stepsOut.length - 1]} h\nexplored, outside the origin window`,
-        getSize: 11, getColor: [216, 180, 254, 215], fontFamily: "Inter, sans-serif", fontWeight: 600,
-        getTextAnchor: "middle", getAlignmentBaseline: "top", getPixelOffset: [0, 12], characterSet: CHARSET,
-        background: true, getBackgroundColor: [30, 8, 40, 190], backgroundPadding: [6, 3, 6, 3],
+        getText: () => `Backtrack limit  T−${stepsOut[stepsOut.length - 1]} h\noutside the origin window`,
+        getSize: 11, ...plate(WS.hindcast, 0.8),
+        getTextAnchor: "middle", getAlignmentBaseline: "top", getPixelOffset: [0, 12],
         updateTriggers: { getPosition: upto, getText: upto },
       }));
     }
@@ -420,9 +464,8 @@ export default function WorkspaceMap({
       }
       deck.push(new TextLayer({
         id: "ws-hindcast-heads", data: heads,
-        getPosition: (d) => d.pos, getText: () => "▲", getSize: 17, getAngle: (d) => d.ang,
-        getColor: [250, 232, 255, 255], fontFamily: "Segoe UI Symbol, sans-serif", characterSet: CHARSET,
-        outlineWidth: 2, outlineColor: [88, 12, 110, 255], fontSettings: { sdf: true },
+        getPosition: (d) => d.pos, getText: () => "▲", getSize: 11, getAngle: (d) => d.ang,
+        getColor: [...WS.hindcast, 255], fontFamily: "Segoe UI Symbol, sans-serif", characterSet: CHARSET,
         updateTriggers: { getPosition: upto },
       }));
       /* a labelled tick every six hours back */
@@ -431,46 +474,43 @@ export default function WorkspaceMap({
         const edge = stepsIn[stepsIn.length - 1];
         deck.push(new ScatterplotLayer({
           id: "ws-hindcast-winedge", data: [{ pos: posOf(edge) }],
-          getPosition: (d) => d.pos, getRadius: 7, radiusUnits: "pixels",
-          stroked: true, filled: true, lineWidthUnits: "pixels", getLineWidth: 2,
-          getFillColor: [...WS.hindcast, 255], getLineColor: [255, 255, 255, 255],
+          getPosition: (d) => d.pos, getRadius: 4.5, radiusUnits: "pixels",
+          stroked: true, filled: true, lineWidthUnits: "pixels", getLineWidth: 1.5,
+          getFillColor: [...PLATE], getLineColor: [...WS.hindcast, 255],
         }));
         deck.push(new TextLayer({
           id: "ws-hindcast-winedge-label", data: [{ pos: posOf(edge) }],
-          getPosition: (d) => d.pos, getText: () => `ORIGIN WINDOW STARTS  T−${edge} h`,
-          getSize: 12, getColor: [250, 232, 255, 255], fontFamily: "Inter, sans-serif", fontWeight: 700,
-          getTextAnchor: "end", getAlignmentBaseline: "center", getPixelOffset: [-14, 0], characterSet: CHARSET,
-          background: true, getBackgroundColor: [88, 12, 110, 235], backgroundPadding: [7, 4, 7, 4],
+          getPosition: (d) => d.pos, getText: () => `Origin window opens  T−${edge} h`,
+          getSize: 11.5, ...plate(WS.hindcast),
+          getTextAnchor: "end", getAlignmentBaseline: "top", getPixelOffset: [-12, 18],
         }));
       }
       deck.push(new ScatterplotLayer({
         id: "ws-hindcast-ticks", data: ticks,
-        getPosition: (d) => d.pos, getRadius: 1, radiusMinPixels: 6, radiusMaxPixels: 6,
-        stroked: true, filled: true, lineWidthUnits: "pixels", getLineWidth: 2,
-        getFillColor: [...WS.hindcast, 255], getLineColor: [255, 255, 255, 255],
+        getPosition: (d) => d.pos, getRadius: 1, radiusMinPixels: 3.5, radiusMaxPixels: 3.5,
+        stroked: true, filled: true, lineWidthUnits: "pixels", getLineWidth: 1.5,
+        getFillColor: [...PLATE], getLineColor: [...WS.hindcast, 255],
       }));
       deck.push(new TextLayer({
         id: "ws-hindcast-ticklabels", data: ticks,
         getPosition: (d) => d.pos, getText: (d) => `T−${d.k} h`,
-        getSize: 13, getColor: [250, 232, 255, 255], fontFamily: "JetBrains Mono, monospace", fontWeight: 700,
-        getTextAnchor: "start", getAlignmentBaseline: "center", getPixelOffset: [11, 0],
-        characterSet: CHARSET, background: true, getBackgroundColor: [40, 8, 52, 225], backgroundPadding: [5, 3, 5, 3],
+        getSize: 10.5, ...plate(WS.hindcast, 0.9), fontFamily: "JetBrains Mono, monospace", backgroundPadding: [5, 2, 5, 2],
+        getTextAnchor: "start", getAlignmentBaseline: "center", getPixelOffset: [9, 0],
       }));
       if (reveal && step > 0) {
         const head = trail[trail.length - 1];
         deck.push(new ScatterplotLayer({
           id: "ws-hindcast-head", data: [{ pos: head }],
-          getPosition: (d) => d.pos, getRadius: 1, radiusMinPixels: 9, radiusMaxPixels: 9,
-          stroked: true, filled: true, lineWidthUnits: "pixels", getLineWidth: 2.5,
-          getFillColor: [...WS.hindcast, 255], getLineColor: [255, 255, 255, 255],
+          getPosition: (d) => d.pos, getRadius: 1, radiusMinPixels: 6, radiusMaxPixels: 6,
+          stroked: true, filled: true, lineWidthUnits: "pixels", getLineWidth: 1.5,
+          getFillColor: [...WS.hindcast, 255], getLineColor: [...INK],
           updateTriggers: { getPosition: step },
         }));
         deck.push(new TextLayer({
           id: "ws-hindcast-headlabel", data: [{ pos: head }],
-          getPosition: (d) => d.pos, getText: () => `HINDCAST POINT\nT−${step} h`,
-          getSize: 13, getColor: [255, 255, 255, 255], fontFamily: "Inter, sans-serif", fontWeight: 700,
-          getTextAnchor: "end", getAlignmentBaseline: "center", getPixelOffset: [-16, 0],
-          characterSet: CHARSET, background: true, getBackgroundColor: [134, 25, 143, 235], backgroundPadding: [7, 4, 7, 4],
+          getPosition: (d) => d.pos, getText: () => `Hindcast  T−${step} h`,
+          getSize: 12, ...plate(WS.hindcast),
+          getTextAnchor: "end", getAlignmentBaseline: "center", getPixelOffset: [-13, 0],
           updateTriggers: { getPosition: step, getText: step },
         }));
       }
@@ -522,9 +562,10 @@ export default function WorkspaceMap({
    * horizon's centroid with arrowheads pointing FORWARD, and a labelled
    * FORECAST POINT at each one carrying its real distance from the slick. */
   if (show.forecast && forecast?.features?.length) {
-    const RAMP = [[250, 204, 21], [245, 158, 11], [249, 115, 22], [239, 68, 68]];
+    /* one hue; a later horizon is a fainter fill, not a hotter colour */
     const horizons = [...new Set(forecast.features.map((f) => f.properties.horizon_h ?? 0))].sort((x, y) => x - y);
-    const colourOf = (h) => RAMP[Math.min(RAMP.length - 1, Math.max(0, horizons.indexOf(h)))];
+    const colourOf = () => WS.forecast;
+    const fade = (h) => 1 - 0.45 * (horizons.indexOf(h) / Math.max(1, horizons.length - 1));
     const shown = forecast.features.filter((f) => rv.forecastUpTo == null || (f.properties.horizon_h ?? 0) <= rv.forecastUpTo + 0.01);
     const nearest = horizons.reduce((bst, h) => (Math.abs(h - aheadH) < Math.abs(bst - aheadH) ? h : bst), horizons[0]);
     [...shown].sort((x, y) => (y.properties.confidence_level ?? 0) - (x.properties.confidence_level ?? 0)).forEach((f, i) => {
@@ -535,9 +576,9 @@ export default function WorkspaceMap({
         id: `ws-forecast-${h}-${i}`,
         data: { type: "FeatureCollection", features: [f] },
         stroked: true, filled: true,
-        getFillColor: [...col, active ? 105 : 52],
-        getLineColor: [...col, 255],
-        getLineWidth: active ? 3.2 : 2.2, lineWidthUnits: "pixels",
+        getFillColor: [...col, Math.round((active ? 70 : 34) * fade(h))],
+        getLineColor: [...col, Math.round(230 * fade(h))],
+        getLineWidth: active ? 2 : 1.2, lineWidthUnits: "pixels",
         pickable: true,
         onHover: (x) => hover(x.object ? {
           kind: "forecast", title: `Forecast +${h} h`,
@@ -557,10 +598,8 @@ export default function WorkspaceMap({
     }).filter(Boolean);
     if (slickC && stops.length) {
       const path = [slickC, ...stops.map((d) => d.pos)];
-      deck.push(new PathLayer({ id: "ws-forecast-glow", data: [{ path }], getPath: (d) => d.path, getColor: [245, 158, 11, 75],
-        getWidth: 11, widthUnits: "pixels", capRounded: true, jointRounded: true, updateTriggers: { getPath: stops.length } }));
-      deck.push(new PathLayer({ id: "ws-forecast-path", data: [{ path }], getPath: (d) => d.path, getColor: [254, 215, 140, 255],
-        getWidth: 3.6, widthUnits: "pixels", capRounded: true, jointRounded: true, getDashArray: [10, 5], extensions: dashExt,
+      deck.push(new PathLayer({ id: "ws-forecast-path", data: [{ path }], getPath: (d) => d.path, getColor: [...WS.forecast, 235],
+        getWidth: 1.8, widthUnits: "pixels", capRounded: true, jointRounded: true, getDashArray: [7, 4], extensions: dashExt,
         updateTriggers: { getPath: stops.length } }));
       const heads = [];
       for (let i = 1; i < path.length; i++) {
@@ -568,27 +607,27 @@ export default function WorkspaceMap({
         if (x1 === x2 && y1 === y2) continue;
         heads.push({ pos: [(x1 + x2) / 2, (y1 + y2) / 2], ang: -bearingDeg(y1, x1, y2, x2) });
       }
-      deck.push(new TextLayer({ id: "ws-forecast-heads", data: heads, getPosition: (d) => d.pos, getText: () => "▲", getSize: 17,
-        getAngle: (d) => d.ang, getColor: [255, 237, 190, 255], fontFamily: "Segoe UI Symbol, sans-serif", characterSet: CHARSET,
-        outlineWidth: 2, outlineColor: [110, 55, 5, 255], fontSettings: { sdf: true }, updateTriggers: { getPosition: stops.length } }));
+      deck.push(new TextLayer({ id: "ws-forecast-heads", data: heads, getPosition: (d) => d.pos, getText: () => "▲", getSize: 11,
+        getAngle: (d) => d.ang, getColor: [...WS.forecast, 255], fontFamily: "Segoe UI Symbol, sans-serif", characterSet: CHARSET,
+        updateTriggers: { getPosition: stops.length } }));
     }
     deck.push(new ScatterplotLayer({ id: "ws-forecast-points", data: stops, getPosition: (d) => d.pos, getRadius: 1,
-      radiusMinPixels: 8, radiusMaxPixels: 8, stroked: true, filled: true, lineWidthUnits: "pixels", getLineWidth: 2.5,
-      getFillColor: (d) => [...d.col, 255], getLineColor: [255, 255, 255, 255], updateTriggers: { getPosition: stops.length } }));
+      radiusMinPixels: 4, radiusMaxPixels: 4, stroked: true, filled: true, lineWidthUnits: "pixels", getLineWidth: 1.5,
+      getFillColor: [...PLATE], getLineColor: (d) => [...d.col, 255], updateTriggers: { getPosition: stops.length } }));
     deck.push(new TextLayer({ id: "ws-forecast-labels", data: stops, getPosition: (d) => d.pos,
-      getText: (d) => `FORECAST POINT  +${d.h} h${d.km != null ? `\n${d.km.toFixed(1)} km from the slick` : ""}`,
-      getSize: 13, getColor: [20, 12, 2, 255], fontFamily: "Inter, sans-serif", fontWeight: 700,
-      getTextAnchor: "start", getAlignmentBaseline: "center", getPixelOffset: [15, 0], characterSet: CHARSET,
-      background: true, getBackgroundColor: (d) => [...d.col, 240], backgroundPadding: [7, 4, 7, 4],
+      getText: (d) => `Forecast +${d.h} h${d.km != null ? `  ·  ${d.km.toFixed(1)} km` : ""}`,
+      getSize: 11.5, ...plate(WS.forecast),
+      getTextAnchor: "start", getAlignmentBaseline: "center", getPixelOffset: [11, 0],
       updateTriggers: { getPosition: stops.length, getText: stops.length } }));
   }
 
   /* the slick's own position, named: everything above is measured from here */
   if (slickC && (show.hindcast || show.forecast)) {
     deck.push(new TextLayer({ id: "ws-now-label", data: [{ pos: slickC }], getPosition: (d) => d.pos,
-      getText: () => "DETECTED SLICK · NOW", getSize: 13, getColor: [20, 8, 0, 255], fontFamily: "Inter, sans-serif", fontWeight: 700,
-      getTextAnchor: "middle", getAlignmentBaseline: "top", getPixelOffset: [0, 16], characterSet: CHARSET,
-      background: true, getBackgroundColor: [...WS.slick, 240], backgroundPadding: [7, 4, 7, 4] }));
+      getText: () => "Detected slick · at acquisition", getSize: 11.5, ...plate(WS.slickEdge),
+      /* slick, origin and window edge are often a kilometre or two apart: each
+       * label owns one side of the cluster so they cannot stack */
+      getTextAnchor: "start", getAlignmentBaseline: "top", getPixelOffset: [16, 16] }));
   }
 
   /* --------------------------------------------------- origin zone ------ */
@@ -622,15 +661,15 @@ export default function WorkspaceMap({
       id: "ws-origin-ring",
       data: [{ path: ring }],
       getPath: (d) => d.path,
-      getColor: [...WS.origin, Math.round(255 * Math.min(1, grow * 1.5))], getWidth: 2.4, widthUnits: "pixels",
-      getDashArray: [7, 5], extensions: dashExt,
+      getColor: [...WS.origin, Math.round(255 * Math.min(1, grow * 1.5))], getWidth: 1.5, widthUnits: "pixels",
+      getDashArray: [6, 4], extensions: dashExt,
       pickable: true, onHover: onHoverOrigin,
       updateTriggers: { getPath: grow, getColor: grow },
     }));
     deck.push(new ScatterplotLayer({
-      id: "ws-origin-target", data: [{ pos: c, r: 17 }, { pos: c, r: 10 }],
+      id: "ws-origin-target", data: [{ pos: c, r: 11 }],
       getPosition: (d) => d.pos, radiusUnits: "pixels", getRadius: (d) => d.r,
-      stroked: true, filled: false, lineWidthUnits: "pixels", getLineWidth: 2,
+      stroked: true, filled: false, lineWidthUnits: "pixels", getLineWidth: 1.5,
       getLineColor: [255, 255, 255, Math.round(235 * Math.min(1, grow * 1.4))],
       updateTriggers: { getLineColor: grow },
     }));
@@ -638,8 +677,8 @@ export default function WorkspaceMap({
       id: "ws-origin-marker",
       data: [{ pos: c }],
       getPosition: (d) => d.pos,
-      getRadius: 5, radiusUnits: "pixels",
-      stroked: true, filled: true, lineWidthUnits: "pixels", getLineWidth: 2,
+      getRadius: 3.5, radiusUnits: "pixels",
+      stroked: true, filled: true, lineWidthUnits: "pixels", getLineWidth: 1.5,
       getFillColor: [...WS.origin, 255], getLineColor: [7, 12, 22, 255],
       pickable: true, onHover: onHoverOrigin,
     }));
@@ -649,12 +688,9 @@ export default function WorkspaceMap({
         id: "ws-origin-label",
         data: [{ pos: c }],
         getPosition: (d) => d.pos,
-        getText: () => `ORIGIN POINT (estimated)\n${Math.abs(c[1]).toFixed(4)}° ${ns}  ${Math.abs(c[0]).toFixed(4)}° ${ew}\n± ${est.radiusKm.toFixed(est.radiusKm < 1 ? 2 : 1)} km`,
-        getSize: 13, getColor: [7, 12, 22, Math.round(255 * Math.min(1, (grow - 0.6) / 0.4))],
-        fontFamily: "Inter, sans-serif", fontWeight: 700,
-        getTextAnchor: "start", getAlignmentBaseline: "center", getPixelOffset: [24, 0],
-        characterSet: CHARSET,
-        background: true, getBackgroundColor: [241, 245, 249, Math.round(240 * Math.min(1, (grow - 0.6) / 0.4))], backgroundPadding: [8, 5, 8, 5],
+        getText: () => `Estimated origin\n${Math.abs(c[1]).toFixed(4)}° ${ns}  ${Math.abs(c[0]).toFixed(4)}° ${ew}\n± ${est.radiusKm.toFixed(est.radiusKm < 1 ? 2 : 1)} km`,
+        getSize: 11.5, ...plate(WS.origin, Math.min(1, (grow - 0.6) / 0.4)),
+        getTextAnchor: "end", getAlignmentBaseline: "bottom", getPixelOffset: [-16, -14],
         updateTriggers: { getColor: grow, getBackgroundColor: grow },
       }));
     }
@@ -813,7 +849,7 @@ export default function WorkspaceMap({
         updateTriggers: { getColor: trig },
       }));
       deck.push(new ScatterplotLayer({
-        id: "ws-cand-closest", data: ties, getPosition: (d) => d.at, getRadius: (d) => (d.t.rank === 1 ? 17 : 14), radiusUnits: "pixels",
+        id: "ws-cand-closest", data: ties, getPosition: (d) => d.at, getRadius: (d) => (d.t.rank === 1 ? 16 : 13), radiusUnits: "pixels",
         /* a ring, not a disc: the ship is often exactly here and must show through */
         stroked: true, filled: false, lineWidthUnits: "pixels", getLineWidth: 1.6,
         getLineColor: (d) => (d.t.rank === 1 ? [...WS.suspect, 255] : [226, 232, 240, 255]),

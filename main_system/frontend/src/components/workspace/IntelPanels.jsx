@@ -69,6 +69,28 @@ function ProvBadge({ source, testid }) {
   return <span className={`badge badge-${b.tone}`} data-testid={testid}>{b.label === "—" ? String(source).toUpperCase() : b.label}</span>;
 }
 
+/** Why this run used the AIS it used. Everything here is the run's own sealed
+ *  record (manifest.ais): the decision, and the ledger of every archive that
+ *  was checked against THIS origin window before a fleet was simulated. */
+function AisWhy({ ais }) {
+  if (!ais || String(ais.data_source).toLowerCase() !== "synthetic") return null;
+  const real = (ais.considered || []).filter((c) => String(c.data_source).toLowerCase() === "real");
+  return (
+    <div className="ip-why" data-testid="ais-why">
+      <div className="ip-why-t">Why real AIS was not used</div>
+      <div className="ip-why-b">{ais.detail || "The run recorded no reason."}</div>
+      {real.length > 0 ? (
+        <ul className="ip-why-l">
+          {real.map((c) => (
+            <li key={c.path || c.file}><span className="mono">{c.file}</span> · real archive · {c.covers_origin ? "covers the origin" : "no vessel inside this origin area and time window"}</li>
+          ))}
+        </ul>
+      ) : <div className="ip-why-b dim">No real AIS archive is installed on this host.</div>}
+      <div className="ip-why-b dim">The ranking below demonstrates the method on simulated traffic. It identifies no real vessel.</div>
+    </div>
+  );
+}
+
 /** AIS DATA provenance for the correlation/attribution panels. The manifest's
  *  `ais.data_source` is the provenance of the AIS BYTES: "real" means a
  *  historical archive (there is no live feed in a sealed run). */
@@ -796,6 +818,7 @@ export function AttributionPanel({ ctx }) {
             </div>
             <div className="ip-r"><span className="ip-rk">AIS source</span><span className={`badge badge-${prov.tone}`} data-testid="attr-ais-source">{prov.label}</span></div>
             {prov.label === "SYNTHETIC" && <div className="ip-note">Synthetic AIS carries no identity: the MMSI is the whole record.</div>}
+            <AisWhy ais={runRow?.manifest?.ais} />
           </Section>
           <Section title="Attribution analysis" testid="attr-analysis">
             {FACTORS.map(([k, label]) => s.sub_scores?.[k] != null && (

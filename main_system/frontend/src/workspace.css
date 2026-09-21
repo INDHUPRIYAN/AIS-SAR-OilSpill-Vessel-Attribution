@@ -105,7 +105,7 @@
 .ws-maplegend-title { font-size: 13px; font-weight: 600; color: var(--ink-0); margin-bottom: 2px; }
 .ws-maplegend div { display: flex; align-items: center; gap: 9px; }
 .ws-maplegend i { display: inline-block; width: 22px; height: 10px; flex-shrink: 0; }
-.ws-maplegend .lg-slick { background: rgba(249,115,22,.5); border: 1.5px solid #ffaa50; }
+.ws-maplegend .lg-slick { background: rgba(201,98,52,.5); border: 1.5px solid #e89260; }
 .ws-maplegend .lg-origin { border: 1.5px dashed #e2e8f0; border-radius: 50%; height: 12px; width: 18px; }
 .ws-maplegend .lg-sel { height: 3px; background: var(--accent); }
 .ws-maplegend .lg-other { height: 0; border-top: 2px dashed #c8d6e8; }
