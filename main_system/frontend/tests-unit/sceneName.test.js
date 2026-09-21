@@ -8,6 +8,8 @@ describe("reading a Sentinel-1 product name", () => {
       polarisation: "VV + VH (dual)", source: "ESA product name",
     });
     expect(parseS1Name("S1B_EW_GRDM_1SDH_20200101T000000_x").mode).toBe("EW");
+    // the reference corpus's short names carry mission, mode and product only
+    expect(parseS1Name("S1A_IW_GRDH_MALACCA")).toMatchObject({ mission: "Sentinel-1A", mode: "IW", product: "GRD", polarisation: null });
   });
 
   it("returns nothing for a name that does not follow the convention", () => {

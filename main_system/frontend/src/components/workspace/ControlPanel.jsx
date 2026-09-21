@@ -244,7 +244,8 @@ export function AnalysisPanel({
       {(invs?.length > 1 || !runId) && (
         <>
           <Label>Investigation</Label>
-          <select value={invId ?? ""} onChange={(e) => onPickInv(e.target.value)} data-testid="inv-select">
+          <select value={invId ?? ""} onChange={(e) => e.target.value && onPickInv(e.target.value)} data-testid="inv-select">
+            {!invId && <option value="">{runId ? "Unfiled run — not part of an investigation" : "Choose an investigation"}</option>}
             {(invs || []).map((x) => <option key={x.id} value={x.id}>{x.name} · {x.id}</option>)}
           </select>
         </>
@@ -252,7 +253,7 @@ export function AnalysisPanel({
 
       <Label>Satellite data</Label>
       <div className="ctl-static">
-        <span>{sceneFact(sm, "mission")} SAR</span>
+        <span>{sm.scene_id ? `${sceneFact(sm, "mission")} SAR` : "No scene loaded"}</span>
         {prov && <span className={`badge badge-${prov.tone}`} data-testid="scene-source">{prov.label}</span>}
       </div>
 

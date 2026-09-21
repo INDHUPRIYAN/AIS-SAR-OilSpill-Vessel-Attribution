@@ -457,13 +457,23 @@ function InvestigationWorkspace() {
   }, [runId, wantForcing, runState, forcingRetry]);
   useEffect(() => { setForcingState("idle"); }, [runId]);
   /* The stage rides in the URL, so a reload or a shared link restores it. */
-  const gotoStage = useCallback((id) => {
+  /* A stage the ANALYST chose is a place in history, so Back returns to the
+   * previous stage rather than out of the case. A stage the presentation
+   * steps through (nineteen beats) replaces, or Back would walk the whole
+   * performance in reverse. */
+  const gotoStage = useCallback((id, { push = false } = {}) => {
     touched.current = true;
     setStageId(id);
-    setParams((prev) => { const n = new URLSearchParams(prev); n.set("stage", id); return n; }, { replace: true });
+    setParams((prev) => { const n = new URLSearchParams(prev); n.set("stage", id); return n; }, { replace: !push });
   }, [setParams]);
   /* An analyst's own move takes the workspace back from the presentation. */
-  const go = useCallback((id) => { cineRef.current.stop(); gotoStage(id); }, [gotoStage]);
+  const go = useCallback((id) => { cineRef.current.stop(); gotoStage(id, { push: true }); }, [gotoStage]);
+
+  /* Back and Forward change the address; the stage on screen follows it. */
+  useEffect(() => {
+    if (urlStage && STAGE_INDEX[urlStage] != null && urlStage !== stageId) setStageId(urlStage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlStage]);
 
   /* The tile the analysed slick sits in: the detector's own grid. */
   const grid = useMemo(() => tileGrid(tilesInfo, (models?.models || []).find((m) => m.kind === "segment")?.metadata?.tile_size ? Number((models.models.find((m) => m.kind === "segment")).metadata.tile_size) : 256), [tilesInfo, models]);

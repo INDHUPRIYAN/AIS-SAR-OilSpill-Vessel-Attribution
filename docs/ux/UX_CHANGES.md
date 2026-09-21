@@ -448,3 +448,169 @@ ESA product name (`lib/sceneName`), like the rest of P9.
     an investigation row would have needed either a backend write the rules do
     not allow or a script the evaluator must run. The run is already sealed and
     registered; linking to it by its canonical address needs neither.
+
+---
+
+## Final acceptance walkthrough — 2026-09-21
+
+Run as a first-time user in a real browser (headless Chromium, 1600 × 900,
+GPU via ANGLE) against the isolated harness stack, as `tests-e2e/acceptance.spec.js`
+so it can be repeated. Screenshots: `docs/ux/acceptance/`.
+
+| Step | Result | Evidence |
+|---|---|---|
+| Open OceanTrace → real Earth | globe with Natural Earth countries, borders, country and sea names; "India" is a rendered label | `01-dashboard-real-earth.png` |
+| Dashboard → New investigation | `/investigations/new`, acquisition stage | `02` |
+| The case → camera at the real place | camera inside the scene's own `scene_meta.bbox` | `03` |
+| SAR → detection → characterisation | real Sentinel-1 quicklook on the map; spill area on the case strip equals `slick.geojson` | `04`, `05` |
+| Wind + currents | source-labelled from the run's forcing metadata | `06b` |
+| Hindcast → origin | particle cloud on the shared clock; honest particle count; Bayesian panel beside the drift estimate, "never merged" | `06`, `06c` |
+| AIS → candidates → vessel evidence | "Highest-Ranked Candidate", no culprit wording; shared vessel identity with "not supplied" fields; **Seen before** lists two other runs | `07`–`09` |
+| Report → printable → case history | "Printable report", CSV/JSON; printable page carries the run id; register reachable by breadcrumb | `10`–`12` |
+| Deep link + refresh + back/forward | stage survives reload; Back returns to the previous stage; Live Map camera survives reload | ACC-2 |
+| Unknown address | 404 page keeps and shows the address | `20` |
+| Backend stops answering | "Lost contact with the server — retrying…" after two missed polls | `21` |
+| Notifications | bell opens a panel in place; Escape closes it | `22` |
+| Leave a running job and return | "stage 1 of 5" + "You can leave this page…"; left to the Dashboard; came back — still running, **Cancel present**; Cancel → server status `cancelled` | `30`, `31` |
+| A run a person started finishes | a `run_complete`/`run_failed` alert exists for it; Dashboard "Needs attention" lists it | `32` |
+
+**What the walkthrough found, and what was done about it**
+
+1. **Back left the case.** Choosing a stage replaced the history entry, so Back
+   jumped out of the investigation. Stage changes the analyst makes now push
+   history (Back returns to the previous stage); the presentation's nineteen
+   automatic beats still replace, or Back would replay it in reverse. The
+   stage on screen now follows the address on Back/Forward.
+2. **The investigation selector misattributed unfiled runs.** With no
+   investigation on screen, the select showed its first option, reading as
+   "this run belongs to that case". It now says "Unfiled run — not part of an
+   investigation".
+3. **"not recorded SAR" and "NOT RECORDED NOT RECORDED".** The product-name
+   parser required the full ESA name; the reference corpus uses short ones
+   (`S1A_IW_GRDH_MALACCA`) that still name mission, mode and product. The
+   polarisation block is now optional, and a scene with nothing known reads
+   "No scene loaded" / "Scene".
+4. **The lost-contact state was inert on sealed unfiled runs.** Correct —
+   nothing polls a run that can no longer change — so the test exercises a
+   live investigation instead. Recorded, not "fixed".
+5. **The first leave-and-return attempt proved nothing**: the smallest scene
+   finished before the workspace opened, so the running branch never executed.
+   It was re-walked on a 33.6 MB reference scene (above). The committed spec
+   still uses the smallest scene for speed and skips the running branch when
+   the run is already done; the evidence screenshots come from the larger walk.
+
+---
+
+## Summary
+
+### Final gate (2026-09-21, HEAD after this commit)
+
+| Suite | Baseline (a71b415) | Final |
+|---|---|---|
+| Lint (`npm run lint`) | no linter | **0 errors**, 80 warnings under a `--max-warnings 80` ratchet (88 at P1) |
+| Typecheck (`npm run typecheck`, maps scope) | none | **clean** |
+| Unit (`npm test`) | 183 / 13 files | **245 / 19 files** |
+| E2E (`npx playwright test`) | 15 | **35** (+ shell, globe, demo, acceptance specs) |
+| Backend (`pytest`) | 1302 passed, 4 skipped | **1318 passed**, 4 skipped (+16 contract tests for G1, G3) |
+| Build | one 4.07 MB JS chunk | entry **374 KB**; map engine 1.8 MB loaded with map pages only |
+
+BASELINE A-flows A1–A15: green after every phase. No hard-stop condition was hit.
+
+### Architecture, before → after
+
+```
+BEFORE                                      AFTER
+26 flat routes, no path params              ROUTES-driven router, identity in the path,
+9 navigation surfaces                        22 permanent legacy redirects, 404
+                                            1 sidebar (role-aware) + palette + breadcrumbs
+5 map surfaces, 2 engines                   1 engine: MaritimeGlobe (MapLibre 5 globe
+  deck _GlobeView sphere + land mask          + deck overlay), Natural Earth India-POV basemap,
+  deck + MapLibre mercator x2                 satellite via VITE_MAP_*, SAR quicklook→tiles
+4 clocks, 4 colour tables                   1 TimeContext, 1 palette (tokens held equal by test)
+workspace: 2 WebGL contexts, crossfade      workspace: 1 surface; globe↔map is a zoom
+fake %, dead controls, constants as facts   real stage counts, SSE, facts recorded or derived
+bell = link; no run-completion alerts       notifications panel; run alerts (G3)
+```
+
+### Sitemap
+
+See the P1 section. Unchanged since, except that `/operations/replay` remains
+a live page (retirement deferred with its parity recorded).
+
+### Components
+
+- **Created:** `components/maps/*` (MaritimeGlobe, basemaps, camera,
+  TimeContext, MapControls, palette), `components/shell/Breadcrumbs`,
+  `components/shell/Notifications`, `components/vessels/VesselIdentity`,
+  `components/workspace/BayesOriginPanel`, `pages/NotFound`, `lib/urls`,
+  `lib/sceneName`, `lib/demo`; backend `services/run_alerts`.
+- **Refactored:** `lib/shell` (ROUTES), `App` (generated, lazy router),
+  `LeftNav`, `TopHeader`, `AppShell`, `GlobeScene` (now an adapter),
+  `WorkspaceMap` (on the one engine), `Investigation` (shared clock, case strip,
+  honest progress, history), `StageTimeline`, `RightPanel`, `AnalysisPanels`,
+  `IntelPanels`, `ControlPanel`, `Operations` (Dashboard), `Vessels`,
+  `Analytics`, `Catalog`, `Dashboard` (registry), `Environment`,
+  `IncidentReport`; Engine B drift runner + attribution gate (G1).
+- **Reused as-is, now mounted:** `CaseBrief` (was orphaned), `useRunEvents`
+  (was orphaned), `HindcastResult` (now also in the Origin stage).
+- **Deleted:** `GlobeStage`, `public/geo/land.json`, `scripts/build_globe_land.py`,
+  the `deck.gl` umbrella dependency (−258 MB `node_modules`).
+
+### Fake or orphaned UI removed
+
+Functionality-matrix rows 1–19, 21–24: four broken deep links; the super_admin
+lockout; `?run=undefined`; blank `/report`; five dead AIS controls; the
+read-only search box; the uploaded-polygon claim; "Download PDF"; the fake
+scan percentage; discarded globe clicks; decorative "≡" glyphs; dead transport
+code; the dead stretch prop/state; Cancel lost on return; single-query Refresh
+buttons (partly — see deferred); the `zone-bob` constant; orphaned CaseBrief
+and useRunEvents; the latent report-list shape. Plus every constant listed in
+the P9 table. Row 20 (decorative radar animation) leaves with the replay page.
+
+### Real-data integrations added
+
+`/api/jobs/{id}` (stage progress), `/api/events/runs/{id}` (SSE),
+`/api/hindcast/jobs` + `/jobs/{id}` (Bayesian origin in the workspace),
+`/api/vessels/{mmsi}` appearance list, first/last heard, dimensions, in the
+workspace; forecast weathering metadata in full; report CSV/JSON exports from
+the Report stage; `/api/alerts` in the notifications panel; the G1 contour
+and G3 alerts end to end.
+
+### States added
+
+Loading / error-with-retry / empty / populated on the run registry, Analytics,
+Data Sources, the notifications panel and the Bayesian panel; "lost contact"
+on the workspace; "no Bayesian hindcast for this run"; "demo case not
+installed on this host"; "satellite basemap not configured"; "SAR scene
+raster unavailable"; "50 % contour not recorded for this run"; "No scene loaded".
+
+### Deferred work (complete list)
+
+| Item | Why deferred | Where recorded |
+|---|---|---|
+| Retire `/operations/replay` into the workspace | C8 parity not reached: its eleven map-mode presets need a phase of their own | RETIREMENT_PARITY.md |
+| Merge `/detections/viewer`, `/system/api-monitor`, `/investigations/registry` into their parent pages | presentation tidying; cross-linked instead to protect P10 | P7 |
+| Named map "modes" switcher (AIS / current / wind / intelligence presets) | the layers and honest empty states exist; the preset switcher is polish | P5 |
+| Visual consolidation of the workspace rail onto `TimeController` | one clock already; the two renderings do not desync | P4 |
+| Memoise `WorkspaceMap`'s ~40 layers | per-frame causes removed; 1,100 lines under e2e guard | P9 |
+| Behaviour timeline with anomalies shaded | needs per-fix anomaly flags the contract does not carry | P5 |
+| Landfall ETA | nothing computes it; the forecast's own metadata says coastline stranding is not modelled | BACKEND_GAPS G2 |
+| Server-side PDF | none exists; the UI says "Printable report" | G5 |
+| OS-level browser notifications | permission prompt + service worker | P8 |
+| 80 lint warnings (mostly unused imports in untouched pages) | held by the ratchet | P9 |
+
+### Deliverables
+
+| File | Contents |
+|---|---|
+| `docs/ux/UX_AUDIT.md` | P0 audit, engine recommendation, refactor plan |
+| `docs/ux/FRONTEND_FUNCTIONALITY_MATRIX.md` | every control → handler → API → verdict; the 24 defect rows |
+| `docs/ux/BASELINE.md` | regression contract and the executed green starting point |
+| `docs/ux/BACKEND_GAPS.md` | G1–G16; G1 and G3 closed by the two approved exceptions |
+| `docs/ux/GLOBE_ARCHITECTURE.md` | spike criteria (fixed before code), spike result, the engine as built |
+| `docs/ux/MAP_DATA_SOURCES.md` | every basemap and data layer, its provider, licence and absent state |
+| `docs/ux/RETIREMENT_PARITY.md` | `/hindcast` done; `/incident` deferred with the checklist |
+| `docs/ux/UX_CHANGES.md` | this file: every phase, autonomous decisions 1–12, deferrals, the walkthrough |
+| `docs/ux/acceptance/*.png` | 20 screenshots from the acceptance walkthrough |
+| `DEMO_RUNBOOK.md` | now opens with the one-click demo case |
+| `scripts/build_basemap_natural_earth.py` | rebuilds the bundled basemap |

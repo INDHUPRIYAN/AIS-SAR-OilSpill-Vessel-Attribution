@@ -15,7 +15,10 @@
  * https://sentinel.esa.int/web/sentinel/user-guides/sentinel-1-sar/naming-conventions
  */
 
-const S1 = /^(S1[ABCD])_(S[1-6]|IW|EW|WV)_(RAW|SLC|GRD|OCN)([FHM_])_([0-2])([SA])(SH|SV|DH|DV|HH|HV|VV|VH)_/;
+// Mission, beam mode and product type lead every Sentinel-1 name; the
+// polarisation block after them is absent from the short names the reference
+// corpus uses (S1A_IW_GRDH_MALACCA), so it is optional here.
+const S1 = /^(S1[ABCD])_(S[1-6]|IW|EW|WV)_(RAW|SLC|GRD|OCN)([FHM_])(?:_([0-2])([SA])(SH|SV|DH|DV|HH|HV|VV|VH)_)?/;
 
 const POL = {
   SH: "HH (single)", SV: "VV (single)", DH: "HH + HV (dual)", DV: "VV + VH (dual)",
@@ -32,7 +35,7 @@ export function parseS1Name(sceneId) {
     mode: m[2],
     product: m[3],
     resolution: RES[m[4]],
-    polarisation: POL[m[7]] || null,
+    polarisation: (m[7] && POL[m[7]]) || null,
     source: "ESA product name",
   };
 }

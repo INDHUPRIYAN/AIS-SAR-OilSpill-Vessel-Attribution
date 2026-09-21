@@ -145,7 +145,7 @@ export function ScenePanel({ ctx }) {
       ]} />
       {tab === "scene" && (
         <>
-          <Section title={`${s.platform} ${s.product}`} testid="scene-grd">
+          <Section title={[s.platform, s.product].filter((v) => v && v !== "not recorded").join(" ") || "Scene"} testid="scene-grd">
             {runId && <QuickLook runId={runId} caption={s.id?.slice(0, 34)} />}
             <Row k="Acquisition" v={utc(s.acquired)} testid="scene-acquired" />
             <Row k="Orbit direction" v={s.orbit ? s.orbit[0] + s.orbit.slice(1).toLowerCase() : null}
