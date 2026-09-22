@@ -79,7 +79,70 @@ FUNCTIONAL_PROBES: Dict[str, Dict[str, str]] = {
                 "?$filter=Collection/Name%20eq%20%27SENTINEL-1%27&$top=1"),
         "proves": "the Sentinel-1 catalogue answers a real product query",
     },
+    # --- added 2026-09-22: every deployed provider now has a check that asks
+    # for something the pipeline uses. Each was run live before it went in.
+    "ASF": {
+        "method": "GET",
+        # ASF downloads authenticate against NASA Earthdata. This endpoint
+        # answers 200 only for a login Earthdata accepts, and 401 otherwise:
+        # it exercises exactly the credential a download would present.
+        "url": "https://urs.earthdata.nasa.gov/api/users/tokens",
+        "auth": "earthdata",
+        "proves": "the Earthdata login that ASF downloads use is accepted",
+    },
+    "HYCOM": {
+        "method": "GET",
+        # The OPeNDAP descriptor of the dataset metocean_service's hycom
+        # adapter opens (HYCOM_OPENDAP_URL); a few hundred bytes of text.
+        "url": "https://tds.hycom.org/thredds/dodsC/GLBv0.08/expt_53.X/data/2015.dds",
+        "must_contain": "Dataset {",
+        "proves": "the HYCOM OPeNDAP dataset the currents fallback opens is served",
+    },
+    "ERA5": {
+        "method": "GET",
+        # Authenticated with the configured CDS token, and the answer lists
+        # the licences this account has accepted. ERA5 retrievals are refused
+        # until its licence (cc-by) is accepted -- the silent trap the
+        # handbooks warn about -- so the check requires it in the list.
+        "url": "https://cds.climate.copernicus.eu/api/profiles/v1/account/licences",
+        "auth": "cds",
+        "must_contain": '"cc-by"',
+        "missing_means": "the CDS token works but the ERA5 licence (cc-by) is not accepted on this account",
+        "proves": "the CDS token is accepted and the ERA5 licence is accepted on the account",
+    },
+    "OpenMeteo": {
+        "method": "GET",
+        # The historical archive the wind fallback reads, for one real day.
+        "url": ("https://archive-api.open-meteo.com/v1/archive?latitude=13&longitude=80"
+                "&start_date=2023-01-08&end_date=2023-01-08&hourly=wind_speed_10m,wind_direction_10m"),
+        "must_contain": '"wind_speed_10m"',
+        "proves": "the historical wind archive returns 10 m wind for a real day",
+    },
+    "DMA": {
+        "method": "HEAD",
+        # A real monthly archive file. The archive moved: web.ais.dk no longer
+        # answers from here, aisdata.ais.dk (plain HTTP; its HTTPS times out)
+        # serves the same files. HEAD, so nothing is downloaded (the file is 17 GB).
+        "url": "http://aisdata.ais.dk/2024/aisdk-2024-01.zip",
+        "proves": "a real monthly DMA AIS archive is downloadable",
+    },
 }
+
+
+def _probe_auth(db, how: Optional[str]):
+    """Credentials for an authenticated functional probe, as requests kwargs.
+    None when the probe needs a credential that is not configured."""
+    if not how:
+        return {}
+    if how == "earthdata":
+        user = resolve_credential(db, "ASF", "EARTHDATA_USER") or resolve_credential(db, "ASF", "ASF_USERNAME")
+        pw = resolve_credential(db, "ASF", "EARTHDATA_PASS") or resolve_credential(db, "ASF", "ASF_PASSWORD")
+        return {"auth": (user, pw)} if user and pw else None
+    if how == "cds":
+        key = resolve_credential(db, "ERA5", "CDSAPI_KEY")
+        # the retired CDS used "uid:key"; the current one takes the token alone
+        return {"headers": {"PRIVATE-TOKEN": key.split(":", 1)[-1]}} if key else None
+    return None
 
 # A cheap, unauthenticated endpoint per provider that proves the service is
 # reachable. Deliberately not the download endpoint -- probing that would cost
@@ -199,12 +262,16 @@ def _functional_probe(db, provider: str, row) -> Optional[dict]:
     if not spec:
         return None
 
+    extra = _probe_auth(db, spec.get("auth"))
+    if extra is None:
+        return None                     # the credential gate in probe() reports this
+    headers = {"User-Agent": "OceanTrace/health", **extra.pop("headers", {})}
+
     t0 = time.time()
     try:
         request_fn = requests.head if spec["method"] == "HEAD" else requests.get
         resp = request_fn(spec["url"], timeout=PROBE_TIMEOUT,
-                          allow_redirects=True,
-                          headers={"User-Agent": "OceanTrace/health"})
+                          allow_redirects=True, headers=headers, **extra)
         latency = int((time.time() - t0) * 1000)
     except requests.RequestException as exc:
         latency = int((time.time() - t0) * 1000)
@@ -222,6 +289,18 @@ def _functional_probe(db, provider: str, row) -> Optional[dict]:
         return {"provider": provider, "status": "DEGRADED",
                 "detail": f"reachable but unauthorised (HTTP {resp.status_code}) "
                           f"on a functional probe: {spec['proves']}",
+                "latency_ms": latency, "probe": "functional"}
+
+    if 200 <= resp.status_code < 300 and spec.get("must_contain") \
+            and spec["must_contain"] not in resp.text:
+        # Answered, but not with what we asked for: the provider will not
+        # serve us, for a reason the operator can act on.
+        why = spec.get("missing_means", f"the answer did not contain {spec['must_contain']}")
+        record_call(db, provider, spec["url"], "failed", latency, resp.status_code,
+                    "BAD_RESPONSE", why[:300])
+        row.status = "DEGRADED"
+        db.commit()
+        return {"provider": provider, "status": "DEGRADED", "detail": why,
                 "latency_ms": latency, "probe": "functional"}
 
     if 200 <= resp.status_code < 300:
