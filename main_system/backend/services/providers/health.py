@@ -64,9 +64,14 @@ FUNCTIONAL_PROBES: Dict[str, Dict[str, str]] = {
     },
     "CMEMS": {
         "method": "GET",
+        # The product-level entry, not a dataset one: Copernicus Marine moved
+        # its STAC to /metadata/<PRODUCT>/<dataset>_<version>/, so the old
+        # unversioned dataset path 404s (measured 2026-09-22) and a versioned
+        # one would 404 again at the next version bump. The product entry
+        # lists the dataset the chain requests and survives version bumps.
         "url": "https://stac.marine.copernicus.eu/metadata/"
-               "cmems_mod_glo_phy_anfc_0.083deg_P1D-m/dataset.stac.json",
-        "proves": "the currents dataset the chain requests is published",
+               "GLOBAL_ANALYSISFORECAST_PHY_001_024/product.stac.json",
+        "proves": "the currents product the chain requests is published",
     },
     "CDSE": {
         "method": "GET",
