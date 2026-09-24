@@ -58,6 +58,23 @@ discovered later is an impeachment. Per-module detail lives in
    `class: lookalike`, never silently deleted**, and why a human confirms before an
    alert becomes an incident. The current screening model is single-class, so the
    `phenomenon` sub-type field is reserved and not yet populated.
+   **Runs sealed before 2026-09-18 traced look-alikes too.** Look-alikes were
+   reported, but characterisation measured the segmenter's *full* mask, and drift
+   seeds from the largest slick, so the hindcast and the ranking could trace a
+   region the screen had rejected. The frozen flagship
+   (`inv-gulf-flagship-20230108-2day`) is such a run: its analysed slick
+   `COG_slick_01` lies inside a rejected region, and 49 of its 62 slick features
+   sit on rejected regions (13 on screen-confirmed oil). The flagship is frozen
+   and was not re-run; the workspace, brief and report now say this on screen
+   ("Screen verdict: LOOK-ALIKE"). The same scene re-run with screening and the
+   same two days of real MarineCadastre AIS (`inv-gulf-screened-2day-20230108`)
+   characterises 13 oil-confirmed slicks, localises a release 5 h before the image,
+   and ranks **no** vessel: 30 considered, 0 passed the gates. That null result is
+   the honest answer for this scene; the gates were not relaxed. From 2026-09-18, when the screen splits a scene
+   into oil and look-alikes, characterisation measures an oil-only copy of the
+   mask (`engine_native/screened_mask.tif`); `raw_mask.tif` stays the segmenter's
+   full output. When the screen rejects *every* region, or is silent on the whole
+   scene, the full mask still flows downstream with a warning, as before.
 5. **Model metrics are dataset metrics.** mAP/IoU are measured on DARTIS and Trujillo
    holdouts. Performance on full real scenes depends on the calibration chain matching
    the training normalisation (`config/normalisation.yaml` — checked by an explicit
@@ -75,8 +92,12 @@ discovered later is an impeachment. Per-module detail lives in
    is recoverable from drift alone; the engine then widens the window to the whole run
    and says so. Forcing resolution (1/12° currents) bounds everything downstream.
 8. **The drift engine is an in-house Lagrangian particle integrator, dependency-free by
-   design, and carries no oil weathering** (evaporation, emulsification). Horizons are
-   kept ≤ 24 h partly for this reason. OpenDrift/OpenOil integration is architecturally
+   design, with only an order-of-magnitude weathering estimate.** The forecast carries
+   a Fingas + Mackay evaporation/emulsification series for an *assumed* medium crude
+   (no oil type is known for any scene), labelled LOW confidence; dispersion,
+   dissolution, spreading-driven thickness change and stranding are not modelled, and
+   weathering does not feed back into the trajectories. There is no Stokes drift term:
+   wind drift is a flat 3% windage. Horizons are kept ≤ 24 h partly for these reasons. OpenDrift/OpenOil integration is architecturally
    supported and left as future work: it is not installed, and no run has used it.
    Run manifests written before 2026-09-01 may carry `engine: openoil` from a
    log-text provenance bug; the backend that actually ran in every one of them was
