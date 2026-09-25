@@ -35,3 +35,6 @@ nohup.out
 
 # Local secrets never enter an image.
 .env
+
+# Staged deploy data bundle -- never enters an image
+.deploy

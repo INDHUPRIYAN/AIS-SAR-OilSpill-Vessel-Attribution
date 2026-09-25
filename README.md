@@ -34,6 +34,10 @@ docker compose up --build     # backend :8000 + frontend :5173
 
 The backend container pulls weights at **start** (never baked into the image) via `scripts/get_weights.sh`; local `data/` is bind-mounted so cached scenes and runs work offline. Future-facing services (PostGIS, MinIO, Redis) sit behind a profile: `docker compose --profile extras up`.
 
+### Public deployment (free)
+
+The whole system (UI, API, SQLite and the ONNX models) also ships as **one container on one port** (`docker/app.Dockerfile`). It runs on a free Hugging Face Docker Space, with the demo data and weights in a private HF dataset. GitHub Actions builds and smoke-tests the image on every push (`ci.yml`) and redeploys the Space from `main` (`deploy-space.yml`). The same image runs unchanged on any VM. Steps, costs and demo-day notes: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+
 ## Architecture
 
 A Sentinel-1 SAR scene enters through `scene_service` (CDSE → ASF → local cache), is screened for oil vs look-alike by Model 1 (YOLO, DARTIS) and delineated by Model 2 (U-Net, Trujillo) inside the `/detect` service — with a threshold+morphology fallback so detection **always** returns; the slick polygon is characterised (Engine A), drifted back/forward in time with winds and currents from `metocean_service` (Engine B, an in-house Lagrangian particle integrator — dependency-free by design; OpenDrift integration is future work), and matched against interpolated AIS trajectories from `ais_service` to score candidate culprit vessels (Engine C). The FastAPI backend orchestrates the pipeline, persists run artefacts under `data/runs/<run_id>/`, and the React/MapLibre dashboard replays them. Every external provider has a fallback chain, so the demo works fully offline from cached artefacts. Full design: **[OilGuard_System_Design_v2.md](OilGuard_System_Design_v2.md)** (deployment: Part VII).

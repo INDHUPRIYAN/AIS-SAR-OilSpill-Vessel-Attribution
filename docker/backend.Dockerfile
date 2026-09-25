@@ -18,8 +18,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # curl for the weight download; everything else ships as manylinux wheels
 # (rasterio bundles GDAL, opencv-python-headless needs no libGL).
+# libexpat1: the rasterio wheel links against it and python:*-slim (Debian
+# trixie) no longer ships it; without it the API dies importing rasterio.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && apt-get install -y --no-install-recommends curl ca-certificates libexpat1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

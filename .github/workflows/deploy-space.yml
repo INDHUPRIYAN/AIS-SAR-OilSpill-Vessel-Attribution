@@ -1,0 +1,44 @@
+# Redeploy the Hugging Face Space whenever code the image contains changes on
+# main. Hugging Face rebuilds the image and restarts the app itself.
+#
+# One-time setup (repo Settings -> Secrets and variables -> Actions):
+#   secret   HF_TOKEN  a Hugging Face WRITE token for the Space's owner
+#   variable HF_SPACE  e.g. IndhuPriyan/oceantrace
+# Space settings (data bundle, evaluator view, secrets) are set once from a
+# laptop with `push_space.py --configure`; this workflow only ships code.
+name: Deploy to Hugging Face Space
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/**"
+      - "main_system/**"
+      - "analysis_engines/**"
+      - "scene_service/**"
+      - "metocean_service/**"
+      - "ais_service/**"
+      - "scripts/**"
+      - "docker/app.Dockerfile"
+      - "docker/app-entrypoint.sh"
+      - "pyproject.toml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-space
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ vars.HF_SPACE != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "huggingface_hub>=0.24"
+      - name: Push to Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python scripts/deploy/push_space.py --space "${{ vars.HF_SPACE }}"

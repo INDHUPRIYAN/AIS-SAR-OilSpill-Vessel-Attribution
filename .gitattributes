@@ -1,0 +1,6 @@
+# Shell scripts run inside Linux containers: a CRLF checkout on Windows
+# (core.autocrlf=true) turns "#!/bin/sh" into "#!/bin/sh\r" and the
+# container dies with "not found" before printing anything.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf

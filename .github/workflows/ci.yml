@@ -1,0 +1,44 @@
+# Build the deployable image and prove it serves UI + API from one port.
+# No data and no weights in CI: the checks are that the container boots, the
+# registry DB answers, the built UI is served, and API routes stay JSON.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  image-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build single-container image
+        run: docker build -f docker/app.Dockerfile -t oceantrace:ci .
+
+      - name: Boot it
+        run: |
+          docker run -d --name ot -p 7860:7860 -e OT_PUBLIC_EVALUATOR=true oceantrace:ci
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:7860/readyz && exit 0
+            sleep 2
+          done
+          docker logs ot; exit 1
+
+      - name: Smoke checks
+        run: |
+          set -e
+          curl -fsS http://127.0.0.1:7860/healthz | grep -q '"status":"ok"'
+          # The UI, and a deep link that only the SPA fallback can answer.
+          curl -fsS http://127.0.0.1:7860/ | grep -qi '<div id="root"'
+          curl -fsS "http://127.0.0.1:7860/investigation?run=x" | grep -qi '<div id="root"'
+          # API routes are JSON; an unknown one is a 404, never index.html.
+          curl -fsS http://127.0.0.1:7860/api/auth/mode | grep -q '{'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7860/api/no-such-route)" = 404
+
+      - name: Container log
+        if: always()
+        run: docker logs ot || true

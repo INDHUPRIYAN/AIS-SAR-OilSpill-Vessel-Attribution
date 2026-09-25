@@ -149,3 +149,6 @@ UIPAGE*.png
 service-account*.json
 *.pem
 *.key
+
+# Staged deploy data bundle (scripts/deploy/data_bundle.py) -- GBs, never committed
+.deploy/
