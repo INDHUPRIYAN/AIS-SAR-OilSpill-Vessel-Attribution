@@ -36,6 +36,7 @@ from sqlalchemy.orm import Session
 
 from backend.core.authz import require_role
 from backend.core.config import PROVIDER_BY_NAME, PROVIDERS, get_settings
+from backend.core.paths import host_path
 from backend.core.security import (encryption_available, encrypt, is_encrypted,
                                    last_four, mask, resolve_credential,
                                    verify_admin)
@@ -279,7 +280,7 @@ def create_investigation(request: Request, body: InvestigationCreate,
     if aoi_bbox is not None:
         inv.bbox = json.dumps(aoi_bbox)
     if scene_meta_path:
-        meta_path = Path(scene_meta_path)
+        meta_path = host_path(scene_meta_path)
         if not meta_path.is_absolute():
             meta_path = REPO_ROOT / meta_path
         if not meta_path.exists():
@@ -294,7 +295,7 @@ def create_investigation(request: Request, body: InvestigationCreate,
         # The raster the metadata points at is the scene. Resolving it here
         # means the caller does not have to pass the same location twice.
         if not inv.scene_path and meta.get("file_path"):
-            raster = Path(meta["file_path"])
+            raster = host_path(meta["file_path"])
             if not raster.is_absolute():
                 raster = REPO_ROOT / raster
             if not raster.exists():
@@ -369,15 +370,15 @@ def _execute_run_now(run_id: str, investigation_id: Optional[str],
         jobs_service.start(db, job_id)
 
     try:
-        meta_path = Path(scene_meta) if scene_meta else MOCKS / "scene_meta.json"
+        meta_path = host_path(scene_meta) if scene_meta else MOCKS / "scene_meta.json"
         if scene:
-            scene_path = Path(scene)
+            scene_path = host_path(scene)
         else:
             # Never pair a caller-supplied scene_meta with the demo raster:
             # that combination reports one scene's coordinates over another
             # scene's pixels, which is worse than failing.
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            raster = Path(meta.get("file_path") or (MOCKS / "scene_sigma0_db.tif"))
+            raster = host_path(meta.get("file_path") or (MOCKS / "scene_sigma0_db.tif"))
             if not raster.is_absolute():
                 raster = REPO_ROOT / raster
             scene_path = raster

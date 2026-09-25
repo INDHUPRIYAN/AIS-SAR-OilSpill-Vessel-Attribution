@@ -29,6 +29,7 @@ import numpy as np
 from fastapi import APIRouter, HTTPException, Response
 
 from backend.core.config import get_settings
+from backend.core.paths import host_path
 
 router = APIRouter()
 settings = get_settings()
@@ -49,7 +50,7 @@ def _scene_raster(run_id: str) -> Path:
     manifest = d / "manifest.json"
     if manifest.exists():
         m = json.loads(manifest.read_text(encoding="utf-8"))
-        p = Path(str(m.get("scene_path", "")))
+        p = host_path(str(m.get("scene_path", "")))
         if p.exists():
             return p
     raise HTTPException(404, "scene raster not recorded in this run's manifest")

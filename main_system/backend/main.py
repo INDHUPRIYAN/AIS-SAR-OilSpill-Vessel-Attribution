@@ -10,6 +10,7 @@ shows current state rather than whatever the last user action happened to hit.
 from __future__ import annotations
 
 import logging
+import os
 import sys
 import threading
 from contextlib import asynccontextmanager
@@ -255,7 +256,6 @@ def readiness_check():
     return {"status": "ready", "app": settings.app_name, "utc": utcnow()}
 
 
-@app.get("/")
 def root():
     return {
         "app": settings.app_name,
@@ -269,6 +269,17 @@ def root():
             "keys": "/api/keys  (admin session required)",
         },
     }
+
+
+# Single-container deploys serve the built UI from this process (see
+# backend/core/spa.py); "/" is then the app, not the endpoint index.
+from backend.core.spa import frontend_dist, mount_spa  # noqa: E402
+
+_spa_dist = frontend_dist(os.getenv("OT_FRONTEND_DIST"))
+if _spa_dist is None:
+    app.get("/")(root)
+else:
+    mount_spa(app, _spa_dist)
 
 
 if __name__ == "__main__":

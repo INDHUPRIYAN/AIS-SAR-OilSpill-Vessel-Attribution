@@ -27,6 +27,7 @@ from starlette.concurrency import run_in_threadpool
 
 from backend.core.authz import _session_user, current_user, evaluator_user, require_role
 from backend.core.config import get_settings
+from backend.core.paths import host_path
 from backend.models.db import SessionLocal, User, get_db
 from backend.models.hindcast import (HindcastEngineRun, HindcastJob, HindcastParticleSnapshot)
 from backend.services import audit as audit_service
@@ -230,7 +231,7 @@ def job_particles(job_id: str, tau: int = Query(..., ge=0, description="hours be
     per_member = max(1, max_points // len(rows))
     features = []
     for row in rows:
-        path = Path(row.parquet_path)
+        path = host_path(row.parquet_path)
         if not path.exists():
             continue
         frame = pd.read_parquet(path, filters=[("tau_hours", "==", tau)])

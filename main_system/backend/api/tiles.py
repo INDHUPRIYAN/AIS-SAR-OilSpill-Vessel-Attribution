@@ -41,6 +41,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from backend.core.authz import authenticated
 from backend.core.config import get_settings
+from backend.core.paths import host_path
 
 router = APIRouter(dependencies=[Depends(authenticated)])
 
@@ -112,7 +113,7 @@ def _scene_path(run_id: str) -> Optional[Path]:
             meta = json.loads(meta_file.read_text(encoding="utf-8"))
             candidate = meta.get("file_path")
             if candidate:
-                path = Path(candidate)
+                path = host_path(candidate)
                 if not path.is_absolute():
                     path = Path(settings.data_root).parent / path
                 if path.exists():

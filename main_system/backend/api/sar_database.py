@@ -43,6 +43,7 @@ from fastapi.responses import Response
 
 from backend.core.authz import current_user, require_role
 from backend.core.config import get_settings
+from backend.core.paths import host_path
 
 router = APIRouter()
 settings = get_settings()
@@ -79,7 +80,7 @@ BASIS_NOTES = {
 
 
 def _resolve(value: str) -> Path:
-    p = Path(value)
+    p = host_path(value)
     return p if p.is_absolute() else (REPO_ROOT / p)
 
 

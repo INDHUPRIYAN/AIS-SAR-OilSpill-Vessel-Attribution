@@ -38,6 +38,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 from backend.core.config import get_settings
+from backend.core.paths import host_path
 
 router = APIRouter()
 settings = get_settings()
@@ -80,7 +81,7 @@ TIME_BASIS_CAVEAT = (
 
 def _resolve(path_value: str) -> Path:
     """Repo-anchored resolution, matching how investigations resolve scenes."""
-    p = Path(path_value)
+    p = host_path(path_value)
     return p if p.is_absolute() else (REPO_ROOT / p)
 
 
