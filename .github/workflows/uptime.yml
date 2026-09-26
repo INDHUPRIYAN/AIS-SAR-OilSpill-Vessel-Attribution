@@ -1,0 +1,89 @@
+# Uptime watch for the live system: pushes a phone notification (ntfy) when it
+# goes down and again when it recovers -- once per outage, not every check.
+#
+# The live system cannot report its own outage (a sleeping laptop sends
+# nothing), so the check runs here, outside it. The address is read from
+# site/index.html (LIVE_URL), the single place it is configured.
+#
+# Phone: install the "ntfy" app and subscribe to the topic in repo variable
+# NTFY_TOPIC. Test: Actions -> Uptime -> Run workflow -> tick "test".
+# Limits: GitHub runs schedules every 5 min at best and can be late by several
+# minutes; it pauses schedules after 60 days without a commit to the repo.
+name: Uptime
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Only send a test notification to the phone"
+        type: boolean
+        default: true
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: site/index.html
+          sparse-checkout-cone-mode: false
+
+      - name: Check the live system
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TOPIC: ${{ vars.NTFY_TOPIC }}
+          TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.test }}
+        run: |
+          set -u
+          [ -n "$TOPIC" ] || { echo "repo variable NTFY_TOPIC is not set"; exit 1; }
+          LIVE_URL=$(grep -oE 'var LIVE_URL = "[^"]+"' site/index.html | cut -d'"' -f2)
+          echo "live url: $LIVE_URL"
+
+          notify() {  # $1 title, $2 priority, $3 tags, $4 message
+            curl -fsS -H "Title: $1" -H "Priority: $2" -H "Tags: $3" \
+                 -H "Click: $LIVE_URL" -d "$4" "https://ntfy.sh/$TOPIC" > /dev/null
+          }
+
+          if [ "$TEST" = "true" ]; then
+            notify "OceanTrace test" default "white_check_mark" \
+              "Test from GitHub Actions: phone notifications are working."
+            echo "test notification sent"; exit 0
+          fi
+
+          # Three tries over ~40 s so a single network blip is not an outage.
+          code=000
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$LIVE_URL/healthz" || true)
+            [ "$code" = 200 ] && break
+            sleep 10
+          done
+          echo "healthz: HTTP $code"
+
+          # State = the previous scheduled check's result. Only a CHANGE notifies.
+          prev=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/uptime.yml/runs?event=schedule&status=completed&per_page=1" \
+                 --jq '.workflow_runs[0].conclusion // "none"')
+          echo "previous check: $prev"
+
+          if [ "$code" = 200 ]; then
+            if [ "$prev" = failure ]; then
+              notify "OceanTrace is back online" default "white_check_mark" \
+                "The live system answers again: $LIVE_URL"
+            fi
+          else
+            if [ "$prev" != failure ]; then
+              notify "OceanTrace is DOWN" urgent "rotating_light" \
+                "The live system did not answer (HTTP $code). Check that the laptop is on and online, and that Docker Desktop is running. Tap to open the link."
+            fi
+            exit 1   # marks this check failed, which is the state the next run reads
+          fi

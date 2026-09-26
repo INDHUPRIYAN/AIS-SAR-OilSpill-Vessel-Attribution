@@ -159,7 +159,9 @@
         <a class="btn primary" data-live href="#" target="_blank" rel="noopener">Launch the live system →</a>
         <a class="btn" data-live-demo href="#" target="_blank" rel="noopener">Open the demo case</a>
         <span class="status" id="status" role="status"><span class="dot"></span><span id="status-text">Checking live system…</span></span>
+        <button class="btn" id="notify" type="button" hidden>Notify the team</button>
       </div>
+      <p class="note" id="notify-note" hidden></p>
       <p class="note">No login needed: the live system opens in a read-and-run evaluator view.
         Sign-in with roles (analyst, reviewer, admin) is available from its Login button.</p>
       <div class="hero-shot">
@@ -284,7 +286,7 @@
 <footer>
   <div class="wrap">
     <span>OceanTrace · SIH 2026 · PS 26143</span>
-    <span><a href="https://github.com/INDHUPRIYAN/AIS-SAR-OilSpill-Vessel-Attribution">Source on GitHub</a></span>
+    <span><a href="#" id="report">Report a problem to the team</a> <span id="report-note"></span> · <a href="https://github.com/INDHUPRIYAN/AIS-SAR-OilSpill-Vessel-Attribution">Source on GitHub</a></span>
   </div>
 </footer>
 
@@ -297,7 +299,36 @@
   // VIDEO_URL: a YouTube *embed* link, e.g. https://www.youtube.com/embed/VIDEO_ID
   // Empty keeps the video section hidden.
   var VIDEO_URL = "";
+  // NTFY_TOPIC: the team's phone-notification channel (ntfy app). Must match the
+  // repo variable NTFY_TOPIC used by .github/workflows/uptime.yml.
+  var NTFY_TOPIC = "oceantrace-alerts-52bde82977";
   // -----------------------------------------------------------------------------
+
+  // A visitor's report goes straight to the team's phones. Query parameters
+  // and a text/plain body keep it a "simple" request: no CORS preflight.
+  function notifyTeam(reason, done) {
+    var q = "?title=" + encodeURIComponent("OceanTrace: visitor report") +
+            "&priority=high&tags=bell&click=" + encodeURIComponent(LIVE_URL);
+    fetch("https://ntfy.sh/" + NTFY_TOPIC + q, { method: "POST", body: reason })
+      .then(function (r) { done(r.ok); }, function () { done(false); });
+  }
+  function wireNotify(el, noteId, reason) {
+    el.addEventListener("click", function (e) {
+      e.preventDefault();
+      if (el.dataset.sent) return;            // one report per visit is enough
+      el.dataset.sent = "1";
+      var note = document.getElementById(noteId);
+      notifyTeam(reason + " (page: " + location.href + ")", function (ok) {
+        note.hidden = false;
+        note.textContent = ok
+          ? "The team has been notified on their phones. Please try the live system again in a few minutes."
+          : "Could not reach the notification service. Please try again shortly.";
+        if (!ok) delete el.dataset.sent;
+      });
+    });
+  }
+  wireNotify(document.getElementById("notify"), "notify-note", "A visitor found the live system OFFLINE");
+  wireNotify(document.getElementById("report"), "report-note", "A visitor reported a problem with OceanTrace");
 
   document.querySelectorAll("[data-live]").forEach(function (a) { a.href = LIVE_URL + "/"; });
   document.querySelectorAll("[data-live-demo]").forEach(function (a) {
@@ -316,7 +347,10 @@
     var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 9000);
     fetch(LIVE_URL + "/healthz?t=" + Date.now(), { mode: "no-cors", cache: "no-store", signal: ctrl && ctrl.signal })
       .then(function () { box.className = "status live"; text.textContent = "Live now"; })
-      .catch(function () { box.className = "status off"; text.textContent = "Offline right now: see the screens below"; })
+      .catch(function () {
+        box.className = "status off"; text.textContent = "Offline right now: see the screens below";
+        document.getElementById("notify").hidden = false;
+      })
       .then(function () { clearTimeout(timer); });
   })();
 </script>
