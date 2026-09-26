@@ -43,6 +43,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TOPIC: ${{ vars.NTFY_TOPIC }}
+          CALL_USER: ${{ vars.TELEGRAM_CALL_USER }}
           TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.test }}
         run: |
           set -u
@@ -55,10 +56,23 @@ jobs:
                  -H "Click: $LIVE_URL" -d "$4" "https://ntfy.sh/$TOPIC" > /dev/null
           }
 
+          # Telegram voice call (CallMeBot, free) for outages only: a call is
+          # harder to miss than a push. Best effort -- a failed call must not
+          # hide the ntfy alert or the check result. Needs repo variable
+          # TELEGRAM_CALL_USER (e.g. @name) authorised at callmebot.com.
+          call() {  # $1 spoken text
+            [ -n "$CALL_USER" ] || return 0
+            curl -s -m 60 -G "https://api.callmebot.com/start.php" \
+                 --data-urlencode "source=web" --data-urlencode "user=$CALL_USER" \
+                 --data-urlencode "text=$1" --data-urlencode "lang=en-GB-Standard-B" \
+                 --data-urlencode "rpt=2" > /dev/null || echo "telegram call failed"
+          }
+
           if [ "$TEST" = "true" ]; then
             notify "OceanTrace test" default "white_check_mark" \
               "Test from GitHub Actions: phone notifications are working."
-            echo "test notification sent"; exit 0
+            call "This is a test call from Ocean Trace. Down alerts will call you like this."
+            echo "test notification (and call, if configured) sent"; exit 0
           fi
 
           # Three tries over ~40 s so a single network blip is not an outage.
@@ -84,6 +98,7 @@ jobs:
             if [ "$prev" != failure ]; then
               notify "OceanTrace is DOWN" urgent "rotating_light" \
                 "The live system did not answer (HTTP $code). Check that the laptop is on and online, and that Docker Desktop is running. Tap to open the link."
+              call "Alert. Ocean Trace is down. The live system is not answering. Please open the laptop and check it."
             fi
             exit 1   # marks this check failed, which is the state the next run reads
           fi
