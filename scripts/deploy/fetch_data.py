@@ -30,7 +30,11 @@ MARKER = ".bundle-revision"
 
 
 def main() -> int:
+    # Relative DATA_ROOT is anchored on the repo, exactly as backend/core/config
+    # does; anchored on the cwd it would fill a directory the app never reads.
     data_root = Path(os.getenv("DATA_ROOT", str(REPO_ROOT / "data")))
+    if not data_root.is_absolute():
+        data_root = (REPO_ROOT / data_root).resolve()
     repo = os.getenv("OT_DATA_REPO", "").strip()
     if repo:
         status = _download(repo, data_root)
