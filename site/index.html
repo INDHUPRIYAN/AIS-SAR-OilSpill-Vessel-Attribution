@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OceanTrace — SAR Oil Spill Attribution</title>
+<meta name="description" content="OceanTrace (SIH 2026 · PS 26143): Sentinel-1 SAR oil-spill detection, drift hindcast and AIS vessel attribution.">
+<meta property="og:title" content="OceanTrace — SAR Oil Spill Attribution">
+<meta property="og:description" content="Detect an oil slick from satellite radar, drift it back in time, and rank the vessels that could have caused it.">
+<meta property="og:image" content="assets/investigation.jpg">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%230e7490'/%3E%3Cpath d='M5 18c3 0 3-3 6-3s3 3 6 3 3-3 6-3 3 3 4 3' stroke='%23e0f2fe' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #070d18; --panel: #0d1627; --panel-2: #111c31; --line: #1e2b44;
+    --text: #e6edf7; --muted: #93a3bc; --dim: #64748b;
+    --accent: #22d3ee; --accent-ink: #042f3a; --ok: #34d399; --warn: #fbbf24; --oil: #f97316;
+    --radius: 14px; --max: 1180px;
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  /* height:auto so the width/height attributes only reserve the aspect ratio. */
+  img { max-width: 100%; height: auto; display: block; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 16px; }
+
+  /* top bar */
+  .top { position: sticky; top: 0; z-index: 10; background: rgba(7,13,24,.86);
+         backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .top .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .14em; }
+  .brand small { display: block; font-size: 10px; letter-spacing: .22em; color: var(--accent); font-weight: 700; }
+  .logo { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#0e7490,#22d3ee);
+          display: grid; place-items: center; flex: none; }
+  .nav { display: flex; gap: 20px; font-size: 14px; }
+  .nav a { color: var(--muted); text-decoration: none; }
+  .nav a:hover { color: var(--text); }
+  @media (max-width: 720px) { .nav { display: none; } }
+
+  /* hero */
+  .hero { padding: 72px 0 40px; background:
+          radial-gradient(900px 420px at 80% -10%, rgba(34,211,238,.16), transparent 60%),
+          radial-gradient(700px 360px at -10% 10%, rgba(249,115,22,.08), transparent 60%); }
+  .eyebrow { font: 700 12px/1 var(--mono); letter-spacing: .2em; color: var(--accent); text-transform: uppercase; }
+  h1 { font-size: clamp(34px, 6vw, 60px); line-height: 1.05; margin: 14px 0 18px; letter-spacing: -.02em; }
+  h1 span { color: var(--accent); }
+  .lede { font-size: clamp(17px, 2.2vw, 20px); color: var(--muted); max-width: 760px; margin: 0 0 28px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 20px; border-radius: 10px;
+         font-weight: 700; text-decoration: none; border: 1px solid var(--line); color: var(--text);
+         background: var(--panel-2); transition: transform .12s, border-color .12s; }
+  .btn:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .status { display: inline-flex; align-items: center; gap: 8px; font: 600 13px var(--mono);
+            color: var(--muted); padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); }
+  .status.live .dot { background: var(--ok); box-shadow: 0 0 0 4px rgba(52,211,153,.18); }
+  .status.live { color: var(--ok); border-color: rgba(52,211,153,.35); }
+  .status.off .dot { background: var(--warn); }
+  .status.off { color: var(--warn); border-color: rgba(251,191,36,.35); }
+  .note { font-size: 13px; color: var(--dim); margin-top: 12px; }
+  .hero-shot { margin-top: 44px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line);
+               box-shadow: 0 30px 80px -30px rgba(34,211,238,.35); }
+
+  /* sections */
+  section { padding: 64px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: clamp(26px, 3.6vw, 36px); margin: 10px 0 12px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); max-width: 760px; margin: 0 0 32px; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 860px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .stat b { display: block; font: 800 28px/1.1 var(--mono); color: var(--text); }
+  .stat span { font-size: 13px; color: var(--muted); }
+
+  .steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; counter-reset: s; }
+  @media (max-width: 980px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .steps { grid-template-columns: 1fr; } }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px;
+          position: relative; }
+  .step::before { counter-increment: s; content: "0" counter(s); font: 700 12px var(--mono);
+                  color: var(--accent); letter-spacing: .12em; }
+  .step h3 { margin: 8px 0 6px; font-size: 17px; }
+  .step p { margin: 0; font-size: 14px; color: var(--muted); }
+  .step code { font: 12px var(--mono); color: var(--text); }
+
+  .case { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .case { grid-template-columns: 1fr; } }
+  .case figure { margin: 0; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); }
+  .facts { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+  .facts dl { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; margin: 0 0 16px; font-size: 14px; }
+  .facts dt { color: var(--dim); font: 600 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; padding-top: 2px; }
+  .facts dd { margin: 0; }
+  .chip { display: inline-block; font: 700 11px var(--mono); letter-spacing: .08em; padding: 3px 7px;
+          border-radius: 6px; border: 1px solid rgba(52,211,153,.4); color: var(--ok); margin: 0 4px 4px 0; }
+
+  .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  @media (max-width: 760px) { .gallery { grid-template-columns: 1fr; } }
+  .shot { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .shot a { display: block; }
+  .shot img { aspect-ratio: 16 / 10; object-fit: cover; object-position: top left; width: 100%; }
+  .shot figcaption { padding: 14px 16px; font-size: 14px; color: var(--muted); }
+  .shot figcaption b { color: var(--text); display: block; margin-bottom: 2px; }
+
+  .video { aspect-ratio: 16 / 9; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: #000; }
+  .video iframe { width: 100%; height: 100%; border: 0; }
+
+  .team { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 860px) { .team { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .team { grid-template-columns: 1fr; } }
+  .member { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  .member b { display: block; }
+  .member span { font-size: 14px; color: var(--muted); }
+
+  .honest { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--warn);
+            border-radius: var(--radius); padding: 18px 20px; color: var(--muted); font-size: 15px; }
+  .honest ul { margin: 8px 0 0; padding-left: 20px; }
+
+  footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--dim); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e0f2fe" stroke-width="2.2" stroke-linecap="round">
+          <path d="M2 14c2.5 0 2.5-2.5 5-2.5S9.5 14 12 14s2.5-2.5 5-2.5S19.5 14 22 14"/><path d="M2 19c2.5 0 2.5-2.5 5-2.5S9.5 19 12 19s2.5-2.5 5-2.5S19.5 19 22 19"/><circle cx="12" cy="6" r="2.4"/>
+        </svg>
+      </div>
+      <div>OCEANTRACE<small>MARITIME INTELLIGENCE</small></div>
+    </div>
+    <nav class="nav" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#case">Demo case</a>
+      <a href="#screens">Screens</a>
+      <a href="#team">Team</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="wrap">
+      <div class="eyebrow">Smart India Hackathon 2026 · PS 26143</div>
+      <h1>Find the oil spill.<br><span>Trace it to the ship.</span></h1>
+      <p class="lede">OceanTrace detects oil slicks in Sentinel-1 satellite radar, drifts them back in time
+        with real wind and ocean currents, and ranks the vessels whose AIS tracks put them at the
+        origin, with the evidence behind every score.</p>
+      <div class="cta">
+        <a class="btn primary" data-live href="#" target="_blank" rel="noopener">Launch the live system →</a>
+        <a class="btn" data-live-demo href="#" target="_blank" rel="noopener">Open the demo case</a>
+        <span class="status" id="status" role="status"><span class="dot"></span><span id="status-text">Checking live system…</span></span>
+      </div>
+      <p class="note">No login needed: the live system opens in a read-and-run evaluator view.
+        Sign-in with roles (analyst, reviewer, admin) is available from its Login button.</p>
+      <div class="hero-shot">
+        <img src="assets/investigation.jpg" width="1440" height="900"
+             alt="OceanTrace investigation workspace: a detected oil slick in the Gulf of Mexico with ranked candidate vessels and their evidence scores">
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <div class="stats">
+        <div class="stat"><b>59.6 km²</b><span>slick detected in the flagship Sentinel-1 scene</span></div>
+        <div class="stat"><b>86,830</b><span>real AIS positions screened for the flagship case</span></div>
+        <div class="stat"><b>5 / 5</b><span>flagship pipeline stages run on real inputs, none simulated</span></div>
+        <div class="stat"><b>12</b><span>external data providers health-checked live, with fallback chains</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="eyebrow">How it works</div>
+      <h2>From a radar image to a ranked list of suspects</h2>
+      <p class="sub">Every stage records where its data came from. If a source is unavailable, the stage
+        says so. Nothing is filled in with made-up data.</p>
+      <div class="steps">
+        <div class="step"><h3>Acquire</h3><p>Sentinel-1 SAR scene via Copernicus (CDSE), falling back to NASA ASF or the local cache.</p></div>
+        <div class="step"><h3>Detect</h3><p>Two-stage AI: a YOLO screen separates oil from look-alikes (DARTIS), then a U-Net outlines the slick (Trujillo). Both run as <code>ONNX</code> on CPU.</p></div>
+        <div class="step"><h3>Characterise</h3><p>Slick area, shape and weathering, with a confidence level for each detection.</p></div>
+        <div class="step"><h3>Drift</h3><p>An ensemble particle model drifts the slick back and forward in time with ERA5 wind and CMEMS currents to estimate where it started.</p></div>
+        <div class="step"><h3>Attribute</h3><p>AIS tracks are matched against the origin in space and time. Vessels are ranked by a weighted evidence score, not a probability.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="case">
+    <div class="wrap">
+      <div class="eyebrow">Flagship demo case</div>
+      <h2>Gulf of Mexico · 8 January 2023</h2>
+      <p class="sub">A sealed, fully reproducible run on real inputs. Its artefacts are content-hashed,
+        so the live system can prove they have not changed since the run.</p>
+      <div class="case">
+        <figure><img src="assets/investigation.jpg" width="1440" height="900" loading="lazy"
+             alt="Flagship case: the slick, the estimated origin and the top four candidate vessels"></figure>
+        <div class="facts">
+          <dl>
+            <dt>Scene</dt><dd>Sentinel-1A IW GRD, 10 m, VV</dd>
+            <dt>Slick</dt><dd>59.6 km², about 24 h old</dd>
+            <dt>Origin</dt><dd>27.795° N, 90.126° W (± 0.37 km)</dd>
+            <dt>AIS</dt><dd>MarineCadastre archive, 7–8 Jan 2023</dd>
+            <dt>Top suspect</dt><dd>MMSI 367653160, score 0.67</dd>
+          </dl>
+          <span class="chip">SAR REAL</span><span class="chip">CURRENTS REAL</span><span class="chip">WIND REAL</span><span class="chip">AIS REAL</span><span class="chip">SEALED</span>
+          <p class="note">In the live system, press <b>Play replay</b> to watch the case run from orbit to the report.</p>
+          <a class="btn primary" data-live-demo href="#" target="_blank" rel="noopener">Open this case live →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="video" hidden>
+    <div class="wrap">
+      <div class="eyebrow">Walkthrough</div>
+      <h2>See it in action</h2>
+      <div class="video"><iframe id="video-frame" title="OceanTrace walkthrough video" loading="lazy"
+           allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+    </div>
+  </section>
+
+  <section id="screens">
+    <div class="wrap">
+      <div class="eyebrow">The system</div>
+      <h2>Screens from the live deployment</h2>
+      <p class="sub">Captured from the running system. Click any screen to enlarge it.</p>
+      <div class="gallery">
+        <figure class="shot"><a href="assets/dashboard.jpg" target="_blank"><img src="assets/dashboard.jpg" loading="lazy" width="1440" height="900" alt="Operations dashboard with the Bay of Bengal zones on a 3D globe"></a>
+          <figcaption><b>Operations dashboard</b>Alerts that need attention, protected zones on a 3D globe, and live map layers.</figcaption></figure>
+        <figure class="shot"><a href="assets/detections.jpg" target="_blank"><img src="assets/detections.jpg" loading="lazy" width="1440" height="900" alt="SAR image database listing Sentinel-1 scenes with provenance badges"></a>
+          <figcaption><b>SAR image database</b>Every scene on the host, with its source and how its time and position are known.</figcaption></figure>
+        <figure class="shot"><a href="assets/hindcast.jpg" target="_blank"><img src="assets/hindcast.jpg" loading="lazy" width="1440" height="900" alt="Hindcast engine monitor showing seven stages, all succeeded"></a>
+          <figcaption><b>Hindcast engines</b>Seven stages drift a slick back to where and when it entered the water, streamed live.</figcaption></figure>
+        <figure class="shot"><a href="assets/monitoring.jpg" target="_blank"><img src="assets/monitoring.jpg" loading="lazy" width="1440" height="900" alt="API monitor with ten working providers and measured latency"></a>
+          <figcaption><b>Data source monitor</b>Measured health of every external provider and which member of each fallback chain is serving.</figcaption></figure>
+        <figure class="shot"><a href="assets/map.jpg" target="_blank"><img src="assets/map.jpg" loading="lazy" width="1440" height="900" alt="Live map with operational zones and layer controls"></a>
+          <figcaption><b>Live map</b>Operational zones, incidents, detections, forecasts and live AIS on one map.</figcaption></figure>
+        <figure class="shot"><a href="assets/investigation.jpg" target="_blank"><img src="assets/investigation.jpg" loading="lazy" width="1440" height="900" alt="Investigation workspace with vessel attribution"></a>
+          <figcaption><b>Investigation workspace</b>Slick, origin, candidate tracks and the evidence behind each vessel's score.</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="honest">
+        <b style="color:var(--text)">What to know before you open the live system</b>
+        <ul>
+          <li>It runs on the team's own machine. If the status above says <i>offline</i>, the screens on this page show the same system.</li>
+          <li>Sealed demo runs open instantly. Starting a new analysis downloads a full satellite scene and can take several minutes.</li>
+          <li>Candidate scores are weighted evidence for investigators, not proof of guilt and not probabilities.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="team">
+    <div class="wrap">
+      <div class="eyebrow">Team</div>
+      <h2>Who built what</h2>
+      <div class="team">
+        <div class="member"><b>Indhu Priyan</b><span>Main system, U-Net segmentation, frontend, integration</span></div>
+        <div class="member"><b>Mohan Kumar M</b><span>YOLO screening detector (oil vs look-alike)</span></div>
+        <div class="member"><b>Nandha</b><span>Characterisation, drift and attribution engines</span></div>
+        <div class="member"><b>Pavitra</b><span>Sentinel-1 scene retrieval (CDSE / ASF)</span></div>
+        <div class="member"><b>Keerthana</b><span>Currents and wind (CMEMS, ERA5, HYCOM, Open-Meteo)</span></div>
+        <div class="member"><b>Krishnan</b><span>AIS ingestion, interpolation and benchmarks</span></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>OceanTrace · SIH 2026 · PS 26143</span>
+    <span><a href="https://github.com/INDHUPRIYAN/AIS-SAR-OilSpill-Vessel-Attribution">Source on GitHub</a></span>
+  </div>
+</footer>
+
+<script>
+  // ---- Settings: the only lines to edit when the deployment moves -------------
+  // LIVE_URL: where the running system is served. Change it here (and push) if
+  // the system moves to another host; the link in the PPT never changes.
+  var LIVE_URL = "https://oceantrace.searobin-reedfish.ts.net";
+  var DEMO_RUN = "inv-gulf-flagship-20230108-2day";
+  // VIDEO_URL: a YouTube *embed* link, e.g. https://www.youtube.com/embed/VIDEO_ID
+  // Empty keeps the video section hidden.
+  var VIDEO_URL = "";
+  // -----------------------------------------------------------------------------
+
+  document.querySelectorAll("[data-live]").forEach(function (a) { a.href = LIVE_URL + "/"; });
+  document.querySelectorAll("[data-live-demo]").forEach(function (a) {
+    a.href = LIVE_URL + "/investigation?run=" + encodeURIComponent(DEMO_RUN);
+  });
+  if (VIDEO_URL) {
+    document.getElementById("video-frame").src = VIDEO_URL;
+    document.getElementById("video").hidden = false;
+  }
+
+  // Live status: a no-cors request resolves when the server answers at all and
+  // rejects when it is unreachable, which is exactly the question being asked.
+  (function check() {
+    var box = document.getElementById("status"), text = document.getElementById("status-text");
+    var ctrl = "AbortController" in window ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 9000);
+    fetch(LIVE_URL + "/healthz?t=" + Date.now(), { mode: "no-cors", cache: "no-store", signal: ctrl && ctrl.signal })
+      .then(function () { box.className = "status live"; text.textContent = "Live now"; })
+      .catch(function () { box.className = "status off"; text.textContent = "Offline right now: see the screens below"; })
+      .then(function () { clearTimeout(timer); });
+  })();
+</script>
+</body>
+</html>
