@@ -174,6 +174,43 @@
   .tech { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 10px; }
   .tech span { font: 600 11px var(--mono); padding: 3px 8px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); }
 
+  .member-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn.linkedin { padding: 8px 12px; font-size: 13px; gap: 7px; }
+  .btn.linkedin:hover { border-color: #0a66c2; color: #0a66c2; }
+  .btn.linkedin svg { flex: none; }
+
+  /* videos */
+  .videos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  @media (max-width: 860px) { .videos { grid-template-columns: 1fr; } }
+  .video { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .video-frame { aspect-ratio: 16 / 9; background: #000; }
+  .video-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .video figcaption { padding: 14px 16px; font-size: 14px; color: var(--muted); }
+  .video figcaption b { color: var(--text); display: block; margin-bottom: 2px; }
+  .video figcaption a { display: inline-block; margin-top: 6px; font-weight: 600; }
+
+  /* research */
+  .papers { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  @media (max-width: 860px) { .papers { grid-template-columns: 1fr; } }
+  .paper { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: flex; gap: 16px; }
+  .paper-icon { flex: none; width: 56px; height: 68px; border-radius: 8px; background: linear-gradient(160deg, var(--red), var(--amber));
+                color: #fff; display: grid; place-items: center; font: 800 13px var(--mono); letter-spacing: .1em; position: relative; }
+  .paper-icon::after { content: ""; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 14px 14px 0;
+                       border-color: transparent var(--panel) transparent transparent; }
+  .paper-body h3 { margin: 4px 0 6px; font-size: 18px; letter-spacing: -.01em; }
+  .paper-body p { margin: 0 0 14px; font-size: 14px; color: var(--muted); }
+  .paper .btn { padding: 9px 14px; font-size: 14px; }
+  .tracks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 900px) { .tracks { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .tracks { grid-template-columns: 1fr; } }
+  .track { display: flex; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .track-code { flex: none; width: 38px; height: 38px; border-radius: 9px; background: var(--red); color: #fff; display: grid; place-items: center;
+                font: 800 17px var(--mono); }
+  .track:nth-child(even) .track-code { background: var(--amber); color: #1a1200; }
+  .track b { display: block; font-size: 15px; }
+  .track i { display: block; font-style: normal; font: 700 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--amber-ink); margin: 2px 0 4px; }
+  .track p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+
   .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
   .flow span { background: var(--panel); border: 1px solid var(--line-2); border-radius: 999px; padding: 8px 14px; font: 600 13px var(--sans); }
   .flow i { color: var(--red); font-style: normal; font-weight: 800; }
@@ -200,6 +237,8 @@
       <a href="#how">How it works</a>
       <a href="#case">Demo case</a>
       <a href="#screens">Screens</a>
+      <a href="#videos">Videos</a>
+      <a href="#research">Research</a>
       <a href="#team">Team</a>
       <button class="theme-btn" id="theme" type="button" aria-label="Switch theme" title="Switch between light and dark">
         <span class="moon" aria-hidden="true">🌙</span><span class="sun" aria-hidden="true">☀️</span><span id="theme-label">Dark</span>
@@ -285,15 +324,6 @@
     </div>
   </section>
 
-  <section id="video" class="alt" hidden>
-    <div class="wrap">
-      <div class="eyebrow">Walkthrough</div>
-      <h2>See it in action</h2>
-      <div class="hero-shot" style="margin-top:0;aspect-ratio:16/9;background:#000"><iframe id="video-frame" title="OceanTrace walkthrough video" loading="lazy"
-           style="width:100%;height:100%;border:0" allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
-    </div>
-  </section>
-
   <section id="screens" class="alt">
     <div class="wrap">
       <div class="eyebrow">The system</div>
@@ -313,6 +343,88 @@
         <figure class="shot"><a href="assets/investigation.jpg" target="_blank"><img src="assets/investigation.jpg" loading="lazy" width="1440" height="900" alt="Investigation workspace with vessel attribution"></a>
           <figcaption><b>Investigation workspace</b>Slick, origin, candidate tracks and the evidence behind each vessel's score.</figcaption></figure>
       </div>
+    </div>
+  </section>
+
+  <section id="videos">
+    <div class="wrap">
+      <div class="eyebrow">Videos</div>
+      <h2>See OceanTrace in action</h2>
+      <p class="sub">The product walkthrough and the story of how the team built it. More on the
+        <a href="https://www.youtube.com/@TheDevFounders" target="_blank" rel="noopener" data-track="youtube channel">The DevFounders YouTube channel</a>.</p>
+      <div class="videos">
+        <figure class="video">
+          <div class="video-frame"><iframe src="https://www.youtube-nocookie.com/embed/_oDzYKUyoA4" title="OceanTrace — Maritime Oil-Spill Intelligence & Vessel Attribution | SIH26 PS 143 | The DevFounders"
+               loading="lazy" allow="accelerometer; encrypted-media; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+          <figcaption><b>OceanTrace — Maritime Oil-Spill Intelligence &amp; Vessel Attribution</b>The product: from a Sentinel-1 scene to a ranked, evidence-backed list of vessels. SIH 2026 · PS 26143.
+            <a href="https://www.youtube.com/watch?v=_oDzYKUyoA4" target="_blank" rel="noopener" data-track="video: product">Watch on YouTube →</a></figcaption>
+        </figure>
+        <figure class="video">
+          <div class="video-frame"><iframe src="https://www.youtube-nocookie.com/embed/mRwK8BFE6RM" title="The DevFounders | How We Built OceanTrace | Team Contributions & Technical Breakdown | SIH 2026"
+               loading="lazy" allow="accelerometer; encrypted-media; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+          <figcaption><b>How We Built OceanTrace — Team Contributions &amp; Technical Breakdown</b>Each member on the module they own: technologies, datasets, APIs and algorithms.
+            <a href="https://www.youtube.com/watch?v=mRwK8BFE6RM" target="_blank" rel="noopener" data-track="video: how we built">Watch on YouTube →</a></figcaption>
+        </figure>
+      </div>
+      <div class="cta" style="margin-top:18px">
+        <a class="btn primary" href="https://www.youtube.com/@TheDevFounders?sub_confirmation=1" target="_blank" rel="noopener" data-track="youtube subscribe">▶ Subscribe to The DevFounders</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="research" class="alt">
+    <div class="wrap">
+      <div class="eyebrow">Research &amp; references</div>
+      <h2>The evidence base behind every design decision</h2>
+      <p class="sub">Our <b>Research &amp; References Compendium</b> (v2.0, 28 September 2026) lists every model, dataset, physical
+        assumption, data source and legal reference used in OceanTrace, with a plain statement of what we took from it and
+        where it appears in the pipeline. Six research tracks, one owner each, so every decision is traceable to a person and a source.</p>
+      <div class="stats" style="margin-bottom:24px">
+        <div class="stat"><b>38</b><span>sources reviewed: 20 peer-reviewed papers, 4 labelled SAR datasets, 8 data services, 3 frameworks, 3 legal texts</span></div>
+        <div class="stat"><b>6</b><span>research tracks (A–F), one per team member, mapped to the 10 pipeline stages</span></div>
+        <div class="stat"><b>6</b><span>attribution factors, each grounded in published maritime-surveillance research</span></div>
+        <div class="stat"><b>3</b><span>legal frameworks the evidence pack is written for: MARPOL Annex I, SOLAS V/19, Merchant Shipping Act 1958</span></div>
+      </div>
+      <div class="papers">
+        <article class="paper">
+          <div class="paper-icon" aria-hidden="true">PDF</div>
+          <div class="paper-body">
+            <div class="member-role">Compendium · edition 1</div>
+            <h3>Ocean Trace — Research &amp; References Compendium</h3>
+            <p>Executive summary, team &amp; research ownership, literature-review methodology, Sections A–F (one per track),
+               labelled SAR dataset comparison, design decision log, traceability matrix, glossary and the consolidated 38-item reference list. 23 pages.</p>
+            <div class="cta">
+              <a class="btn primary" href="research/OceanTrace_Research_and_References_Compendium_v2.pdf" target="_blank" rel="noopener" data-track="research pdf (edition 1)">Open PDF →</a>
+              <a class="btn" href="research/OceanTrace_Research_and_References_Compendium_v2.pdf" download data-track="research pdf download (edition 1)">Download</a>
+            </div>
+          </div>
+        </article>
+        <article class="paper">
+          <div class="paper-icon" aria-hidden="true">PDF</div>
+          <div class="paper-body">
+            <div class="member-role">Compendium · edition 2 (blue–green print layout)</div>
+            <h3>Ocean Trace — Research &amp; References Compendium</h3>
+            <p>The same v2.0 content in the alternate print layout: identical sections, references and traceability matrix,
+               formatted for the evaluation panel's printed pack. 23 pages.</p>
+            <div class="cta">
+              <a class="btn primary" href="research/OceanTrace_Research_and_References_Compendium_v2_BlueGreen.pdf" target="_blank" rel="noopener" data-track="research pdf (edition 2)">Open PDF →</a>
+              <a class="btn" href="research/OceanTrace_Research_and_References_Compendium_v2_BlueGreen.pdf" download data-track="research pdf download (edition 2)">Download</a>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <h3 style="margin:36px 0 6px;font-size:20px">Research ownership · six tracks, one owner each</h3>
+      <p class="sub" style="margin-bottom:18px">The letter code is the reference-ID prefix used throughout the compendium (C2 = second reference in the Drift &amp; Hindcast track).</p>
+      <div class="tracks">
+        <div class="track"><span class="track-code">A</span><div><b>Indhu Priyan M</b><i>Satellite SAR &amp; Oil-Spill Detection</i><p>Stages 1–3 · Sentinel-1, SAR pre-processing, YOLO11n detector, DARTIS dataset</p></div></div>
+        <div class="track"><span class="track-code">B</span><div><b>Mohan Kumar M</b><i>Oil-Spill Segmentation</i><p>Stages 4–5 · U-Net, ResNet-34 encoder, Trujillo-Acatitla (Zenodo) dataset, polygon extraction</p></div></div>
+        <div class="track"><span class="track-code">C</span><div><b>Nandha Kumar J</b><i>Ocean Drift &amp; Hindcast Modelling</i><p>Stages 7–8 · OpenDrift/OpenOil physics, ML residual correction, Bayesian origin reconstruction, forecast</p></div></div>
+        <div class="track"><span class="track-code">D</span><div><b>Pavitra G V</b><i>Weather, Ocean &amp; Environmental Data</i><p>Stage 6 · ERA5, CMEMS, Open-Meteo, HYCOM, Stokes drift, environmental APIs</p></div></div>
+        <div class="track"><span class="track-code">E</span><div><b>Krishnan S A</b><i>AIS &amp; Maritime Data Research</i><p>Stage 9 · AIS sources &amp; format (MarineCadastre, AISStream, DMA), synthetic AIS, data integration</p></div></div>
+        <div class="track"><span class="track-code">F</span><div><b>Keerthana M R</b><i>AIS Filtering &amp; Vessel Attribution</i><p>Stages 9–10 · Spatial / temporal / trajectory filtering, anomaly scoring, 6-factor ranking, evidence report</p></div></div>
+      </div>
+      <p class="note">Sri Shakthi Institute of Engineering and Technology, Coimbatore · Prepared for the SIH 2026 evaluation panel and NTRO problem-statement owners.</p>
     </div>
   </section>
 
@@ -362,6 +474,7 @@
             <p>Developed the Sentinel-1 SAR image filtering and AI detection pipeline using the DARTIS and Trujillo
                oil-spill datasets and the YOLO11n detection model. Also handled overall system integration and deployment.</p>
             <div class="tech"><span>Sentinel-1</span><span>YOLO11n</span><span>DARTIS</span><span>Trujillo</span><span>ONNX</span><span>FastAPI</span><span>Docker</span></div>
+            <div class="member-actions"><a class="btn linkedin" href="https://www.linkedin.com/in/indhu-priyan-m-3973a2351/" target="_blank" rel="noopener" data-track="opened Indhu Priyan's LinkedIn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg> Connect on LinkedIn</a></div>
           </div>
         </article>
         <article class="member">
@@ -372,6 +485,7 @@
             <p>Developed the oil-spill segmentation module using U-Net with a ResNet-34 encoder to generate detailed
                pixel-level spill masks and boundaries.</p>
             <div class="tech"><span>U-Net</span><span>ResNet-34</span><span>PyTorch</span><span>Segmentation masks</span></div>
+            <div class="member-actions"><a class="btn linkedin" href="https://www.linkedin.com/in/mohan-kumar-m-b21911338/" target="_blank" rel="noopener" data-track="opened Mohan Kumar's LinkedIn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg> Connect on LinkedIn</a></div>
           </div>
         </article>
         <article class="member">
@@ -382,6 +496,7 @@
             <p>Developed the ML-based hindcast model and Bayesian fusion algorithm, combining ML and physics-based drift
                predictions with available evidence to estimate the probable spill origin and release window.</p>
             <div class="tech"><span>Hindcast</span><span>Bayesian fusion</span><span>Particle drift</span><span>Origin window</span></div>
+            <div class="member-actions"><a class="btn linkedin" href="https://www.linkedin.com/in/nandha-kumar-9a6465334/" target="_blank" rel="noopener" data-track="opened Nandhakumar's LinkedIn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg> Connect on LinkedIn</a></div>
           </div>
         </article>
         <article class="member">
@@ -392,6 +507,7 @@
             <p>Integrated environmental data using ERA5 for historical wind conditions and Copernicus Marine (CMEMS) for
                ocean-current data, supporting spill-drift reconstruction.</p>
             <div class="tech"><span>ERA5</span><span>CMEMS</span><span>Copernicus</span><span>NetCDF</span></div>
+            <div class="member-actions"><a class="btn linkedin" href="https://www.linkedin.com/in/pavitra-g-v-873572332/" target="_blank" rel="noopener" data-track="opened Pavitra's LinkedIn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg> Connect on LinkedIn</a></div>
           </div>
         </article>
         <article class="member">
@@ -402,6 +518,7 @@
             <p>Developed the AIS intelligence module for vessel trajectory reconstruction, spatial and temporal filtering,
                trajectory analysis and candidate vessel ranking.</p>
             <div class="tech"><span>AIS</span><span>MarineCadastre</span><span>Trajectories</span><span>Ranking</span></div>
+            <div class="member-actions"><a class="btn linkedin" href="https://www.linkedin.com/in/krishnan-s-a-516642359/" target="_blank" rel="noopener" data-track="opened Krishnan's LinkedIn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg> Connect on LinkedIn</a></div>
           </div>
         </article>
         <article class="member">
@@ -412,6 +529,7 @@
             <p>Developed the AIS intelligence module for vessel trajectory reconstruction, spatial and temporal filtering,
                trajectory analysis and candidate vessel ranking.</p>
             <div class="tech"><span>AIS</span><span>Spatio-temporal filters</span><span>Trajectory analysis</span><span>Ranking</span></div>
+            <div class="member-actions"><a class="btn linkedin" href="https://www.linkedin.com/in/keerthanaaa24/" target="_blank" rel="noopener" data-track="opened Keerthana's LinkedIn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg> Connect on LinkedIn</a></div>
           </div>
         </article>
       </div>
@@ -431,7 +549,7 @@
 <footer>
   <div class="wrap">
     <span><span class="wm"><span class="the">The </span><span class="dev">Dev</span><span class="founders">Founders</span></span> · OceanTrace · SIH 2026 · PS 26143 · Disaster Management</span>
-    <span><a href="#" id="report">Report a problem to the team</a> <span id="report-note"></span> · <a href="https://github.com/INDHUPRIYAN/AIS-SAR-OilSpill-Vessel-Attribution">Source on GitHub</a></span>
+    <span><a href="#" id="report">Report a problem to the team</a> <span id="report-note"></span> · <a href="https://www.youtube.com/@TheDevFounders" target="_blank" rel="noopener">YouTube</a></span>
   </div>
 </footer>
 
@@ -441,9 +559,6 @@
   // the system moves to another host; the link in the PPT never changes.
   var LIVE_URL = "https://oceantrace.searobin-reedfish.ts.net";
   var DEMO_RUN = "inv-gulf-flagship-20230108-2day";
-  // VIDEO_URL: a YouTube *embed* link, e.g. https://www.youtube.com/embed/VIDEO_ID
-  // Empty keeps the video section hidden.
-  var VIDEO_URL = "";
   // NTFY_TOPIC: the team's phone-notification channel (ntfy app). Must match the
   // repo variable NTFY_TOPIC used by .github/workflows/uptime.yml.
   var NTFY_TOPIC = "oceantrace-alerts-52bde82977";
@@ -486,17 +601,33 @@
       });
     });
   }
+  // The two explicit reports keep the "urgent" path: one ping per visit, high priority.
   wireNotify(document.getElementById("notify"), "notify-note", "A visitor found the live system OFFLINE");
   wireNotify(document.getElementById("report"), "report-note", "A visitor reported a problem with OceanTrace");
 
-  document.querySelectorAll("[data-live]").forEach(function (a) { a.href = LIVE_URL + "/"; });
+  document.querySelectorAll("[data-live]").forEach(function (a) { a.href = LIVE_URL + "/"; a.dataset.track = "opened the LIVE SYSTEM"; });
   document.querySelectorAll("[data-live-demo]").forEach(function (a) {
     a.href = LIVE_URL + "/investigation?run=" + encodeURIComponent(DEMO_RUN);
+    a.dataset.track = "opened the DEMO CASE";
   });
-  if (VIDEO_URL) {
-    document.getElementById("video-frame").src = VIDEO_URL;
-    document.getElementById("video").hidden = false;
+
+  // Every button and link marked data-track tells the team's phones it was
+  // used ("A visitor opened the live system"). Fire-and-forget with keepalive,
+  // so the ping survives the page navigating to the link's target. Low
+  // priority: a visit is news, not an alarm.
+  function track(what) {
+    var q = "?title=" + encodeURIComponent("OceanTrace: visitor " + what) + "&priority=low&tags=eyes";
+    try {
+      fetch("https://ntfy.sh/" + NTFY_TOPIC + q, { method: "POST", keepalive: true,
+        body: "A visitor " + what + " · " + new Date().toISOString().replace("T", " ").slice(0, 16) + " UTC · " +
+              (navigator.userAgent.indexOf("Mobile") >= 0 ? "phone" : "desktop") + " · from " + location.href })
+        .catch(function () {});
+    } catch (e) { /* a blocked request must never break the link */ }
   }
+  document.addEventListener("click", function (e) {
+    var el = e.target.closest("[data-track]");
+    if (el && el.dataset.track) track(el.dataset.track);
+  });
 
   // Live status: a no-cors request resolves when the server answers at all and
   // rejects when it is unreachable, which is exactly the question being asked.
