@@ -87,22 +87,16 @@ docker run --rm -p 7860:7860 -e OT_PUBLIC_EVALUATOR=true -e SESSION_COOKIE_SECUR
 ```
 Then open http://localhost:7860.
 
-## The project page (GitHub Pages) and its built-in replay
+## The project page (GitHub Pages)
 
 `site/` is the page linked from the SIH presentation
 (https://indhupriyan.github.io/AIS-SAR-OilSpill-Vessel-Attribution/). It is
 published by `.github/workflows/pages.yml` on every push to `main` that
 touches `site/`, and it points at the live system through `LIVE_URL` at the
-bottom of `site/index.html`.
-
-The page carries its own **incident replay** (`site/replay.js` +
-`site/demo/flagship.json`) so the flagship case can be shown while the live
-system is off. The JSON is exported from the sealed run's own artefacts, never
-hand-written; regenerate it whenever the flagship run changes:
-
-```bash
-.venv/Scripts/python scripts/site/export_demo.py      # -> site/demo/flagship.json (~470 KB, 95 KB gzipped)
-```
+bottom of `site/index.html`. It carries The DevFounders branding (light theme
+by default, dark theme via the toggle) and the team section from the
+"How we built OceanTrace" video description; member photos live in
+`site/assets/team/`.
 
 ## What the public evaluator can and cannot do
 
