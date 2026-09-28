@@ -19,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { Command, CornerDownLeft, Search } from "lucide-react";
 
 import { api } from "../lib/api";
+import { useSessionOptional } from "../lib/session";
 import { ROUTES, useShell } from "../lib/shell";
 
 const KIND_LABEL = {
@@ -33,6 +34,7 @@ function matches(text, needle) {
 
 export default function CommandPalette() {
   const { paletteOpen, closePalette, commands } = useShell();
+  const { isEvaluator } = useSessionOptional();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -42,14 +44,17 @@ export default function CommandPalette() {
   const listRef = useRef(null);
 
   /* Route commands are derived from ROUTES rather than listed again here, so
-   * a screen cannot exist that the palette cannot reach. */
+   * a screen cannot exist that the palette cannot reach. Roles do not filter
+   * here (a user outside a role sees the server's own 403, not a missing
+   * screen); only the public evaluator's hidden screens are left out, since
+   * those render view-only for it by design. */
   const localCommands = useMemo(() => [
-    ...ROUTES.filter((r) => r.palette !== false).map((r) => ({
+    ...ROUTES.filter((r) => r.palette !== false && !(isEvaluator && r.evaluator === false)).map((r) => ({
       id: `route:${r.to}`, group: "Go to", label: r.label,
       hint: r.to, run: () => navigate(r.to),
     })),
     ...commands,
-  ], [commands, navigate]);
+  ], [commands, navigate, isEvaluator]);
 
   const needle = q.trim().toLowerCase();
   const filtered = useMemo(() => (

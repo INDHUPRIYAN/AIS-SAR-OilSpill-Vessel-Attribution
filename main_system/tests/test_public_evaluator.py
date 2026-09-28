@@ -134,6 +134,33 @@ def test_evaluator_cannot_change_credentials_accounts_or_staffing(public_client,
     assert "public evaluator view" in r.json()["detail"]
 
 
+def test_evaluator_sees_credentials_view_only(public_client):
+    """The masked list is readable (configured / unset per provider); the
+    audit trail, which names the team's accounts, and the probe, which spends
+    a real credential, are not."""
+    assert public_client.get("/api/keys").status_code == 200
+    r = public_client.get("/api/keys/audit")
+    assert r.status_code == 403
+    assert "public evaluator view" in r.json()["detail"]
+    assert public_client.post("/api/keys/CDSE/test").status_code == 403
+
+
+def test_evaluator_is_not_told_who_owns_each_provider(public_client):
+    """Provider owners are team attribution, not evaluation material: blank
+    for the anonymous evaluator, present again for a signed-in account."""
+    for path, key in (("/api/apis/status", "providers"), ("/api/catalog", "providers")):
+        rows = public_client.get(path).json()[key]
+        assert rows, path
+        assert all(r["owner"] is None for r in rows), path
+
+    public_client.post("/api/auth/login",
+                       json={"email": "analyst@example.invalid", "password": GOOD_PASSWORD})
+    for path, key in (("/api/apis/status", "providers"), ("/api/catalog", "providers")):
+        rows = public_client.get(path).json()[key]
+        assert any(r["owner"] for r in rows), path
+    public_client.post("/api/auth/logout")
+
+
 def test_a_real_session_wins_and_signing_out_returns_to_the_evaluator(public_client):
     r = public_client.post("/api/auth/login",
                            json={"email": "analyst@example.invalid", "password": GOOD_PASSWORD})

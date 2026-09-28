@@ -86,3 +86,40 @@ docker run --rm -p 7860:7860 -e OT_PUBLIC_EVALUATOR=true -e SESSION_COOKIE_SECUR
   -v "$PWD/.deploy/bundle:/app/data:ro" -v "$PWD/.deploy/state:/app/state" oceantrace:local
 ```
 Then open http://localhost:7860.
+
+## The project page (GitHub Pages) and its built-in replay
+
+`site/` is the page linked from the SIH presentation
+(https://indhupriyan.github.io/AIS-SAR-OilSpill-Vessel-Attribution/). It is
+published by `.github/workflows/pages.yml` on every push to `main` that
+touches `site/`, and it points at the live system through `LIVE_URL` at the
+bottom of `site/index.html`.
+
+The page carries its own **incident replay** (`site/replay.js` +
+`site/demo/flagship.json`) so the flagship case can be shown while the live
+system is off. The JSON is exported from the sealed run's own artefacts, never
+hand-written; regenerate it whenever the flagship run changes:
+
+```bash
+.venv/Scripts/python scripts/site/export_demo.py      # -> site/demo/flagship.json (~470 KB, 95 KB gzipped)
+```
+
+## What the public evaluator can and cannot do
+
+With `OT_PUBLIC_EVALUATOR=true` (the deploy image's default) a visitor with no
+session runs as the evaluator account: the whole investigation workflow is
+open. What stays with the team, and is refused by the server
+(`backend/core/authz.py`) as well as hidden or rendered view-only in the UI:
+
+* provider credentials: the masked list is readable, but `PUT /api/keys`,
+  `POST /api/keys/{provider}/test` and `GET /api/keys/audit` are 403; the
+  Credentials and Data Sources screens show configured / unset with no form;
+* accounts and staffing: `/api/users` writes, zone deletion and officer
+  assignment; the Users & Roles and Credentials entries are not listed in the
+  sidebar or the command palette;
+* who built what: provider `owner` fields come back `null` and the Help page
+  drops its Owner column for the evaluator;
+* live workers and logs: AIS stream control, live-AIS pruning, log clearing.
+
+A real login always wins over the evaluator, so signing in as an admin
+restores every one of these.

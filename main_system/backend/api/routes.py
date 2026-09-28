@@ -34,7 +34,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from backend.core.authz import require_role
+from backend.core.authz import optional_user, public_view, require_role
 from backend.core.config import PROVIDER_BY_NAME, PROVIDERS, get_settings
 from backend.core.paths import host_path
 from backend.core.security import (encryption_available, encrypt, is_encrypted,
@@ -42,7 +42,7 @@ from backend.core.security import (encryption_available, encrypt, is_encrypted,
                                    verify_admin)
 from backend.models.db import (IMPLICIT_ROLES, VERDICTS, ApiCall, ApiKey,
                                ApiProvider, AuditLog, Decision, Investigation,
-                               Job, Run, get_db, utcnow)
+                               Job, Run, User, get_db, utcnow)
 from backend.services import audit as audit_service
 from backend.services import jobs as jobs_service
 from backend.services.pipeline import provenance
@@ -1169,8 +1169,10 @@ def _decision_dict(d: Decision) -> dict:
 
 
 @router.get("/apis/status")
-def api_status(db: Session = Depends(get_db)):
+def api_status(db: Session = Depends(get_db),
+               user: Optional[User] = Depends(optional_user)):
     """Everything the monitoring page renders, in one call."""
+    anonymous = public_view(user)
     out = []
     for spec in PROVIDERS:
         row = db.get(ApiProvider, spec["name"])
@@ -1182,7 +1184,8 @@ def api_status(db: Session = Depends(get_db)):
                     .order_by(ApiCall.occurred_utc.desc()).limit(20).all())
         ok = sum(c.status == "ok" for c in recent)
         out.append({
-            "provider": row.name, "purpose": row.purpose, "owner": row.owner,
+            "provider": row.name, "purpose": row.purpose,
+            "owner": None if anonymous else row.owner,
             "kind": row.kind, "status": row.status,
             "last_code": row.last_code, "last_latency_ms": row.last_latency_ms,
             "last_success_utc": row.last_success_utc,

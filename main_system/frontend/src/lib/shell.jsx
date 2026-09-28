@@ -41,7 +41,14 @@ import { matchPath } from "react-router-dom";
  * `roles`, when present, is the set of roles the nav SHOWS the entry to. That
  * is presentation only -- the server is what enforces, and every route stays
  * reachable by deep link and from the palette so a user told "not available
- * to your role" sees the server's own 403 rather than a missing screen. */
+ * to your role" sees the server's own 403 rather than a missing screen.
+ *
+ * `evaluator: false` marks a screen the public evaluator view neither lists
+ * nor offers in the palette. The evaluator holds an administrative role so it
+ * can run the whole workflow, but credentials and the team's accounts are the
+ * team's business: the server refuses their writes (backend/core/authz.py)
+ * and the page itself renders view-only, so the entry is hidden rather than
+ * shown as something that will refuse. */
 export const ROUTES = [
   // -- core -----------------------------------------------------------------
   { id: "dashboard", to: "/", label: "Dashboard", group: "main", icon: "LayoutDashboard",
@@ -89,9 +96,9 @@ export const ROUTES = [
   { id: "audit", to: "/system/audit", label: "Audit Trail", group: "system", icon: "ScrollText",
     roles: ["reviewer", "auditor", "admin", "super_admin"] },
   { id: "users", to: "/system/users", label: "Users & Roles", group: "system", icon: "Users",
-    roles: ["admin", "super_admin"] },
+    roles: ["admin", "super_admin"], evaluator: false },
   { id: "credentials", to: "/system/credentials", label: "Credentials", group: "system",
-    icon: "KeyRound", roles: ["admin", "super_admin"] },
+    icon: "KeyRound", roles: ["admin", "super_admin"], evaluator: false },
   // -- help -----------------------------------------------------------------
   { id: "help", to: "/help", label: "Help", group: "help", icon: "BookOpen" },
 ];
@@ -105,6 +112,13 @@ export const GROUP_LABEL = { operations: "Operations", system: "System" };
  * the main sidebar for them; for every other role it is part of System. */
 export function operationsInMain(role) {
   return role === "zone_officer";
+}
+
+/** Whether the nav and the palette list `route` for this session. */
+export function listedFor(route, role, { evaluator = false } = {}) {
+  if (route.roles && !route.roles.includes(role)) return false;
+  if (evaluator && route.evaluator === false) return false;
+  return true;
 }
 
 /** Router patterns for a route entry. */

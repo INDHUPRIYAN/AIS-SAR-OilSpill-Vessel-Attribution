@@ -128,7 +128,7 @@ export default function TopHeader({ status, ais, alertsSummary, onToggleNav }) {
         {isEvaluator ? (
           <>
             <span className="hdr-eval" data-testid="evaluator-badge"
-              title="Public evaluator view: no login, every screen open. Credential, account and zone-staffing changes need a production login.">
+              title="Public evaluator view: no login, the whole investigation workflow open. Provider credentials and team accounts are view-only; changing them needs a production login.">
               <Eye size={13} /> Public evaluator view
             </span>
             <button className="btn btn-primary hdr-login" onClick={openLogin} data-testid="login-button"

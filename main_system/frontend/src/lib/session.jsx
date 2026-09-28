@@ -73,6 +73,15 @@ export function useSession() {
   return ctx;
 }
 
+const NO_SESSION = Object.freeze({ user: null, isEvaluator: false });
+
+/** The session when a provider is above, else nobody. For shell chrome that
+ *  only *adapts* to the session (the palette lists fewer routes for the public
+ *  evaluator) and is also rendered on its own in tests. */
+export function useSessionOptional() {
+  return useContext(SessionContext) ?? NO_SESSION;
+}
+
 /** True when the signed-in user holds any of `roles`. Admin holds everything,
  *  mirroring `require_role` on the server so the UI and the API agree about
  *  what is permitted. This only hides controls -- the server is what enforces.

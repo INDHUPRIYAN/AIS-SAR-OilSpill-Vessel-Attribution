@@ -7,11 +7,15 @@
  * If encryption at rest is unavailable, that is shown as a prominent warning
  * rather than hidden. A key store that quietly downgrades to plaintext is
  * worse than one that refuses, because nobody finds out.
+ *
+ * The public evaluator (a public URL, no login) gets a view-only version:
+ * which providers are configured, from where, and nothing else. No inputs,
+ * no "Test connection", no audit trail -- the server refuses all three for
+ * that account, and a form that only ever refuses is not a form.
  */
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { KeyRound, Lock, LockOpen, Save, ShieldCheck, History, AlertTriangle } from "lucide-react";
+import { KeyRound, Lock, Save, History, AlertTriangle, Eye } from "lucide-react";
 
 import { Badge, Card, PageHeader, Spinner } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
@@ -20,7 +24,7 @@ import { hasRole, useSession } from "../lib/session";
 export default function Keys() {
   // Authority now comes from the session, not a shared token this page had to
   // hold in localStorage. A non-admin sees why rather than a failed request.
-  const { user, signOut } = useSession();
+  const { user, signOut, isEvaluator } = useSession();
   if (!hasRole(user)) {
     return (
       <div className="page">
@@ -33,7 +37,50 @@ export default function Keys() {
       </div>
     );
   }
+  if (isEvaluator) return <KeyOverview />;
   return <KeyManager onLogout={signOut} />;
+}
+
+/** What the public evaluator sees: configured or not, per provider field. */
+function KeyOverview() {
+  const { data, loading } = useApi(() => api.listKeys(), []);
+  const keys = data?.keys || [];
+  const byProvider = keys.reduce((acc, k) => {
+    (acc[k.provider] = acc[k.provider] || []).push(k);
+    return acc;
+  }, {});
+  return (
+    <div className="page" data-testid="keys-readonly">
+      <PageHeader icon={<KeyRound size={17} />} kicker="System" title="Credentials"
+        sub="View only in the public evaluator view. Which providers this host holds credentials for; the values are never shown to anyone." />
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-body" style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
+          <Eye size={17} color="var(--accent)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div className="tiny muted" style={{ lineHeight: 1.6 }}>
+            Provider credentials are managed by the team. Entering, replacing or testing a key
+            needs a production administrator login (Login, top right).
+          </div>
+        </div>
+      </div>
+      {loading && <Card><Spinner label="loading credentials…" /></Card>}
+      <div className="grid grid-2">
+        {Object.entries(byProvider).map(([provider, fields]) => (
+          <Card key={provider} title={provider}>
+            {fields.map((k) => (
+              <div key={`${k.provider}.${k.field}`}
+                style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9 }}>
+                <span className="mono tiny" style={{ color: "var(--ink-1)" }}>{k.field}</span>
+                {k.configured
+                  ? <span className="badge badge-ok">configured</span>
+                  : <span className="badge badge-neutral">unset</span>}
+                <span className="tiny muted" style={{ marginLeft: "auto" }}>{k.source}</span>
+              </div>
+            ))}
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function KeyManager({ onLogout }) {

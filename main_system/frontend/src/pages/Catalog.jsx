@@ -26,6 +26,7 @@ import {
 
 import { Badge, Card, DataState, Spinner } from "../components/ui";
 import { api, fmt, useApi } from "../lib/api";
+import { useSession } from "../lib/session";
 import { useUrlTab } from "../lib/urls";
 
 const STATUS_TONE = {
@@ -146,6 +147,7 @@ function Coverage({ coverage }) {
 
 export default function Catalog() {
   const [tab, setTab] = useUrlTab(["providers", "models", "health"]);
+  const { isEvaluator } = useSession();
   const { data: catalog, loading: l1, error: catalogError, reload: reloadCatalog } = useApi(() => api.catalog(), []);
   const { data: models } = useApi(() => api.models(), []);
   const { data: keys, reload: reloadKeys } = useApi(() => api.listKeys().catch(() => ({ keys: [] })), []);
@@ -248,14 +250,18 @@ export default function Catalog() {
                         ? <a className="btn btn-sm" href={PROVIDER_SITE[p.name].url} target="_blank" rel="noreferrer noopener" data-testid={`site-${p.name}`}
                             title={PROVIDER_SITE[p.name].url}><ExternalLink size={11} /> {fieldsOf(p.name).length ? "Get a key" : "Provider site"}</a>
                         : <span className="cat-dim">on this host</span>}
-                      {(fieldsOf(p.name).length > 0 || p.credentials !== "n_a") && (
+                      {/* The public evaluator sees whether a key is configured
+                          (the cell to the left) but gets no form: the server
+                          refuses its credential writes, and a button that
+                          only ever refuses is worse than no button. */}
+                      {!isEvaluator && (fieldsOf(p.name).length > 0 || p.credentials !== "n_a") && (
                         <button className="btn btn-sm" onClick={() => setOpenKey(openKey === p.name ? null : p.name)} data-testid={`enter-key-${p.name}`}>
                           <KeyRound size={11} /> {p.credentials === "configured" ? "Change key" : "Enter key"}
                         </button>
                       )}
                     </td>
                   </tr>
-                  {openKey === p.name && (
+                  {openKey === p.name && !isEvaluator && (
                     <tr className="cat-keyrow"><td colSpan={8}>
                       <KeyForm provider={p.name} fields={fieldsOf(p.name)} onDone={() => { reloadKeys(); reloadCatalog(); }} />
                     </td></tr>

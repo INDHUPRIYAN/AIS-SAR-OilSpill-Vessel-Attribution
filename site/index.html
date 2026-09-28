@@ -122,6 +122,101 @@
             border-radius: var(--radius); padding: 18px 20px; color: var(--muted); font-size: 15px; }
   .honest ul { margin: 8px 0 0; padding-left: 20px; }
 
+  /* replay */
+  .mono { font-family: var(--mono); }
+  [hidden] { display: none !important; }
+  /* align-items: start, not stretch: a stretched height would set the map's
+     width through its aspect-ratio and push it out of its column. */
+  .rp { display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .rp { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { .rp-map { aspect-ratio: 4 / 3; } }
+  .rp-map { position: relative; background: #05101c; border: 1px solid var(--line); border-radius: var(--radius);
+            overflow: hidden; aspect-ratio: 16 / 10; }
+  .rp-map svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .rp-hud { position: absolute; font: 600 12px/1.4 var(--mono); letter-spacing: .08em; color: var(--muted);
+            background: rgba(7,13,24,.7); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
+            pointer-events: none; display: flex; gap: 12px; }
+  .rp-hud-tl { top: 12px; left: 12px; color: var(--accent); }
+  .rp-hud-tl #rp-hud-clock { color: var(--text); }
+  .rp-hud-br { bottom: 12px; right: 12px; font-size: 11px; }
+  .rp-legend { position: absolute; left: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 4px 12px;
+               font: 11px var(--mono); color: var(--muted); pointer-events: none; max-width: 60%; }
+  .rp-legend i { display: inline-block; width: 14px; height: 3px; margin-right: 5px; vertical-align: middle; border-radius: 2px; }
+  .lg-slick { background: var(--oil); } .lg-box { background: transparent; border: 1px solid #f59e0b; height: 8px !important; }
+  .lg-track { background: #7d8ea8; } .lg-susp { background: var(--accent); } .lg-hind { background: #67e8f9; border-top: 1px dashed #67e8f9; height: 1px !important; }
+  .lg-fc { background: #a78bfa; }
+  .rp-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px;
+                padding: 24px; text-align: center; }
+  .rp-report { position: absolute; left: 12px; top: 52px; max-width: min(360px, calc(100% - 24px)); background: rgba(7,13,24,.9);
+               border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; backdrop-filter: blur(6px); }
+  .rp-report ol { list-style: none; margin: 8px 0; padding: 0; }
+  .rp-report li { display: flex; gap: 10px; align-items: baseline; font-size: 14px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+  .rp-report-chips { margin: 8px 0 10px; }
+  .rp-report .btn { width: 100%; justify-content: center; }
+  .rp-report .note { margin-top: 8px; }
+
+  /* SVG layers */
+  .rp-land path { fill: #0f1b2c; stroke: none; }
+  .rp-coast path { fill: none; stroke: #2a3b57; stroke-width: 1px; }
+  .rp-foot { fill: rgba(34,211,238,.04); stroke: var(--accent); stroke-width: 1.4px; stroke-opacity: .8; }
+  .rp-track { fill: none; stroke: #7d8ea8; stroke-width: 1px; transition: opacity .3s linear; }
+  .rp-track-filtered { stroke: var(--warn); }
+  .rp-track-suspect { stroke: var(--accent); }
+  .rp-box { fill: none; stroke-width: 1px; transition: opacity .25s linear; }
+  .rp-box-oil { stroke: var(--oil); } .rp-box-lookalike { stroke: #64748b; stroke-dasharray: 3 3; }
+  .rp-slick path { fill: rgba(249,115,22,.6); stroke: var(--oil); stroke-width: 1px; }
+  .rp-slick { transition: opacity .4s linear; }
+  .rp-axis { fill: none; stroke: #fde68a; stroke-width: 1.2px; stroke-dasharray: 6 4; }
+  .rp-ellipse { fill: rgba(103,232,249,.08); stroke: #67e8f9; stroke-width: 1.2px; stroke-dasharray: 5 4; }
+  .rp-trail { fill: none; stroke: #67e8f9; stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round; }
+  .rp-particles { fill: none; stroke: #a5f3fc; stroke-width: 2.4px; stroke-linecap: round; }
+  .rp-susp-trail { fill: none; stroke: var(--accent); stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round; }
+  .rp-ships { fill: none; stroke: #cbd5e1; stroke-width: 3px; stroke-linecap: round; }
+  .rp-fc { stroke-width: 1.4px; }
+  .rp-fc-outer { fill: rgba(167,139,250,.1); stroke: #a78bfa; stroke-dasharray: 6 4; }
+  .rp-fc-inner { fill: rgba(167,139,250,.28); stroke: #c4b5fd; }
+  .rp-scan { stroke: var(--accent); stroke-width: 1.5; stroke-opacity: .9; filter: drop-shadow(0 0 6px rgba(34,211,238,.9)); }
+  .rp-susp-mark circle { fill: var(--accent); stroke: #042f3a; stroke-width: 1.5; }
+  .rp-susp-mark text { font: 700 11px var(--mono); fill: var(--text); paint-order: stroke; stroke: #05101c; stroke-width: 3px; }
+  .rp-susp-mark.top circle { fill: #fff; r: 6; }
+  .rp-origin-dot { fill: #fff; }
+  .rp-origin-ping { fill: none; stroke: #67e8f9; stroke-width: 1.5; transform-origin: 0 0; animation: rp-ping 1.8s ease-out infinite; }
+  .rp-origin text { font: 600 11px var(--mono); fill: #a5f3fc; paint-order: stroke; stroke: #05101c; stroke-width: 3px; }
+  @keyframes rp-ping { from { transform: scale(.4); opacity: 1; } to { transform: scale(3.2); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .rp-origin-ping { animation: none; } }
+
+  /* side panel */
+  .rp-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .rp-rail { list-style: none; margin: 0; padding: 6px; background: var(--panel); border: 1px solid var(--line);
+             border-radius: var(--radius); display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .rp-rail li { display: flex; flex-direction: column; gap: 1px; padding: 8px 8px; border-radius: 8px; cursor: pointer;
+                font-size: 12px; color: var(--dim); border: 1px solid transparent; }
+  .rp-rail li:hover { background: var(--panel-2); }
+  .rp-rail li.done { color: var(--muted); } .rp-rail li.done .rp-rail-n { color: var(--ok); }
+  .rp-rail li.now { background: var(--panel-2); border-color: rgba(34,211,238,.45); color: var(--text); }
+  .rp-rail li.now .rp-rail-n { color: var(--accent); }
+  .rp-rail-n { font: 700 10px var(--mono); letter-spacing: .12em; }
+  .rp-rail-l { font-weight: 600; }
+  .rp-rail-m { font-size: 10px; color: var(--dim); }
+  .rp-now { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+  .rp-head { font-size: 19px; font-weight: 800; line-height: 1.25; margin: 8px 0 8px; letter-spacing: -.01em; }
+  .rp-body { font-size: 14px; color: var(--muted); line-height: 1.55; }
+  .rp-rank { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .rp-rank li { opacity: 0; }
+  .rp-rank-row { display: flex; gap: 10px; align-items: baseline; font-size: 14px; }
+  .rp-rank-n { font: 700 11px var(--mono); color: var(--accent); letter-spacing: .08em; }
+  .rp-rank-score { margin-left: auto; font-weight: 700; }
+  .rp-rank-bar { height: 5px; background: var(--panel-2); border-radius: 3px; overflow: hidden; margin: 4px 0 3px; }
+  .rp-rank-bar i { display: block; height: 100%; background: linear-gradient(90deg, #0e7490, var(--accent)); }
+  .rp-rank-sub { display: flex; flex-wrap: wrap; gap: 2px 10px; font: 10px var(--mono); color: var(--dim); }
+  .rp-rank-filtered { font-size: 12px; color: var(--warn); padding-top: 6px; border-top: 1px solid var(--line); }
+  .rp-bar { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .rp-bar .btn { padding: 9px 14px; }
+  #rp-play { min-width: 84px; justify-content: center; }
+  #rp-seek { flex: 1; accent-color: var(--accent); min-width: 0; }
+  #rp-time { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  @media (max-width: 560px) { .rp-legend { display: none; } .rp-rail { grid-template-columns: repeat(2, 1fr); } }
+
   footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--dim); font-size: 14px; }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; }
 </style>
@@ -139,6 +234,7 @@
       <div>OCEANTRACE<small>MARITIME INTELLIGENCE</small></div>
     </div>
     <nav class="nav" aria-label="Sections">
+      <a href="#replay">Replay</a>
       <a href="#how">How it works</a>
       <a href="#case">Demo case</a>
       <a href="#screens">Screens</a>
@@ -158,6 +254,7 @@
       <div class="cta">
         <a class="btn primary" data-live href="#" target="_blank" rel="noopener">Launch the live system →</a>
         <a class="btn" data-live-demo href="#" target="_blank" rel="noopener">Open the demo case</a>
+        <a class="btn" href="#replay">▶ Watch the replay here</a>
         <span class="status" id="status" role="status"><span class="dot"></span><span id="status-text">Checking live system…</span></span>
         <button class="btn" id="notify" type="button" hidden>Notify the team</button>
       </div>
@@ -179,6 +276,54 @@
         <div class="stat"><b>5 / 5</b><span>flagship pipeline stages run on real inputs, none simulated</span></div>
         <div class="stat"><b>12</b><span>external data providers health-checked live, with fallback chains</span></div>
       </div>
+    </div>
+  </section>
+
+  <section id="replay">
+    <div class="wrap">
+      <div class="eyebrow">Incident replay · built into this page</div>
+      <h2>Watch the flagship case, even when the live system is off</h2>
+      <p class="sub">The sealed run <code class="mono">inv-gulf-flagship-20230108-2day</code> replayed from its own
+        artefacts, in your browser: no server, no login. Every number is the pipeline's recorded output;
+        nothing is recomputed here.</p>
+      <div class="rp" id="rp">
+        <div class="rp-map">
+          <svg id="rp-svg" viewBox="0 0 960 600" role="img" aria-label="Map of the Gulf of Mexico showing the detected slick, its drift back to the origin, AIS traffic and the ranked suspect vessels"></svg>
+          <div class="rp-hud rp-hud-tl"><span id="rp-hud-stage">01 · ACQUIRE</span><span id="rp-hud-clock" class="mono"></span></div>
+          <div class="rp-hud rp-hud-br mono">⌗ <span data-rp-digest>fd42e078</span> · SEALED · SAR REAL · AIS REAL</div>
+          <div class="rp-legend">
+            <span><i class="lg-slick"></i>slick</span><span><i class="lg-box"></i>candidate</span>
+            <span><i class="lg-track"></i>AIS track</span><span><i class="lg-susp"></i>suspect</span>
+            <span><i class="lg-hind"></i>hindcast</span><span><i class="lg-fc"></i>forecast</span>
+          </div>
+          <div class="rp-report" id="rp-report" hidden>
+            <div class="eyebrow">Ranked candidates · weighted evidence, not probability</div>
+            <ol id="rp-report-list"></ol>
+            <div class="rp-report-chips"><span class="chip">SAR REAL</span><span class="chip">CURRENTS REAL</span><span class="chip">WIND REAL</span><span class="chip">AIS REAL</span><span class="chip">SEALED ⌗ <span data-rp-digest>fd42e078</span></span></div>
+            <a class="btn primary" data-live-demo href="#" target="_blank" rel="noopener">Open this case in the live system →</a>
+            <p class="note" id="rp-report-note">The live system runs the same case from the same artefacts, with every panel interactive.</p>
+          </div>
+          <div class="rp-loading" id="rp-loading">Loading the sealed run…</div>
+        </div>
+        <aside class="rp-side">
+          <ol class="rp-rail" id="rp-rail" aria-label="Pipeline stages"></ol>
+          <div class="rp-now">
+            <div class="eyebrow" id="rp-kicker"></div>
+            <div class="rp-head" id="rp-head"></div>
+            <div class="rp-body" id="rp-body"></div>
+            <ol class="rp-rank" id="rp-rank" hidden></ol>
+          </div>
+        </aside>
+      </div>
+      <div class="rp-bar">
+        <button class="btn" id="rp-play" type="button" aria-pressed="false">Play</button>
+        <button class="btn" id="rp-restart" type="button" title="Restart" aria-label="Restart">↻</button>
+        <input type="range" id="rp-seek" min="0" max="1000" value="0" aria-label="Replay position">
+        <span id="rp-time" class="mono"></span>
+      </div>
+      <p class="note">Recording of a real run: Sentinel-1 scene from the Copernicus cache, CMEMS currents, ERA5 wind and
+        MarineCadastre AIS, processed by the same models that ship in the live system. Scores are evidence weights
+        for investigators, not proof of guilt.</p>
     </div>
   </section>
 
@@ -259,7 +404,8 @@
       <div class="honest">
         <b style="color:var(--text)">What to know before you open the live system</b>
         <ul>
-          <li>It runs on the team's own machine. If the status above says <i>offline</i>, the screens on this page show the same system.</li>
+          <li>It runs on the team's own machine. If the status above says <i>offline</i>, the <a href="#replay">replay on this page</a> plays the flagship case from its sealed artefacts, and the screens below show the same system.</li>
+          <li>The live system opens as a read-and-run evaluator: provider credentials and the team's accounts are view-only there. Changing them needs a production login.</li>
           <li>Sealed demo runs open instantly. Starting a new analysis downloads a full satellite scene and can take several minutes.</li>
           <li>Candidate scores are weighted evidence for investigators, not proof of guilt and not probabilities.</li>
         </ul>
@@ -348,11 +494,14 @@
     fetch(LIVE_URL + "/healthz?t=" + Date.now(), { mode: "no-cors", cache: "no-store", signal: ctrl && ctrl.signal })
       .then(function () { box.className = "status live"; text.textContent = "Live now"; })
       .catch(function () {
-        box.className = "status off"; text.textContent = "Offline right now: see the screens below";
+        box.className = "status off"; text.textContent = "Offline right now: watch the replay below";
         document.getElementById("notify").hidden = false;
+        var rn = document.getElementById("rp-report-note");
+        if (rn) rn.textContent = "The live system is offline right now; this replay is the recording of the same sealed run.";
       })
       .then(function () { clearTimeout(timer); });
   })();
 </script>
+<script src="replay.js" defer></script>
 </body>
 </html>

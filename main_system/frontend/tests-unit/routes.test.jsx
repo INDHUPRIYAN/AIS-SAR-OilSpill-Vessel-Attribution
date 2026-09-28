@@ -12,7 +12,7 @@ import { matchPath } from "react-router-dom";
 
 import { PAGES } from "../src/App";
 import { navModel } from "../src/components/shell/LeftNav";
-import { MAIN_ORDER, ROUTES, crumbsFor, pathsOf, routeFor } from "../src/lib/shell";
+import { MAIN_ORDER, ROUTES, crumbsFor, listedFor, pathsOf, routeFor } from "../src/lib/shell";
 import { LEGACY_PATHS, canonical, url, workspaceUrl } from "../src/lib/urls";
 
 const live = (pathname) => ROUTES.some((r) => pathsOf(r).some((p) => matchPath({ path: p, end: true }, pathname)));
@@ -121,6 +121,22 @@ describe("the one sidebar", () => {
     expect(ids("analyst")).not.toContain("credentials");
     expect(ids("super_admin")).toContain("credentials");
     expect(routeFor("/system/credentials").id).toBe("credentials");
+  });
+
+  it("keeps credentials and accounts off the public evaluator's sidebar and palette", () => {
+    // The evaluator holds the admin role, so the role filter alone would list both.
+    const admin = navModel("admin").lowerGroups[0].items.map((r) => r.id);
+    expect(admin).toEqual(expect.arrayContaining(["credentials", "users"]));
+    const evaluator = navModel("admin", { evaluator: true }).lowerGroups[0].items.map((r) => r.id);
+    expect(evaluator).not.toContain("credentials");
+    expect(evaluator).not.toContain("users");
+    expect(evaluator).toContain("data-sources");
+    expect(navModel("admin", { evaluator: true }).help.map((r) => r.id)).toEqual(["help"]);
+    // The helper the sidebar uses; the palette applies only the evaluator half.
+    const cred = ROUTES.find((r) => r.id === "credentials");
+    expect(listedFor(cred, "admin")).toBe(true);
+    expect(listedFor(cred, "admin", { evaluator: true })).toBe(false);
+    expect(listedFor(ROUTES.find((r) => r.id === "map"), "admin", { evaluator: true })).toBe(true);
   });
 });
 

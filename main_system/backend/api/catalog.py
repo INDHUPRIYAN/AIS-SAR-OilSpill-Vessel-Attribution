@@ -41,7 +41,8 @@ from sqlalchemy.orm import Session
 
 from backend.core.config import (PROVIDER_BY_NAME, PROVIDER_COVERAGE, PROVIDERS,
                                  get_settings)
-from backend.models.db import ApiProvider, Run, get_db
+from backend.core.authz import optional_user, public_view
+from backend.models.db import ApiProvider, Run, User, get_db
 from backend.services.providers import health
 
 router = APIRouter()
@@ -58,8 +59,10 @@ _PROCESS_START = time.time()
 # --------------------------------------------------------------------------
 
 @router.get("/catalog")
-def data_catalog(db: Session = Depends(get_db)):
+def data_catalog(db: Session = Depends(get_db),
+                 user: Optional[User] = Depends(optional_user)):
     """Every provider: what it is for, whether it works, and what it covers."""
+    anonymous = public_view(user)
     rows = {r.name: r for r in db.query(ApiProvider).all()}
     out: List[Dict[str, Any]] = []
 
@@ -72,7 +75,7 @@ def data_catalog(db: Session = Depends(get_db)):
             "name": spec["name"],
             "purpose": spec["purpose"],
             "kind": spec["kind"],
-            "owner": spec["owner"],
+            "owner": None if anonymous else spec["owner"],
             "chain": spec["chain"],
             "deployment": deployment,
             "status": status,

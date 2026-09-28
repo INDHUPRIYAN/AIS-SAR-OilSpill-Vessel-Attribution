@@ -128,11 +128,20 @@ EVALUATOR_BLOCKED_WRITES = (
     "/api/incidents/backfill-zones",
 )
 
+# Reads the evaluator may not make. The credential audit trail names the
+# team's own accounts and which provider secrets they rotated: that is the
+# team's business, not the evaluation's. The masked credential list itself
+# stays readable (configured / unset per provider, last four characters at
+# most), so the Data Sources screen can still say what the host is running on.
+EVALUATOR_BLOCKED_READS = (
+    "/api/keys/audit",
+)
+
 
 def _evaluator_blocked(request: Request) -> bool:
-    if request.method in ("GET", "HEAD", "OPTIONS"):
-        return False
     path = request.url.path
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        return any(path.startswith(p) for p in EVALUATOR_BLOCKED_READS)
     if any(path.startswith(p) for p in EVALUATOR_BLOCKED_WRITES):
         return True
     # Zone deletion and officer assignment are jurisdictional facts; the
@@ -170,6 +179,18 @@ def evaluator_user(db: Session) -> User:
 def is_evaluator(user: Optional[User]) -> bool:
     return bool(user is not None and settings.public_evaluator
                 and user.email == settings.evaluator_email)
+
+
+def public_view(user: Optional[User]) -> bool:
+    """True when the response is going to the anonymous public.
+
+    Provider listings carry the name of the team member who owns each
+    integration. That is attribution for the team and the judges who sign in,
+    not for an anonymous visitor on a public URL, so routes that return it
+    blank the field for the evaluator. The same helper guards any future field
+    of that kind, so the rule is stated once.
+    """
+    return is_evaluator(user)
 
 
 def _session_user(request: Request, db: Session) -> Optional[User]:

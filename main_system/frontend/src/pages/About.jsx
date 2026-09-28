@@ -6,6 +6,7 @@
 
 import { BookOpen, Cpu, Database, GitBranch, ShieldAlert } from "lucide-react";
 import { Card, PageHeader } from "../components/ui";
+import { useSession } from "../lib/session";
 
 const STAGES = [
   ["Scene", "Sentinel-1 GRD from CDSE, ASF fallback, local cache", "Pavitra"],
@@ -42,6 +43,10 @@ const LIMITS = [
 ];
 
 export default function About() {
+  // Who built which stage is for the team and for judges who sign in. The
+  // anonymous public evaluator gets the pipeline without the names.
+  const { isEvaluator } = useSession();
+  const showOwners = !isEvaluator;
   return (
     <div className="page">
       <PageHeader icon={<BookOpen size={17} />} kicker="System" title="About OceanTrace"
@@ -69,7 +74,7 @@ export default function About() {
           <thead>
             <tr>
               <th style={{ width: 30 }}>#</th><th>Stage</th>
-              <th>Implementation</th><th>Owner</th>
+              <th>Implementation</th>{showOwners && <th>Owner</th>}
             </tr>
           </thead>
           <tbody>
@@ -78,7 +83,7 @@ export default function About() {
                 <td className="mono tiny muted">{i + 1}</td>
                 <td style={{ fontWeight: 600 }}>{name}</td>
                 <td className="tiny muted">{impl}</td>
-                <td className="tiny">{owner}</td>
+                {showOwners && <td className="tiny" data-testid="stage-owner">{owner}</td>}
               </tr>
             ))}
           </tbody>
@@ -110,7 +115,7 @@ export default function About() {
         </span>}>
           <Entry
             name="Stage 1 · screen"
-            who="YOLO11n, single class — Mohan Kumar M"
+            who={showOwners ? "YOLO11n, single class — Mohan Kumar M" : "YOLO11n, single class"}
             use="Answers whether a dark patch is oil at all. Trained with look-alike patches as background, so it learns to stay quiet on calm water and internal waves."
           />
           <Entry

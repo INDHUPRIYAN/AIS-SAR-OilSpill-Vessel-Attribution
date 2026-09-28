@@ -23,7 +23,7 @@ export const NAV_ICONS = { Activity, BarChart3, BookOpen, BrainCircuit, Clipboar
 const Icons = NAV_ICONS;
 
 import { useSession } from "../../lib/session";
-import { GROUP_LABEL, MAIN_ORDER, ROUTES, operationsInMain, routeFor } from "../../lib/shell";
+import { GROUP_LABEL, MAIN_ORDER, ROUTES, listedFor, operationsInMain, routeFor } from "../../lib/shell";
 import { roleLabel } from "./TopHeader";
 
 const NAV_KEY = "oceantrace.nav";
@@ -50,8 +50,8 @@ const SUBHEAD = { operations: "Incident routing" };
 
 /** The sidebar's structure for a role: main items, then groups. Exported so
  *  the tests can assert placement without rendering. */
-export function navModel(role) {
-  const visible = ROUTES.filter((r) => r.group && (!r.roles || r.roles.includes(role)));
+export function navModel(role, session = {}) {
+  const visible = ROUTES.filter((r) => r.group && listedFor(r, role, session));
   const byId = Object.fromEntries(visible.map((r) => [r.id, r]));
   const group = (g) => visible.filter((r) => r.group === g);
   const opsMain = operationsInMain(role);
@@ -141,12 +141,12 @@ function Group({ group, collapsed, currentId, open, onToggle, badgeFor, critical
 }
 
 export default function LeftNav({ collapsed, alertsSummary, drawerOpen = false, onNavigate }) {
-  const { user } = useSession();
+  const { user, isEvaluator } = useSession();
   const location = useLocation();
   const role = user?.role;
   const openAlerts = alertsSummary?.open ?? 0;
   const critical = (alertsSummary?.by_severity?.critical ?? 0) > 0;
-  const model = navModel(role);
+  const model = navModel(role, { evaluator: isEvaluator });
   const currentId = routeFor(location.pathname)?.id;
 
   const [groups, setGroups] = useState(readGroups);
