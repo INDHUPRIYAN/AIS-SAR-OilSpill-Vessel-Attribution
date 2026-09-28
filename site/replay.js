@@ -141,7 +141,7 @@
         time: function () { return acquired; },
         kicker: "Stage 2 · Two-stage AI detection",
         head: nf(D.detect.classes.oil) + " oil candidates among " + nf(D.detect.classes.oil + D.detect.classes.lookalike) + " dark patches",
-        body: "YOLO screen then U-Net segmentation, both ONNX on CPU. " + (screenWarn ? screenWarn.replace("screen rejected", "The screen rejected") + " as look-alikes. " : "") +
+        body: "YOLO screen then U-Net segmentation, both ONNX on CPU. " + (screenWarn ? screenWarn.replace("screen rejected", "The screen rejected") + ". " : "") +
           "Confidence " + D.detect.confidence.toFixed(2) + (infWarn ? " · " + infWarn : "") + ".",
         meta: det.seconds ? nf(det.seconds) + " s" : "" },
       { id: "characterise", label: "Characterise", dur: 6, cam: fit(padBox(slickBox, 1.7), 50),
